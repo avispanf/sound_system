@@ -9,6 +9,7 @@ namespace AudioMW
         [SerializeField] private AudioClip introClip;
         [SerializeField] private AudioClip loopClip;
         [SerializeField] private bool loop = true;
+        [SerializeField] private MusicLayer[] layers = new MusicLayer[0];
 
         [SerializeField] private double tempo = 120.0;
         [SerializeField] private int beatsPerBar = 4;
@@ -26,6 +27,33 @@ namespace AudioMW
         {
             get { return loopClip; }
             set { loopClip = value; }
+        }
+
+        public MusicLayer[] Layers
+        {
+            get { return layers; }
+            set { layers = value ?? new MusicLayer[0]; }
+        }
+
+        public bool HasLayers
+        {
+            get
+            {
+                if (layers == null)
+                {
+                    return false;
+                }
+
+                for (int i = 0; i < layers.Length; i++)
+                {
+                    if (layers[i] != null && layers[i].IsValid)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
         }
 
         public bool Loop
@@ -60,7 +88,32 @@ namespace AudioMW
 
         public bool HasContent
         {
-            get { return introClip != null || loopClip != null; }
+            get { return introClip != null || loopClip != null || HasLayers; }
+        }
+
+        public double BodyDuration
+        {
+            get
+            {
+                double longest = GetExactDuration(loopClip);
+
+                if (layers != null)
+                {
+                    for (int i = 0; i < layers.Length; i++)
+                    {
+                        if (layers[i] != null && layers[i].IsValid)
+                        {
+                            double duration = GetExactDuration(layers[i].Clip);
+                            if (duration > longest)
+                            {
+                                longest = duration;
+                            }
+                        }
+                    }
+                }
+
+                return longest;
+            }
         }
 
         public static double GetExactDuration(AudioClip clip)
