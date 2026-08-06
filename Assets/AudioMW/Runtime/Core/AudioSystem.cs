@@ -49,6 +49,22 @@ namespace AudioMW
             }
         }
 
+        public static void LoadBank(SoundBank bank)
+        {
+            if (bank != null)
+            {
+                bank.Load();
+            }
+        }
+
+        public static void UnloadBank(SoundBank bank)
+        {
+            if (bank != null)
+            {
+                bank.Unload();
+            }
+        }
+
         public static void Shutdown()
         {
             if (AudioRuntime.Exists)

@@ -15,6 +15,8 @@ namespace AudioMW
         private readonly ParameterStore localParameters = new ParameterStore();
         private readonly System.Collections.Generic.List<Voice> followers = new System.Collections.Generic.List<Voice>();
         private BlendLayer blendLayer;
+
+        public event System.Action<Voice> Released;
         private float startTime;
 
         public Voice(AudioSource source)
@@ -218,6 +220,14 @@ namespace AudioMW
             active = false;
             localParameters.Clear();
             blendLayer = null;
+
+            System.Action<Voice> handler = Released;
+            Released = null;
+            if (handler != null)
+            {
+                handler(this);
+            }
+
             currentEvent = null;
             attachTarget = null;
             source.clip = null;
