@@ -17,6 +17,7 @@ namespace AudioMW
         private int rejectedRequests;
         private MusicPlayer music;
         private VoiceOverDirector voiceOver;
+        private readonly EventDebugger debugger = new EventDebugger();
 
         public static bool Exists
         {
@@ -34,6 +35,11 @@ namespace AudioMW
 
                 return instance;
             }
+        }
+
+        public EventDebugger Debugger
+        {
+            get { return debugger; }
         }
 
         public VoiceOverDirector VoiceOver
@@ -133,18 +139,40 @@ namespace AudioMW
             if (soundEvent == null)
             {
                 rejectedRequests++;
+                debugger.Record(null, PlaybackOutcome.RejectedNullEvent, null, position, attach != null);
                 return null;
             }
 
             playRequests++;
 
-            Voice result = soundEvent.IsBlendContainer
+            bool blend = soundEvent.IsBlendContainer;
+            Voice result = blend
                 ? PlayBlend(soundEvent, position, attach)
                 : PlaySimple(soundEvent, position, attach);
 
             if (result == null)
             {
                 rejectedRequests++;
+
+                PlaybackOutcome outcome;
+                if (blend)
+                {
+                    outcome = PlaybackOutcome.RejectedNoValidLayers;
+                }
+                else if (!soundEvent.HasClips)
+                {
+                    outcome = PlaybackOutcome.RejectedNoClips;
+                }
+                else
+                {
+                    outcome = PlaybackOutcome.RejectedNoVoice;
+                }
+
+                debugger.Record(soundEvent, outcome, null, position, attach != null);
+            }
+            else
+            {
+                debugger.Record(soundEvent, PlaybackOutcome.Played, result, position, attach != null);
             }
 
             return result;

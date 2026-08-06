@@ -15,6 +15,9 @@ namespace AudioMW
         private readonly ParameterStore localParameters = new ParameterStore();
         private readonly System.Collections.Generic.List<Voice> followers = new System.Collections.Generic.List<Voice>();
         private BlendLayer blendLayer;
+        private float lastVolumeMultiplier = 1f;
+        private float lastPitchMultiplier = 1f;
+        private float lastBlendWeight = 1f;
 
         public event System.Action<Voice> Released;
         private float startTime;
@@ -43,6 +46,31 @@ namespace AudioMW
         public System.Collections.Generic.IReadOnlyList<Voice> Followers
         {
             get { return followers; }
+        }
+
+        public float BaseVolume
+        {
+            get { return baseVolume; }
+        }
+
+        public float BasePitch
+        {
+            get { return basePitch; }
+        }
+
+        public float LastVolumeMultiplier
+        {
+            get { return lastVolumeMultiplier; }
+        }
+
+        public float LastPitchMultiplier
+        {
+            get { return lastPitchMultiplier; }
+        }
+
+        public float LastBlendWeight
+        {
+            get { return lastBlendWeight; }
         }
 
         public BlendLayer BlendLayer
@@ -159,7 +187,10 @@ namespace AudioMW
 
             if (!currentEvent.HasParameterBindings)
             {
-                source.volume = Mathf.Clamp01(baseVolume * EvaluateBlendWeight());
+                lastVolumeMultiplier = 1f;
+                lastPitchMultiplier = 1f;
+                lastBlendWeight = EvaluateBlendWeight();
+                source.volume = Mathf.Clamp01(baseVolume * lastBlendWeight);
                 return;
             }
 
@@ -195,7 +226,11 @@ namespace AudioMW
                 }
             }
 
-            source.volume = Mathf.Clamp01(baseVolume * volumeMultiplier * EvaluateBlendWeight());
+            lastVolumeMultiplier = volumeMultiplier;
+            lastPitchMultiplier = pitchMultiplier;
+            lastBlendWeight = EvaluateBlendWeight();
+
+            source.volume = Mathf.Clamp01(baseVolume * volumeMultiplier * lastBlendWeight);
             source.pitch = Mathf.Clamp(basePitch * pitchMultiplier, 0.01f, 3f);
         }
 

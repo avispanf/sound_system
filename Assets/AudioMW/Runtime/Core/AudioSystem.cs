@@ -119,6 +119,11 @@ namespace AudioMW
             get { return AudioRuntime.Instance.VoiceOver; }
         }
 
+        public static EventDebugger Debugger
+        {
+            get { return AudioRuntime.Instance.Debugger; }
+        }
+
         public static void Shutdown()
         {
             if (AudioRuntime.Exists)
