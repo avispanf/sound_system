@@ -26,6 +26,9 @@ namespace AudioMW
         [SerializeField] private AudioRolloffMode rolloffMode = AudioRolloffMode.Logarithmic;
         [SerializeField, Range(0, 256)] private int priority = 128;
         [SerializeField] private ParameterBinding[] parameterBindings = new ParameterBinding[0];
+        [SerializeField] private ContainerMode containerMode = ContainerMode.Simple;
+        [SerializeField] private SoundParameter blendParameter;
+        [SerializeField] private BlendLayer[] blendLayers = new BlendLayer[0];
 
         [NonSerialized] private ClipSelector selector;
 
@@ -99,6 +102,29 @@ namespace AudioMW
         {
             get { return parameterBindings; }
             set { parameterBindings = value ?? new ParameterBinding[0]; }
+        }
+
+        public ContainerMode ContainerMode
+        {
+            get { return containerMode; }
+            set { containerMode = value; }
+        }
+
+        public SoundParameter BlendParameter
+        {
+            get { return blendParameter; }
+            set { blendParameter = value; }
+        }
+
+        public BlendLayer[] BlendLayers
+        {
+            get { return blendLayers; }
+            set { blendLayers = value ?? new BlendLayer[0]; }
+        }
+
+        public bool IsBlendContainer
+        {
+            get { return containerMode == ContainerMode.Blend && blendLayers != null && blendLayers.Length > 0; }
         }
 
         public bool HasParameterBindings

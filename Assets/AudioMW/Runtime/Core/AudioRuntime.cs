@@ -99,6 +99,13 @@ namespace AudioMW
                 return null;
             }
 
+            return soundEvent.IsBlendContainer
+                ? PlayBlend(soundEvent, position, attach)
+                : PlaySimple(soundEvent, position, attach);
+        }
+
+        private Voice PlaySimple(SoundEvent soundEvent, Vector3 position, Transform attach)
+        {
             PlaybackParameters parameters = soundEvent.Resolve(rng);
             if (!parameters.IsValid)
             {
@@ -113,6 +120,49 @@ namespace AudioMW
 
             voice.Play(soundEvent, parameters, position, attach);
             return voice;
+        }
+
+        private Voice PlayBlend(SoundEvent soundEvent, Vector3 position, Transform attach)
+        {
+            BlendLayer[] layers = soundEvent.BlendLayers;
+            Voice primary = null;
+
+            for (int i = 0; i < layers.Length; i++)
+            {
+                BlendLayer layer = layers[i];
+                if (layer == null || !layer.IsValid)
+                {
+                    continue;
+                }
+
+                Voice voice = pool.Acquire();
+                if (voice == null)
+                {
+                    break;
+                }
+
+                PlaybackParameters parameters = new PlaybackParameters
+                {
+                    Clip = layer.Clip,
+                    Volume = soundEvent.Volume,
+                    Pitch = soundEvent.Pitch,
+                    IsValid = true
+                };
+
+                voice.BlendLayer = layer;
+                voice.Play(soundEvent, parameters, position, attach);
+
+                if (primary == null)
+                {
+                    primary = voice;
+                }
+                else
+                {
+                    primary.AddFollower(voice);
+                }
+            }
+
+            return primary;
         }
 
         public void StopAll()

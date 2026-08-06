@@ -13,6 +13,8 @@ namespace AudioMW
         private float baseVolume = 1f;
         private float basePitch = 1f;
         private readonly ParameterStore localParameters = new ParameterStore();
+        private readonly System.Collections.Generic.List<Voice> followers = new System.Collections.Generic.List<Voice>();
+        private BlendLayer blendLayer;
         private float startTime;
 
         public Voice(AudioSource source)
@@ -34,6 +36,17 @@ namespace AudioMW
         public float StartTime
         {
             get { return startTime; }
+        }
+
+        public System.Collections.Generic.IReadOnlyList<Voice> Followers
+        {
+            get { return followers; }
+        }
+
+        public BlendLayer BlendLayer
+        {
+            get { return blendLayer; }
+            set { blendLayer = value; }
         }
 
         public ParameterStore LocalParameters
@@ -74,6 +87,13 @@ namespace AudioMW
 
         public void Stop()
         {
+            for (int i = 0; i < followers.Count; i++)
+            {
+                followers[i].Stop();
+            }
+
+            followers.Clear();
+
             if (!active)
             {
                 return;
@@ -81,6 +101,14 @@ namespace AudioMW
 
             source.Stop();
             Release();
+        }
+
+        public void AddFollower(Voice follower)
+        {
+            if (follower != null && follower != this)
+            {
+                followers.Add(follower);
+            }
         }
 
         public bool Tick()
@@ -114,8 +142,14 @@ namespace AudioMW
 
         public void ApplyParameters()
         {
-            if (currentEvent == null || !currentEvent.HasParameterBindings)
+            if (currentEvent == null)
             {
+                return;
+            }
+
+            if (!currentEvent.HasParameterBindings)
+            {
+                source.volume = Mathf.Clamp01(baseVolume * EvaluateBlendWeight());
                 return;
             }
 
@@ -151,8 +185,27 @@ namespace AudioMW
                 }
             }
 
-            source.volume = Mathf.Clamp01(baseVolume * volumeMultiplier);
+            source.volume = Mathf.Clamp01(baseVolume * volumeMultiplier * EvaluateBlendWeight());
             source.pitch = Mathf.Clamp(basePitch * pitchMultiplier, 0.01f, 3f);
+        }
+
+        private float EvaluateBlendWeight()
+        {
+            if (blendLayer == null || currentEvent == null || currentEvent.BlendParameter == null)
+            {
+                return 1f;
+            }
+
+            SoundParameter parameter = currentEvent.BlendParameter;
+            float raw;
+            if (!localParameters.TryGet(parameter, out raw))
+            {
+                raw = AudioRuntime.Exists
+                    ? AudioRuntime.Instance.GlobalParameters.Get(parameter)
+                    : parameter.DefaultValue;
+            }
+
+            return blendLayer.EvaluateWeight(parameter.Normalize(parameter.Clamp(raw)));
         }
 
         private bool HadAttachTarget()
@@ -164,6 +217,7 @@ namespace AudioMW
         {
             active = false;
             localParameters.Clear();
+            blendLayer = null;
             currentEvent = null;
             attachTarget = null;
             source.clip = null;
