@@ -30,6 +30,11 @@ namespace AudioMW
         private int lastBeatIndex = -1;
         private int lastBarIndex = -1;
 
+        private readonly List<Channel> pendingChannels = new List<Channel>();
+        private readonly List<AudioSource> stingerSources = new List<AudioSource>();
+        private MusicTrack pendingTrack;
+        private double pendingStartDspTime;
+
         public event Action<int> BeatTick;
         public event Action<int> BarTick;
 
@@ -58,6 +63,21 @@ namespace AudioMW
             get { return channels.Count; }
         }
 
+        public bool IsTransitionPending
+        {
+            get { return pendingTrack != null; }
+        }
+
+        public double PendingStartDspTime
+        {
+            get { return pendingStartDspTime; }
+        }
+
+        public MusicTrack PendingTrack
+        {
+            get { return pendingTrack; }
+        }
+
         public MusicPlayer(Transform parent)
         {
             this.parent = parent;
@@ -83,7 +103,7 @@ namespace AudioMW
             clock.Configure(track.Tempo, track.BeatsPerBar);
             clock.Start(startTime);
 
-            BuildChannels(track);
+            BuildChannels(track, channels);
 
             double bodyStart = startTime;
 
@@ -121,6 +141,7 @@ namespace AudioMW
                 introSource.clip = null;
             }
 
+            CancelPendingTransition();
             ClearChannels();
 
             clock.Stop();
@@ -162,6 +183,11 @@ namespace AudioMW
 
             double now = AudioSettings.dspTime;
 
+            if (pendingTrack != null && now >= pendingStartDspTime)
+            {
+                FinalizeTransition();
+            }
+
             if (bodyDuration > 0.0)
             {
                 if (currentTrack.Loop && now + ScheduleLookahead >= nextScheduleDspTime)
@@ -194,11 +220,158 @@ namespace AudioMW
             currentTrack = null;
         }
 
-        private void BuildChannels(MusicTrack track)
+        public void TransitionTo(MusicTrack next, MusicQuantization quantization)
+        {
+            if (next == null || !next.HasContent)
+            {
+                return;
+            }
+
+            if (!playing || currentTrack == null)
+            {
+                Play(next, quantization);
+                return;
+            }
+
+            CancelPendingTransition();
+
+            double now = AudioSettings.dspTime;
+            double boundary = quantization == MusicQuantization.Immediate
+                ? now + StartOffset
+                : clock.GetNextBoundary(now, quantization);
+
+            for (int i = 0; i < channels.Count; i++)
+            {
+                Channel channel = channels[i];
+                for (int s = 0; s < channel.Sources.Length; s++)
+                {
+                    if (channel.Sources[s].isPlaying)
+                    {
+                        channel.Sources[s].SetScheduledEndTime(boundary);
+                    }
+                }
+            }
+
+            if (introSource != null && introSource.isPlaying)
+            {
+                introSource.SetScheduledEndTime(boundary);
+            }
+
+            BuildChannels(next, pendingChannels);
+
+            for (int i = 0; i < pendingChannels.Count; i++)
+            {
+                Channel channel = pendingChannels[i];
+                AudioSource source = channel.Sources[channel.NextIndex];
+                channel.NextIndex = (channel.NextIndex + 1) % channel.Sources.Length;
+                source.clip = channel.Clip;
+                source.PlayScheduled(boundary);
+            }
+
+            pendingTrack = next;
+            pendingStartDspTime = boundary;
+        }
+
+        public void PlayStinger(AudioClip clip, MusicQuantization quantization, float volume = 1f)
+        {
+            if (clip == null)
+            {
+                return;
+            }
+
+            double now = AudioSettings.dspTime;
+            double time = clock.IsRunning && quantization != MusicQuantization.Immediate
+                ? clock.GetNextBoundary(now, quantization)
+                : now + StartOffset;
+
+            AudioSource source = AcquireStingerSource();
+            source.outputAudioMixerGroup = currentTrack != null ? currentTrack.MixerGroup : null;
+            source.volume = Mathf.Clamp01(volume);
+            source.clip = clip;
+            source.PlayScheduled(time);
+        }
+
+        private AudioSource AcquireStingerSource()
+        {
+            for (int i = 0; i < stingerSources.Count; i++)
+            {
+                if (!stingerSources[i].isPlaying)
+                {
+                    return stingerSources[i];
+                }
+            }
+
+            AudioSource created = CreateSource("Music Stinger " + stingerSources.Count.ToString("D2"));
+            stingerSources.Add(created);
+            return created;
+        }
+
+        private void CancelPendingTransition()
+        {
+            if (pendingTrack == null)
+            {
+                return;
+            }
+
+            DestroyChannels(pendingChannels);
+            pendingTrack = null;
+            pendingStartDspTime = 0.0;
+        }
+
+        private void FinalizeTransition()
+        {
+            DestroyChannels(channels);
+
+            for (int i = 0; i < pendingChannels.Count; i++)
+            {
+                channels.Add(pendingChannels[i]);
+            }
+
+            pendingChannels.Clear();
+
+            if (introSource != null)
+            {
+                introSource.Stop();
+                introSource.clip = null;
+            }
+
+            currentTrack = pendingTrack;
+            clock.Configure(currentTrack.Tempo, currentTrack.BeatsPerBar);
+            clock.Start(pendingStartDspTime);
+
+            bodyDuration = currentTrack.BodyDuration;
+            nextScheduleDspTime = pendingStartDspTime + bodyDuration;
+            lastBeatIndex = -1;
+            lastBarIndex = -1;
+
+            pendingTrack = null;
+            pendingStartDspTime = 0.0;
+        }
+
+        private static void DestroyChannels(List<Channel> target)
+        {
+            for (int i = 0; i < target.Count; i++)
+            {
+                Channel channel = target[i];
+
+                for (int s = 0; s < channel.Sources.Length; s++)
+                {
+                    if (channel.Sources[s] != null)
+                    {
+                        channel.Sources[s].Stop();
+                        UnityEngine.Object.Destroy(channel.Sources[s].gameObject);
+                    }
+                }
+            }
+
+            target.Clear();
+        }
+
+        private void BuildChannels(MusicTrack track, List<Channel> target)
         {
             if (track.LoopClip != null)
             {
-                channels.Add(CreateChannel(null, track.LoopClip, track, "Music Base"));
+                target.Add(CreateChannel(null, track.LoopClip, track, "Music Base"));
             }
 
             if (track.HasLayers)
@@ -209,7 +382,7 @@ namespace AudioMW
                 {
                     if (layers[i] != null && layers[i].IsValid)
                     {
-                        channels.Add(CreateChannel(layers[i], layers[i].Clip, track, "Music Layer " + i.ToString("D2")));
+                        target.Add(CreateChannel(layers[i], layers[i].Clip, track, "Music Layer " + i.ToString("D2")));
                     }
                 }
             }
@@ -247,21 +420,7 @@ namespace AudioMW
 
         private void ClearChannels()
         {
-            for (int i = 0; i < channels.Count; i++)
-            {
-                Channel channel = channels[i];
-
-                for (int s = 0; s < channel.Sources.Length; s++)
-                {
-                    if (channel.Sources[s] != null)
-                    {
-                        channel.Sources[s].Stop();
-                        UnityEngine.Object.Destroy(channel.Sources[s].gameObject);
-                    }
-                }
-            }
-
-            channels.Clear();
+            DestroyChannels(channels);
         }
 
         private void ScheduleBody(double dspTime)

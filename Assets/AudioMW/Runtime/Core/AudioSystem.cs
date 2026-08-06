@@ -70,6 +70,16 @@ namespace AudioMW
             AudioRuntime.Instance.Music.Play(track, quantization);
         }
 
+        public static void TransitionMusic(MusicTrack track, MusicQuantization quantization = MusicQuantization.Bar)
+        {
+            AudioRuntime.Instance.Music.TransitionTo(track, quantization);
+        }
+
+        public static void PlayStinger(AudioClip clip, MusicQuantization quantization = MusicQuantization.Beat, float volume = 1f)
+        {
+            AudioRuntime.Instance.Music.PlayStinger(clip, quantization, volume);
+        }
+
         public static void StopMusic()
         {
             if (AudioRuntime.Exists)
