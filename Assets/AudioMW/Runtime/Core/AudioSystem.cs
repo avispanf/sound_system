@@ -119,6 +119,24 @@ namespace AudioMW
             get { return AudioRuntime.Instance.VoiceOver; }
         }
 
+        public static MixerDirector Mixing
+        {
+            get { return AudioRuntime.Instance.Mixing; }
+        }
+
+        public static void AddMixerRouting(MixerRoutingProfile profile)
+        {
+            AudioRuntime.Instance.Mixing.AddProfile(profile);
+        }
+
+        public static void RemoveMixerRouting(MixerRoutingProfile profile)
+        {
+            if (AudioRuntime.Exists)
+            {
+                AudioRuntime.Instance.Mixing.RemoveProfile(profile);
+            }
+        }
+
         public static EventDebugger Debugger
         {
             get { return AudioRuntime.Instance.Debugger; }

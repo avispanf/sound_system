@@ -18,6 +18,7 @@ namespace AudioMW
         private MusicPlayer music;
         private VoiceOverDirector voiceOver;
         private readonly EventDebugger debugger = new EventDebugger();
+        private readonly MixerDirector mixing = new MixerDirector();
 
         public static bool Exists
         {
@@ -35,6 +36,11 @@ namespace AudioMW
 
                 return instance;
             }
+        }
+
+        public MixerDirector Mixing
+        {
+            get { return mixing; }
         }
 
         public EventDebugger Debugger
@@ -118,6 +124,7 @@ namespace AudioMW
             pool.Tick();
             music.Tick();
             voiceOver.Tick();
+            mixing.Tick();
             AudioProfilerCounters.Sample(this);
         }
 
@@ -250,6 +257,7 @@ namespace AudioMW
             pool.DestroyAll();
             music.Stop();
             voiceOver.Stop();
+            mixing.Clear();
             globalParameters.Clear();
         }
     }
