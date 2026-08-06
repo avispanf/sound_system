@@ -16,6 +16,7 @@ namespace AudioMW
         private int playRequests;
         private int rejectedRequests;
         private MusicPlayer music;
+        private VoiceOverDirector voiceOver;
 
         public static bool Exists
         {
@@ -33,6 +34,11 @@ namespace AudioMW
 
                 return instance;
             }
+        }
+
+        public VoiceOverDirector VoiceOver
+        {
+            get { return voiceOver; }
         }
 
         public MusicPlayer Music
@@ -98,12 +104,14 @@ namespace AudioMW
             rng = new System.Random(unchecked(System.Environment.TickCount));
             pool = new VoicePool(transform, DefaultMaxVoices);
             music = new MusicPlayer(transform);
+            voiceOver = new VoiceOverDirector(transform);
         }
 
         private void LateUpdate()
         {
             pool.Tick();
             music.Tick();
+            voiceOver.Tick();
             AudioProfilerCounters.Sample(this);
         }
 
@@ -213,6 +221,7 @@ namespace AudioMW
             pool.StopAll();
             pool.DestroyAll();
             music.Stop();
+            voiceOver.Stop();
             globalParameters.Clear();
         }
     }

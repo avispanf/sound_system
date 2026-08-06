@@ -93,6 +93,32 @@ namespace AudioMW
             get { return AudioRuntime.Instance.Music; }
         }
 
+        public static bool PlayVoiceLine(VoiceLine line, VoiceOverMode mode = VoiceOverMode.Queue)
+        {
+            return AudioRuntime.Instance.VoiceOver.Play(line, mode);
+        }
+
+        public static void SkipVoiceLine()
+        {
+            if (AudioRuntime.Exists)
+            {
+                AudioRuntime.Instance.VoiceOver.Skip();
+            }
+        }
+
+        public static void StopVoiceOver()
+        {
+            if (AudioRuntime.Exists)
+            {
+                AudioRuntime.Instance.VoiceOver.Stop();
+            }
+        }
+
+        public static VoiceOverDirector VoiceOver
+        {
+            get { return AudioRuntime.Instance.VoiceOver; }
+        }
+
         public static void Shutdown()
         {
             if (AudioRuntime.Exists)
