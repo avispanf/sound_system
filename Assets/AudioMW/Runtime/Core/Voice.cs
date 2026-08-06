@@ -78,10 +78,18 @@ namespace AudioMW
             source.pitch = parameters.Pitch;
             source.loop = soundEvent.Loop;
             source.outputAudioMixerGroup = soundEvent.MixerGroup;
-            source.spatialBlend = soundEvent.SpatialBlend;
-            source.minDistance = soundEvent.MinDistance;
-            source.maxDistance = soundEvent.MaxDistance;
-            source.rolloffMode = soundEvent.RolloffMode;
+            if (soundEvent.AttenuationPreset != null)
+            {
+                soundEvent.AttenuationPreset.ApplyTo(source);
+            }
+            else
+            {
+                source.spatialBlend = soundEvent.SpatialBlend;
+                source.minDistance = soundEvent.MinDistance;
+                source.maxDistance = soundEvent.MaxDistance;
+                source.rolloffMode = soundEvent.RolloffMode;
+            }
+
             source.priority = soundEvent.Priority;
             ApplyParameters();
             source.Play();

@@ -25,6 +25,7 @@ namespace AudioMW
         [SerializeField] private float maxDistance = 25f;
         [SerializeField] private AudioRolloffMode rolloffMode = AudioRolloffMode.Logarithmic;
         [SerializeField, Range(0, 256)] private int priority = 128;
+        [SerializeField] private AttenuationPreset attenuationPreset;
         [SerializeField] private ParameterBinding[] parameterBindings = new ParameterBinding[0];
         [SerializeField] private ContainerMode containerMode = ContainerMode.Simple;
         [SerializeField] private SoundParameter blendParameter;
@@ -130,6 +131,12 @@ namespace AudioMW
         public bool HasParameterBindings
         {
             get { return parameterBindings != null && parameterBindings.Length > 0; }
+        }
+
+        public AttenuationPreset AttenuationPreset
+        {
+            get { return attenuationPreset; }
+            set { attenuationPreset = value; }
         }
 
         public bool HasClips

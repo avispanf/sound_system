@@ -54,5 +54,29 @@ namespace AudioMW
                 activeVoice = null;
             }
         }
+
+        private void OnDrawGizmosSelected()
+        {
+            if (soundEvent == null)
+            {
+                return;
+            }
+
+            AttenuationPreset preset = soundEvent.AttenuationPreset;
+            float min = preset != null ? preset.MinDistance : soundEvent.MinDistance;
+            float max = preset != null ? preset.MaxDistance : soundEvent.MaxDistance;
+            float blend = preset != null ? preset.SpatialBlend : soundEvent.SpatialBlend;
+
+            if (blend <= 0f)
+            {
+                return;
+            }
+
+            Gizmos.color = new Color(0.2f, 0.9f, 0.6f, 0.9f);
+            Gizmos.DrawWireSphere(transform.position, min);
+
+            Gizmos.color = new Color(0.2f, 0.6f, 1f, 0.5f);
+            Gizmos.DrawWireSphere(transform.position, max);
+        }
     }
 }
