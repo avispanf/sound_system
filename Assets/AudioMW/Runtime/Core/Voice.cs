@@ -10,6 +10,9 @@ namespace AudioMW
         private SoundEvent currentEvent;
         private Transform attachTarget;
         private bool active;
+        private float baseVolume = 1f;
+        private float basePitch = 1f;
+        private readonly ParameterStore localParameters = new ParameterStore();
         private float startTime;
 
         public Voice(AudioSource source)
@@ -33,6 +36,11 @@ namespace AudioMW
             get { return startTime; }
         }
 
+        public ParameterStore LocalParameters
+        {
+            get { return localParameters; }
+        }
+
         public SoundEvent CurrentEvent
         {
             get { return currentEvent; }
@@ -47,6 +55,9 @@ namespace AudioMW
 
             cachedTransform.position = attach != null ? attach.position : position;
 
+            baseVolume = parameters.Volume;
+            basePitch = parameters.Pitch;
+
             source.clip = parameters.Clip;
             source.volume = parameters.Volume;
             source.pitch = parameters.Pitch;
@@ -57,6 +68,7 @@ namespace AudioMW
             source.maxDistance = soundEvent.MaxDistance;
             source.rolloffMode = soundEvent.RolloffMode;
             source.priority = soundEvent.Priority;
+            ApplyParameters();
             source.Play();
         }
 
@@ -89,6 +101,8 @@ namespace AudioMW
                 return false;
             }
 
+            ApplyParameters();
+
             if (!source.loop && !source.isPlaying)
             {
                 Release();
@@ -96,6 +110,49 @@ namespace AudioMW
             }
 
             return true;
+        }
+
+        public void ApplyParameters()
+        {
+            if (currentEvent == null || !currentEvent.HasParameterBindings)
+            {
+                return;
+            }
+
+            float volumeMultiplier = 1f;
+            float pitchMultiplier = 1f;
+            ParameterBinding[] bindings = currentEvent.ParameterBindings;
+
+            for (int i = 0; i < bindings.Length; i++)
+            {
+                ParameterBinding binding = bindings[i];
+                if (binding == null || !binding.IsValid)
+                {
+                    continue;
+                }
+
+                float raw;
+                if (!localParameters.TryGet(binding.Parameter, out raw))
+                {
+                    raw = AudioRuntime.Exists
+                        ? AudioRuntime.Instance.GlobalParameters.Get(binding.Parameter)
+                        : binding.Parameter.DefaultValue;
+                }
+
+                float evaluated = binding.Evaluate(raw);
+
+                if (binding.Target == ParameterTarget.Volume)
+                {
+                    volumeMultiplier *= evaluated;
+                }
+                else
+                {
+                    pitchMultiplier *= evaluated;
+                }
+            }
+
+            source.volume = Mathf.Clamp01(baseVolume * volumeMultiplier);
+            source.pitch = Mathf.Clamp(basePitch * pitchMultiplier, 0.01f, 3f);
         }
 
         private bool HadAttachTarget()
@@ -106,6 +163,7 @@ namespace AudioMW
         private void Release()
         {
             active = false;
+            localParameters.Clear();
             currentEvent = null;
             attachTarget = null;
             source.clip = null;

@@ -25,6 +25,7 @@ namespace AudioMW
         [SerializeField] private float maxDistance = 25f;
         [SerializeField] private AudioRolloffMode rolloffMode = AudioRolloffMode.Logarithmic;
         [SerializeField, Range(0, 256)] private int priority = 128;
+        [SerializeField] private ParameterBinding[] parameterBindings = new ParameterBinding[0];
 
         [NonSerialized] private ClipSelector selector;
 
@@ -92,6 +93,17 @@ namespace AudioMW
         {
             get { return priority; }
             set { priority = Mathf.Clamp(value, 0, 256); }
+        }
+
+        public ParameterBinding[] ParameterBindings
+        {
+            get { return parameterBindings; }
+            set { parameterBindings = value ?? new ParameterBinding[0]; }
+        }
+
+        public bool HasParameterBindings
+        {
+            get { return parameterBindings != null && parameterBindings.Length > 0; }
         }
 
         public bool HasClips

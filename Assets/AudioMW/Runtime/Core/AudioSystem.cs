@@ -28,6 +28,35 @@ namespace AudioMW
             }
         }
 
+        public static void SetParameter(SoundParameter parameter, float value)
+        {
+            AudioRuntime.Instance.GlobalParameters.Set(parameter, value);
+        }
+
+        public static float GetParameter(SoundParameter parameter)
+        {
+            return AudioRuntime.Exists
+                ? AudioRuntime.Instance.GlobalParameters.Get(parameter)
+                : (parameter != null ? parameter.DefaultValue : 0f);
+        }
+
+        public static void SetVoiceParameter(Voice voice, SoundParameter parameter, float value)
+        {
+            if (voice != null)
+            {
+                voice.LocalParameters.Set(parameter, value);
+                voice.ApplyParameters();
+            }
+        }
+
+        public static void Shutdown()
+        {
+            if (AudioRuntime.Exists)
+            {
+                AudioRuntime.Instance.Shutdown();
+            }
+        }
+
         public static int ActiveVoiceCount
         {
             get { return AudioRuntime.Exists ? AudioRuntime.Instance.Pool.ActiveCount : 0; }

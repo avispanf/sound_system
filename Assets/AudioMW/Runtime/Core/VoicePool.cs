@@ -81,6 +81,20 @@ namespace AudioMW
             }
         }
 
+        public void DestroyAll()
+        {
+            for (int i = 0; i < voices.Count; i++)
+            {
+                AudioSource source = voices[i].Source;
+                if (source != null)
+                {
+                    Object.Destroy(source.gameObject);
+                }
+            }
+
+            voices.Clear();
+        }
+
         private Voice CreateVoice()
         {
             GameObject go = new GameObject("Voice " + voices.Count.ToString("D3"));

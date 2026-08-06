@@ -12,6 +12,7 @@ namespace AudioMW
 
         private VoicePool pool;
         private System.Random rng;
+        private readonly ParameterStore globalParameters = new ParameterStore();
 
         public static bool Exists
         {
@@ -29,6 +30,11 @@ namespace AudioMW
 
                 return instance;
             }
+        }
+
+        public ParameterStore GlobalParameters
+        {
+            get { return globalParameters; }
         }
 
         public VoicePool Pool
@@ -112,6 +118,13 @@ namespace AudioMW
         public void StopAll()
         {
             pool.StopAll();
+        }
+
+        public void Shutdown()
+        {
+            pool.StopAll();
+            pool.DestroyAll();
+            globalParameters.Clear();
         }
     }
 }
