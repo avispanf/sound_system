@@ -8,6 +8,7 @@ namespace AudioMW
         private readonly List<Voice> voices = new List<Voice>();
         private readonly Transform parent;
         private readonly int maxVoices;
+        private int stealCount;
 
         public VoicePool(Transform parent, int maxVoices)
         {
@@ -18,6 +19,16 @@ namespace AudioMW
         public int MaxVoices
         {
             get { return maxVoices; }
+        }
+
+        public int StealCount
+        {
+            get { return stealCount; }
+        }
+
+        public void ResetCounters()
+        {
+            stealCount = 0;
         }
 
         public int TotalCount
@@ -128,6 +139,7 @@ namespace AudioMW
             if (oldest != null)
             {
                 oldest.Stop();
+                stealCount++;
             }
 
             return oldest;

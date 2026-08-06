@@ -13,6 +13,8 @@ namespace AudioMW
         private VoicePool pool;
         private System.Random rng;
         private readonly ParameterStore globalParameters = new ParameterStore();
+        private int playRequests;
+        private int rejectedRequests;
 
         public static bool Exists
         {
@@ -30,6 +32,23 @@ namespace AudioMW
 
                 return instance;
             }
+        }
+
+        public int PlayRequests
+        {
+            get { return playRequests; }
+        }
+
+        public int RejectedRequests
+        {
+            get { return rejectedRequests; }
+        }
+
+        public void ResetCounters()
+        {
+            playRequests = 0;
+            rejectedRequests = 0;
+            pool.ResetCounters();
         }
 
         public ParameterStore GlobalParameters
@@ -77,6 +96,7 @@ namespace AudioMW
         private void LateUpdate()
         {
             pool.Tick();
+            AudioProfilerCounters.Sample(this);
         }
 
         private void OnApplicationQuit()
@@ -96,12 +116,22 @@ namespace AudioMW
         {
             if (soundEvent == null)
             {
+                rejectedRequests++;
                 return null;
             }
 
-            return soundEvent.IsBlendContainer
+            playRequests++;
+
+            Voice result = soundEvent.IsBlendContainer
                 ? PlayBlend(soundEvent, position, attach)
                 : PlaySimple(soundEvent, position, attach);
+
+            if (result == null)
+            {
+                rejectedRequests++;
+            }
+
+            return result;
         }
 
         private Voice PlaySimple(SoundEvent soundEvent, Vector3 position, Transform attach)
