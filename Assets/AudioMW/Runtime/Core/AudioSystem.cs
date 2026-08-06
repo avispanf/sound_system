@@ -65,6 +65,24 @@ namespace AudioMW
             }
         }
 
+        public static void PlayMusic(MusicTrack track, MusicQuantization quantization = MusicQuantization.Immediate)
+        {
+            AudioRuntime.Instance.Music.Play(track, quantization);
+        }
+
+        public static void StopMusic()
+        {
+            if (AudioRuntime.Exists)
+            {
+                AudioRuntime.Instance.Music.Stop();
+            }
+        }
+
+        public static MusicPlayer Music
+        {
+            get { return AudioRuntime.Instance.Music; }
+        }
+
         public static void Shutdown()
         {
             if (AudioRuntime.Exists)

@@ -15,6 +15,7 @@ namespace AudioMW
         private readonly ParameterStore globalParameters = new ParameterStore();
         private int playRequests;
         private int rejectedRequests;
+        private MusicPlayer music;
 
         public static bool Exists
         {
@@ -32,6 +33,11 @@ namespace AudioMW
 
                 return instance;
             }
+        }
+
+        public MusicPlayer Music
+        {
+            get { return music; }
         }
 
         public int PlayRequests
@@ -91,11 +97,13 @@ namespace AudioMW
             instance = this;
             rng = new System.Random(unchecked(System.Environment.TickCount));
             pool = new VoicePool(transform, DefaultMaxVoices);
+            music = new MusicPlayer(transform);
         }
 
         private void LateUpdate()
         {
             pool.Tick();
+            music.Tick();
             AudioProfilerCounters.Sample(this);
         }
 
@@ -204,6 +212,7 @@ namespace AudioMW
         {
             pool.StopAll();
             pool.DestroyAll();
+            music.Stop();
             globalParameters.Clear();
         }
     }
