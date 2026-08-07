@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 659b33dfb686b4c26b55d76310ccd84d, type: 3}
+  m_Name: BANK_Demo
+  m_EditorClassIdentifier: AudioMW.Runtime::AudioMW.SoundBank
+  events:
+  - {fileID: 11400000, guid: c59ea7e89afcd46d5baadad9d876a5bb, type: 2}
+  - {fileID: 11400000, guid: 693a17ae15c8c4043938aa407a8ff57a, type: 2}
+  loadOnStartup: 0

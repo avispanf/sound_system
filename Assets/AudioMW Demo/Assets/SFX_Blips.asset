@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dba38cfbb31c544adbd03de2ff6948e8, type: 3}
+  m_Name: SFX_Blips
+  m_EditorClassIdentifier: AudioMW.Runtime::AudioMW.SoundEvent
+  clips:
+  - {fileID: 8300000, guid: b9b895c1a6c0141b0a33ff474a734b00, type: 3}
+  - {fileID: 8300000, guid: 37d412bd3257243fea4b3e1e5cb6feb9, type: 3}
+  - {fileID: 8300000, guid: 046e68f5d187144409b53f5ee12396e2, type: 3}
+  selectionMode: 1
+  mixerGroup: {fileID: 0}
+  loop: 0
+  volume: 0.7
+  volumeRandomMin: 0
+  volumeRandomMax: 0
+  pitch: 1
+  pitchRandomMin: 0
+  pitchRandomMax: 0
+  spatialBlend: 0
+  minDistance: 1
+  maxDistance: 25
+  rolloffMode: 0
+  priority: 128
+  attenuationPreset: {fileID: 0}
+  parameterBindings: []
+  containerMode: 0
+  blendParameter: {fileID: 0}
+  blendLayers: []

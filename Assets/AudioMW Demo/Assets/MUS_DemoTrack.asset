@@ -1,0 +1,118 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27f02113402e947f4b253c863aad1352, type: 3}
+  m_Name: MUS_DemoTrack
+  m_EditorClassIdentifier: AudioMW.Runtime::AudioMW.MusicTrack
+  introClip: {fileID: 0}
+  loopClip: {fileID: 8300000, guid: fd53b14effc2b4146b64b923da1f623d, type: 3}
+  loop: 1
+  layers:
+  - layerName: pad
+    clip: {fileID: 8300000, guid: efae18ac2897b4a90a377e8b5841584d, type: 3}
+    parameter: {fileID: 11400000, guid: f956d137efc9242f8a2e078758c25c83, type: 2}
+    weightCurve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.25
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    defaultWeight: 1
+    fadeSeconds: 1.2
+  - layerName: arp
+    clip: {fileID: 8300000, guid: d2dd7790e533048c49d6fa6bdb83254c, type: 3}
+    parameter: {fileID: 11400000, guid: f956d137efc9242f8a2e078758c25c83, type: 2}
+    weightCurve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    defaultWeight: 1
+    fadeSeconds: 0.9
+  - layerName: pulse
+    clip: {fileID: 8300000, guid: 16af320f057354234921dc0e666f6972, type: 3}
+    parameter: {fileID: 11400000, guid: f956d137efc9242f8a2e078758c25c83, type: 2}
+    weightCurve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.5
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    defaultWeight: 1
+    fadeSeconds: 0.6
+  tempo: 120
+  beatsPerBar: 4
+  mixerGroup: {fileID: 0}
+  volume: 0.8

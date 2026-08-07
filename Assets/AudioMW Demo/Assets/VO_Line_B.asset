@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 018be0d989322417381d9561b94841fd, type: 3}
+  m_Name: VO_Line_B
+  m_EditorClassIdentifier: AudioMW.Runtime::AudioMW.VoiceLine
+  clip: {fileID: 8300000, guid: 082b6fe42b1fd417e988c19af8411aa8, type: 3}
+  speaker: Operator
+  subtitle: Hold position until the sweep completes.
+  mixerGroup: {fileID: 0}
+  volume: 0.9
+  priority: 0
+  trailingSilence: 0.15
