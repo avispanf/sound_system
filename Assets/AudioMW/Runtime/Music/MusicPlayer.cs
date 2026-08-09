@@ -34,9 +34,12 @@ namespace AudioMW
         private readonly List<AudioSource> stingerSources = new List<AudioSource>();
         private MusicTrack pendingTrack;
         private double pendingStartDspTime;
+        private readonly List<double> markerBeats = new List<double>();
+        private int lastMarkerIndex = -1;
 
         public event Action<int> BeatTick;
         public event Action<int> BarTick;
+        public event Action<MusicMarker> MarkerReached;
 
         public MusicClock Clock
         {
@@ -104,6 +107,7 @@ namespace AudioMW
             clock.Start(startTime);
 
             BuildChannels(track, channels);
+            RebuildMarkers(track);
 
             double bodyStart = startTime;
 
@@ -144,6 +148,7 @@ namespace AudioMW
             CancelPendingTransition();
             ClearChannels();
 
+            RebuildMarkers(null);
             clock.Stop();
             playing = false;
             currentTrack = null;
@@ -172,6 +177,84 @@ namespace AudioMW
             }
 
             return channels[index].Layer != null ? channels[index].Layer.Name : "base";
+        }
+
+        public double LoopBeats
+        {
+            get
+            {
+                if (bodyDuration <= 0.0 || !clock.IsRunning)
+                {
+                    return 0.0;
+                }
+
+                return bodyDuration / clock.SecondsPerBeat;
+            }
+        }
+
+        public double GetNextMarkerTime(double dspTime)
+        {
+            return clock.GetNextMarkerTime(dspTime, markerBeats, LoopBeats);
+        }
+
+        private void RebuildMarkers(MusicTrack track)
+        {
+            markerBeats.Clear();
+            lastMarkerIndex = -1;
+
+            if (track == null || !track.HasMarkers)
+            {
+                return;
+            }
+
+            MusicMarker[] source = track.Markers;
+
+            for (int i = 0; i < source.Length; i++)
+            {
+                if (source[i] != null)
+                {
+                    markerBeats.Add(source[i].PositionInBeats(track.BeatsPerBar));
+                }
+            }
+        }
+
+        private void DispatchMarkers(double now)
+        {
+            if (currentTrack == null || !currentTrack.HasMarkers || MarkerReached == null)
+            {
+                return;
+            }
+
+            double loopBeats = LoopBeats;
+
+            if (loopBeats <= 0.0)
+            {
+                return;
+            }
+
+            double position = clock.GetPosition(now) / clock.SecondsPerBeat;
+            double withinLoop = position - Math.Floor(position / loopBeats) * loopBeats;
+
+            MusicMarker[] source = currentTrack.Markers;
+            int best = -1;
+            double bestBeat = -1.0;
+
+            for (int i = 0; i < source.Length && i < markerBeats.Count; i++)
+            {
+                double beat = markerBeats[i];
+
+                if (beat <= withinLoop && beat > bestBeat)
+                {
+                    bestBeat = beat;
+                    best = i;
+                }
+            }
+
+            if (best >= 0 && best != lastMarkerIndex && source[best] != null)
+            {
+                lastMarkerIndex = best;
+                MarkerReached(source[best]);
+            }
         }
 
         public void Tick()
@@ -204,6 +287,7 @@ namespace AudioMW
 
             UpdateWeights();
             DispatchTicks(now);
+            DispatchMarkers(now);
         }
 
         public void Destroy()
@@ -236,9 +320,20 @@ namespace AudioMW
             CancelPendingTransition();
 
             double now = AudioSettings.dspTime;
-            double boundary = quantization == MusicQuantization.Immediate
-                ? now + StartOffset
-                : clock.GetNextBoundary(now, quantization);
+            double boundary;
+
+            if (quantization == MusicQuantization.Immediate)
+            {
+                boundary = now + StartOffset;
+            }
+            else if (quantization == MusicQuantization.Marker)
+            {
+                boundary = GetNextMarkerTime(now);
+            }
+            else
+            {
+                boundary = clock.GetNextBoundary(now, quantization);
+            }
 
             for (int i = 0; i < channels.Count; i++)
             {
@@ -280,9 +375,20 @@ namespace AudioMW
             }
 
             double now = AudioSettings.dspTime;
-            double time = clock.IsRunning && quantization != MusicQuantization.Immediate
-                ? clock.GetNextBoundary(now, quantization)
-                : now + StartOffset;
+            double time;
+
+            if (!clock.IsRunning || quantization == MusicQuantization.Immediate)
+            {
+                time = now + StartOffset;
+            }
+            else if (quantization == MusicQuantization.Marker)
+            {
+                time = GetNextMarkerTime(now);
+            }
+            else
+            {
+                time = clock.GetNextBoundary(now, quantization);
+            }
 
             AudioSource source = AcquireStingerSource();
             source.outputAudioMixerGroup = currentTrack != null ? currentTrack.MixerGroup : null;

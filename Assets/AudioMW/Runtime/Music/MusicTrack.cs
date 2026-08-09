@@ -10,6 +10,7 @@ namespace AudioMW
         [SerializeField] private AudioClip loopClip;
         [SerializeField] private bool loop = true;
         [SerializeField] private MusicLayer[] layers = new MusicLayer[0];
+        [SerializeField] private MusicMarker[] markers = new MusicMarker[0];
 
         [SerializeField] private double tempo = 120.0;
         [SerializeField] private int beatsPerBar = 4;
@@ -27,6 +28,17 @@ namespace AudioMW
         {
             get { return loopClip; }
             set { loopClip = value; }
+        }
+
+        public MusicMarker[] Markers
+        {
+            get { return markers; }
+            set { markers = value ?? new MusicMarker[0]; }
+        }
+
+        public bool HasMarkers
+        {
+            get { return markers != null && markers.Length > 0; }
         }
 
         public MusicLayer[] Layers

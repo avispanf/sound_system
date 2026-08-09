@@ -100,6 +100,52 @@ namespace AudioMW
             return startDspTime + nextStep * interval;
         }
 
+        public double GetNextMarkerTime(double dspTime, System.Collections.Generic.IReadOnlyList<double> markerBeats, double loopBeats)
+        {
+            if (markerBeats == null || markerBeats.Count == 0 || loopBeats <= 0.0)
+            {
+                return GetNextBoundary(dspTime, MusicQuantization.Bar);
+            }
+
+            double position = GetPosition(dspTime) / SecondsPerBeat;
+            double cycle = Math.Floor(position / loopBeats);
+            double best = double.MaxValue;
+
+            for (int pass = 0; pass < 2; pass++)
+            {
+                double offset = (cycle + pass) * loopBeats;
+
+                for (int i = 0; i < markerBeats.Count; i++)
+                {
+                    double beat = markerBeats[i];
+
+                    if (beat < 0.0 || beat >= loopBeats)
+                    {
+                        continue;
+                    }
+
+                    double candidate = offset + beat;
+
+                    if (candidate > position + Epsilon && candidate < best)
+                    {
+                        best = candidate;
+                    }
+                }
+
+                if (best < double.MaxValue)
+                {
+                    break;
+                }
+            }
+
+            if (best >= double.MaxValue)
+            {
+                return GetNextBoundary(dspTime, MusicQuantization.Bar);
+            }
+
+            return startDspTime + best * SecondsPerBeat;
+        }
+
         public double GetBoundaryAtOrAfter(double dspTime, MusicQuantization quantization)
         {
             if (quantization == MusicQuantization.Immediate)

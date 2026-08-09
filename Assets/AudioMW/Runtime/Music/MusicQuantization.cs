@@ -4,6 +4,7 @@ namespace AudioMW
     {
         Immediate = 0,
         Beat = 1,
-        Bar = 2
+        Bar = 2,
+        Marker = 3
     }
 }
