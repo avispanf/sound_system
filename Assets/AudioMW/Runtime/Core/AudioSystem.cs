@@ -142,6 +142,16 @@ namespace AudioMW
             get { return AudioRuntime.Instance.Debugger; }
         }
 
+        public static void ApplyTier(AudioTierConfig config)
+        {
+            AudioTierApplier.Apply(config);
+        }
+
+        public static AudioTierConfig ActiveTier
+        {
+            get { return AudioRuntimeSettings.ActiveTier; }
+        }
+
         public static void Shutdown()
         {
             if (AudioRuntime.Exists)

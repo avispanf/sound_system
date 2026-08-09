@@ -114,7 +114,7 @@ namespace AudioMW
 
             instance = this;
             rng = new System.Random(unchecked(System.Environment.TickCount));
-            pool = new VoicePool(transform, DefaultMaxVoices);
+            pool = new VoicePool(transform, AudioRuntimeSettings.MaxVoices);
             music = new MusicPlayer(transform);
             voiceOver = new VoiceOverDirector(transform);
         }
@@ -244,6 +244,14 @@ namespace AudioMW
             }
 
             return primary;
+        }
+
+        public void RebuildPool(int maxVoices, int prewarm)
+        {
+            pool.StopAll();
+            pool.DestroyAll();
+            pool = new VoicePool(transform, maxVoices);
+            pool.Prewarm(prewarm);
         }
 
         public void StopAll()

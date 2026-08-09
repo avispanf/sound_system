@@ -76,6 +76,16 @@ namespace AudioMW
             return StealOldest();
         }
 
+        public void Prewarm(int count)
+        {
+            int target = Mathf.Clamp(count, 0, maxVoices);
+
+            while (voices.Count < target)
+            {
+                CreateVoice();
+            }
+        }
+
         public void Tick()
         {
             for (int i = 0; i < voices.Count; i++)
