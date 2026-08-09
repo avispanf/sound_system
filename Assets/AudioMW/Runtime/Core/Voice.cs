@@ -18,6 +18,8 @@ namespace AudioMW
         private float lastVolumeMultiplier = 1f;
         private float lastPitchMultiplier = 1f;
         private float lastBlendWeight = 1f;
+        private float occlusionVolume = 1f;
+        private AudioLowPassFilter lowPass;
 
         public event System.Action<Voice> Released;
         private float startTime;
@@ -141,6 +143,53 @@ namespace AudioMW
             Release();
         }
 
+        public void ApplyOcclusion(float volumeMultiplier, float cutoffHz)
+        {
+            occlusionVolume = Mathf.Clamp01(volumeMultiplier);
+
+            if (cutoffHz >= 21999f)
+            {
+                if (lowPass != null)
+                {
+                    lowPass.enabled = false;
+                }
+            }
+            else
+            {
+                if (lowPass == null)
+                {
+                    lowPass = source.gameObject.GetComponent<AudioLowPassFilter>();
+
+                    if (lowPass == null)
+                    {
+                        lowPass = source.gameObject.AddComponent<AudioLowPassFilter>();
+                    }
+                }
+
+                lowPass.enabled = true;
+                lowPass.cutoffFrequency = Mathf.Clamp(cutoffHz, 10f, 22000f);
+            }
+
+            ApplyParameters();
+        }
+
+        public void ClearOcclusion()
+        {
+            occlusionVolume = 1f;
+
+            if (lowPass != null)
+            {
+                lowPass.enabled = false;
+            }
+
+            ApplyParameters();
+        }
+
+        public float OcclusionVolume
+        {
+            get { return occlusionVolume; }
+        }
+
         public void SetLocalParameter(SoundParameter parameter, float value)
         {
             if (parameter == null)
@@ -238,7 +287,7 @@ namespace AudioMW
                 lastVolumeMultiplier = 1f;
                 lastPitchMultiplier = 1f;
                 lastBlendWeight = EvaluateBlendWeight();
-                source.volume = Mathf.Clamp01(baseVolume * lastBlendWeight);
+                source.volume = Mathf.Clamp01(baseVolume * lastBlendWeight * occlusionVolume);
                 return;
             }
 
@@ -278,7 +327,7 @@ namespace AudioMW
             lastPitchMultiplier = pitchMultiplier;
             lastBlendWeight = EvaluateBlendWeight();
 
-            source.volume = Mathf.Clamp01(baseVolume * volumeMultiplier * lastBlendWeight);
+            source.volume = Mathf.Clamp01(baseVolume * volumeMultiplier * lastBlendWeight * occlusionVolume);
             source.pitch = Mathf.Clamp(basePitch * pitchMultiplier, 0.01f, 3f);
         }
 
@@ -311,6 +360,12 @@ namespace AudioMW
             active = false;
             localParameters.Clear();
             blendLayer = null;
+            occlusionVolume = 1f;
+
+            if (lowPass != null)
+            {
+                lowPass.enabled = false;
+            }
 
             System.Action<Voice> handler = Released;
             Released = null;
