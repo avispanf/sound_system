@@ -99,3 +99,10 @@
     border-top-width: 1px;
     border-top-color: var(--unity-colors-app_toolbar-border);
 }
+
+.audiomw-group {
+    -unity-font-style: bold;
+    font-size: 11px;
+    color: var(--unity-colors-default-text);
+    opacity: 0.75;
+}

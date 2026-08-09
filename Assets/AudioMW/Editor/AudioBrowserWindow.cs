@@ -21,6 +21,10 @@ namespace AudioMW.Editor
         {
             public Object Asset;
             public AssetKind Kind;
+            public string Folder;
+            public bool IsHeader;
+            public string HeaderLabel;
+            public int Indent;
         }
 
         private static readonly AssetKind[] Kinds =
@@ -190,8 +194,24 @@ namespace AudioMW.Editor
             }
 
             Entry entry = visible[index];
-            element.Q<Label>("name").text = entry.Asset != null ? entry.Asset.name : "(missing)";
-            element.Q<Image>("icon").image = IconFor(entry.Kind);
+            Label label = element.Q<Label>("name");
+            Image icon = element.Q<Image>("icon");
+
+            element.style.paddingLeft = 6f + entry.Indent * 12f;
+
+            if (entry.IsHeader)
+            {
+                label.text = entry.HeaderLabel;
+                label.AddToClassList("audiomw-group");
+                icon.image = entry.Indent == 0 ? null : EditorGUIUtility.IconContent("Folder Icon").image;
+                icon.style.width = entry.Indent == 0 ? 0f : 15f;
+                return;
+            }
+
+            label.RemoveFromClassList("audiomw-group");
+            label.text = entry.Asset != null ? entry.Asset.name : "(missing)";
+            icon.style.width = 15f;
+            icon.image = IconFor(entry.Kind);
         }
 
         private void OnSelectionChanged(IEnumerable<object> selection)
@@ -201,6 +221,12 @@ namespace AudioMW.Editor
                 if (item is Entry)
                 {
                     Entry entry = (Entry)item;
+
+                    if (entry.IsHeader || entry.Asset == null)
+                    {
+                        break;
+                    }
+
                     selected = entry.Asset;
                     Selection.activeObject = entry.Asset;
                     EditorGUIUtility.PingObject(entry.Asset);
@@ -504,7 +530,15 @@ namespace AudioMW.Editor
 
                 if (asset != null)
                 {
-                    all.Add(new Entry { Asset = asset, Kind = kind });
+                    string path = AssetDatabase.GetAssetPath(asset);
+                    string folder = System.IO.Path.GetFileName(System.IO.Path.GetDirectoryName(path));
+
+                    all.Add(new Entry
+                    {
+                        Asset = asset,
+                        Kind = kind,
+                        Folder = string.IsNullOrEmpty(folder) ? "Assets" : folder
+                    });
                 }
             }
         }
@@ -515,6 +549,8 @@ namespace AudioMW.Editor
 
             string query = searchField != null ? searchField.value : null;
             bool hasQuery = !string.IsNullOrEmpty(query);
+
+            List<Entry> matching = new List<Entry>();
 
             for (int i = 0; i < all.Count; i++)
             {
@@ -535,6 +571,46 @@ namespace AudioMW.Editor
                     continue;
                 }
 
+                matching.Add(entry);
+            }
+
+            matching.Sort(CompareEntries);
+
+            AssetKind? currentKind = null;
+            string currentFolder = null;
+
+            for (int i = 0; i < matching.Count; i++)
+            {
+                Entry entry = matching[i];
+
+                if (!currentKind.HasValue || currentKind.Value != entry.Kind)
+                {
+                    currentKind = entry.Kind;
+                    currentFolder = null;
+
+                    visible.Add(new Entry
+                    {
+                        IsHeader = true,
+                        HeaderLabel = Plural(entry.Kind),
+                        Kind = entry.Kind,
+                        Indent = 0
+                    });
+                }
+
+                if (currentFolder != entry.Folder)
+                {
+                    currentFolder = entry.Folder;
+
+                    visible.Add(new Entry
+                    {
+                        IsHeader = true,
+                        HeaderLabel = entry.Folder,
+                        Kind = entry.Kind,
+                        Indent = 1
+                    });
+                }
+
+                entry.Indent = 2;
                 visible.Add(entry);
             }
 
@@ -545,6 +621,25 @@ namespace AudioMW.Editor
             }
 
             UpdateStatus();
+        }
+
+        private static int CompareEntries(Entry left, Entry right)
+        {
+            int byKind = ((int)left.Kind).CompareTo((int)right.Kind);
+
+            if (byKind != 0)
+            {
+                return byKind;
+            }
+
+            int byFolder = string.CompareOrdinal(left.Folder, right.Folder);
+
+            if (byFolder != 0)
+            {
+                return byFolder;
+            }
+
+            return string.CompareOrdinal(left.Asset.name, right.Asset.name);
         }
 
         private void UpdateStatus()
@@ -564,8 +659,18 @@ namespace AudioMW.Editor
                 }
             }
 
+            int shown = 0;
+
+            for (int i = 0; i < visible.Count; i++)
+            {
+                if (!visible[i].IsHeader)
+                {
+                    shown++;
+                }
+            }
+
             statusLabel.text = string.Format("{0} assets shown of {1}   {2} banks   preview {3}",
-                visible.Count,
+                shown,
                 all.Count,
                 banks,
                 EditorAudioPreview.IsAvailable ? "ready" : "unavailable in this Unity version");
