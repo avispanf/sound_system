@@ -1,0 +1,28 @@
+{
+  "name": "com.avispanf.audiomw",
+  "version": "0.4.0",
+  "displayName": "AudioMW",
+  "description": "FMOD-level adaptive music and audio, entirely inside Unity. No banks, no build step, everything in Git and in the Inspector.",
+  "unity": "2022.3",
+  "author": {
+    "name": "Anton Panfilov",
+    "email": "avispanf@gmail.com",
+    "url": "https://github.com/avispanf"
+  },
+  "keywords": [
+    "audio",
+    "middleware",
+    "adaptive music",
+    "sound design",
+    "loudness",
+    "lufs"
+  ],
+  "dependencies": {},
+  "samples": [
+    {
+      "displayName": "Demo Scene",
+      "description": "Interactive scene demonstrating adaptive music layers, quantised stingers, spatial one shots and voice over ducking.",
+      "path": "Samples~/Demo"
+    }
+  ]
+}
