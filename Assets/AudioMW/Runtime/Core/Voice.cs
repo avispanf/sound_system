@@ -141,6 +141,54 @@ namespace AudioMW
             Release();
         }
 
+        public void SetLocalParameter(SoundParameter parameter, float value)
+        {
+            if (parameter == null)
+            {
+                return;
+            }
+
+            localParameters.Set(parameter, value);
+            ApplyParameters();
+
+            for (int i = 0; i < followers.Count; i++)
+            {
+                followers[i].SetLocalParameter(parameter, value);
+            }
+        }
+
+        public void ClearLocalParameters()
+        {
+            localParameters.Clear();
+            ApplyParameters();
+
+            for (int i = 0; i < followers.Count; i++)
+            {
+                followers[i].ClearLocalParameters();
+            }
+        }
+
+        public bool IsGroupPlaying
+        {
+            get
+            {
+                if (active)
+                {
+                    return true;
+                }
+
+                for (int i = 0; i < followers.Count; i++)
+                {
+                    if (followers[i].IsActive)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+        }
+
         public void AddFollower(Voice follower)
         {
             if (follower != null && follower != this)

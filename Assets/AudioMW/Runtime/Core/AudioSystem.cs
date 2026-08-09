@@ -44,8 +44,7 @@ namespace AudioMW
         {
             if (voice != null)
             {
-                voice.LocalParameters.Set(parameter, value);
-                voice.ApplyParameters();
+                voice.SetLocalParameter(parameter, value);
             }
         }
 
