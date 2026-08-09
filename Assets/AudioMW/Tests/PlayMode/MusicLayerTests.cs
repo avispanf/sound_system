@@ -69,7 +69,7 @@ namespace AudioMW.Tests
 
             AudioSystem.SetParameter(parameter, 1f);
 
-            yield return new WaitForSeconds(0.5f);
+            yield return AudioTestUtil.WaitForApproximately(() => AudioSystem.Music.GetLayerWeight(1), 1f, 0.05f, "layer weight to reach full");
 
             Assert.AreEqual(1f, AudioSystem.Music.GetLayerWeight(1), 0.05f);
         }
@@ -105,7 +105,9 @@ namespace AudioMW.Tests
             AudioSystem.PlayMusic(track);
             double firstSchedule = AudioSystem.Music.NextScheduleDspTime;
 
-            yield return new WaitForSeconds(0.7f);
+            yield return AudioTestUtil.WaitUntil(
+                () => AudioSystem.Music.NextScheduleDspTime > firstSchedule,
+                "layered loop to reschedule");
 
             Assert.IsTrue(AudioSystem.Music.IsPlaying);
             Assert.Greater(AudioSystem.Music.NextScheduleDspTime, firstSchedule);

@@ -76,7 +76,7 @@ namespace AudioMW.Tests
 
             AudioSystem.TransitionMusic(second, MusicQuantization.Immediate);
 
-            yield return new WaitForSeconds(0.3f);
+            yield return AudioTestUtil.WaitUntil(() => !AudioSystem.Music.IsTransitionPending, "transition to complete");
 
             Assert.IsFalse(AudioSystem.Music.IsTransitionPending);
             Assert.AreSame(second, AudioSystem.Music.CurrentTrack);

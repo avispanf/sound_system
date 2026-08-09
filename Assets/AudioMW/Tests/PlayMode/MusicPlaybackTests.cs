@@ -67,7 +67,9 @@ namespace AudioMW.Tests
             AudioSystem.PlayMusic(track);
             double firstSchedule = AudioSystem.Music.NextScheduleDspTime;
 
-            yield return new WaitForSeconds(0.7f);
+            yield return AudioTestUtil.WaitUntil(
+                () => AudioSystem.Music.NextScheduleDspTime > firstSchedule,
+                "loop to reschedule");
 
             Assert.IsTrue(AudioSystem.Music.IsPlaying);
             Assert.Greater(AudioSystem.Music.NextScheduleDspTime, firstSchedule);
@@ -83,7 +85,7 @@ namespace AudioMW.Tests
             AudioSystem.PlayMusic(track);
             AudioSystem.Music.BeatTick += index => beats++;
 
-            yield return new WaitForSeconds(0.6f);
+            yield return AudioTestUtil.WaitUntil(() => beats > 2, "beat callbacks to fire");
 
             Assert.Greater(beats, 2);
         }

@@ -110,7 +110,7 @@ namespace AudioMW.Tests
             AudioSystem.PlayVoiceLine(first);
             AudioSystem.PlayVoiceLine(second);
 
-            yield return new WaitForSeconds(0.45f);
+            yield return AudioTestUtil.WaitUntil(() => AudioSystem.VoiceOver.CurrentLine == second, "queue to advance to the second line");
 
             Assert.AreSame(second, AudioSystem.VoiceOver.CurrentLine);
             Assert.AreEqual(0, AudioSystem.VoiceOver.QueueLength);
@@ -127,7 +127,7 @@ namespace AudioMW.Tests
 
             AudioSystem.PlayVoiceLine(line);
 
-            yield return new WaitForSeconds(0.5f);
+            yield return AudioTestUtil.WaitUntil(() => subtitles.Count >= 2, "subtitle to be set and then cleared");
 
             Assert.Contains("Watch out", subtitles);
             Assert.AreEqual(string.Empty, subtitles[subtitles.Count - 1]);
@@ -142,7 +142,7 @@ namespace AudioMW.Tests
 
             AudioSystem.PlayVoiceLine(MakeLine("Anna", "Ducking", 0.6f));
 
-            yield return new WaitForSeconds(0.3f);
+            yield return AudioTestUtil.WaitForApproximately(() => AudioSystem.GetParameter(duck), 1f, 0.05f, "duck parameter to rise");
 
             Assert.AreEqual(1f, AudioSystem.GetParameter(duck), 0.05f);
         }
@@ -159,7 +159,7 @@ namespace AudioMW.Tests
 
             AudioSystem.PlayVoiceLine(line);
 
-            yield return new WaitForSeconds(0.7f);
+            yield return AudioTestUtil.WaitForApproximately(() => AudioSystem.GetParameter(duck), 0f, 0.05f, "duck parameter to fall back");
 
             Assert.AreEqual(0f, AudioSystem.GetParameter(duck), 0.05f);
         }

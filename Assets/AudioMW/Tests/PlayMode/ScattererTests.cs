@@ -69,7 +69,7 @@ namespace AudioMW.Tests
             Assert.IsNotNull(voice);
             Assert.AreEqual(1, scatterer.LiveCount);
 
-            yield return new WaitForSeconds(0.6f);
+            yield return AudioTestUtil.WaitUntil(() => scatterer.LiveCount == 0, "scatterer live count to drop back to zero");
 
             Assert.AreEqual(0, scatterer.LiveCount);
         }

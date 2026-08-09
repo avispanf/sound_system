@@ -34,7 +34,7 @@ namespace AudioMW.Tests
 
             Assert.IsNotNull(voice);
 
-            yield return new WaitForSeconds(0.6f);
+            yield return AudioTestUtil.WaitUntil(() => !voice.IsActive, "voice to release after the clip ends");
 
             Assert.IsFalse(voice.IsActive);
             Assert.AreEqual(0, AudioSystem.ActiveVoiceCount);
@@ -47,7 +47,7 @@ namespace AudioMW.Tests
             Voice first = AudioSystem.Play(soundEvent);
             int countAfterFirst = AudioRuntime.Instance.Pool.TotalCount;
 
-            yield return new WaitForSeconds(0.4f);
+            yield return AudioTestUtil.WaitUntil(() => !first.IsActive, "first voice to release");
 
             Voice second = AudioSystem.Play(soundEvent);
 
@@ -73,7 +73,7 @@ namespace AudioMW.Tests
             soundEvent.Loop = true;
             Voice voice = AudioSystem.Play(soundEvent);
 
-            yield return new WaitForSeconds(0.5f);
+            yield return AudioTestUtil.WaitFrames(4);
 
             Assert.IsTrue(voice.IsActive);
             Assert.IsTrue(voice.Source.isPlaying);
