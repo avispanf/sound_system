@@ -49,11 +49,20 @@ namespace AudioMW
             }
         }
 
+        private static IAudioAssetLoader assetLoader = NullAudioAssetLoader.Instance;
+
+        public static IAudioAssetLoader AssetLoader
+        {
+            get { return assetLoader; }
+            set { assetLoader = value ?? NullAudioAssetLoader.Instance; }
+        }
+
         public static void LoadBank(SoundBank bank)
         {
             if (bank != null)
             {
                 bank.Load();
+                bank.LoadStreamed(assetLoader);
             }
         }
 
@@ -61,6 +70,7 @@ namespace AudioMW
         {
             if (bank != null)
             {
+                bank.UnloadStreamed(assetLoader);
                 bank.Unload();
             }
         }
