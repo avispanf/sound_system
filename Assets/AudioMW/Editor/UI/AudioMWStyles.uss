@@ -1,0 +1,101 @@
+.audiomw-chip-row {
+    flex-direction: row;
+    padding-left: 6px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    border-bottom-width: 1px;
+    border-bottom-color: var(--unity-colors-app_toolbar-border);
+}
+
+.audiomw-chip {
+    font-size: 11px;
+    padding-left: 8px;
+    padding-right: 8px;
+    margin-right: 2px;
+    border-radius: 9px;
+    color: var(--unity-colors-default-text);
+}
+
+.audiomw-chip--active {
+    background-color: var(--unity-colors-highlight-background);
+    color: var(--unity-colors-highlight-text);
+}
+
+.audiomw-list {
+    border-right-width: 1px;
+    border-right-color: var(--unity-colors-app_toolbar-border);
+}
+
+.audiomw-preview {
+    flex-grow: 1;
+    padding-left: 12px;
+    padding-right: 12px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+.audiomw-tile {
+    flex-grow: 1;
+    margin-right: 6px;
+    padding-left: 8px;
+    padding-right: 8px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+    border-radius: 6px;
+    background-color: var(--unity-colors-default-background);
+    border-width: 1px;
+    border-color: var(--unity-colors-app_toolbar-border);
+}
+
+.audiomw-tile__caption {
+    font-size: 11px;
+    color: var(--unity-colors-default-text);
+}
+
+.audiomw-tile__value {
+    font-size: 15px;
+    color: var(--unity-colors-default-text);
+}
+
+.audiomw-note {
+    flex-direction: row;
+    align-items: center;
+    padding-left: 8px;
+    padding-right: 8px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+    border-radius: 6px;
+    background-color: var(--unity-colors-highlight-background-inactive);
+}
+
+.audiomw-note__label {
+    font-size: 11px;
+    color: var(--unity-colors-default-text);
+}
+
+.audiomw-title {
+    font-size: 13px;
+    -unity-font-style: bold;
+    color: var(--unity-colors-default-text);
+}
+
+.audiomw-subtitle {
+    font-size: 11px;
+    color: var(--unity-colors-default-text);
+}
+
+.audiomw-facts {
+    font-size: 11px;
+    margin-left: 8px;
+    color: var(--unity-colors-default-text);
+}
+
+.audiomw-status {
+    padding-left: 6px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+    font-size: 11px;
+    color: var(--unity-colors-default-text);
+    border-top-width: 1px;
+    border-top-color: var(--unity-colors-app_toolbar-border);
+}

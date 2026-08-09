@@ -64,7 +64,12 @@ namespace AudioMW.Editor
 
         public void CreateGUI()
         {
-            rootVisualElement.style.backgroundColor = new StyleColor(new Color(0f, 0f, 0f, 0f));
+            StyleSheet sheet = AssetDatabase.LoadAssetAtPath<StyleSheet>("Assets/AudioMW/Editor/UI/AudioMWStyles.uss");
+
+            if (sheet != null)
+            {
+                rootVisualElement.styleSheets.Add(sheet);
+            }
 
             Toolbar toolbar = new Toolbar();
 
@@ -80,12 +85,7 @@ namespace AudioMW.Editor
             rootVisualElement.Add(toolbar);
 
             chipRow = new VisualElement();
-            chipRow.style.flexDirection = FlexDirection.Row;
-            chipRow.style.paddingLeft = 6f;
-            chipRow.style.paddingTop = 4f;
-            chipRow.style.paddingBottom = 4f;
-            chipRow.style.borderBottomWidth = 1f;
-            chipRow.style.borderBottomColor = new StyleColor(new Color(0f, 0f, 0f, 0.2f));
+            chipRow.AddToClassList("audiomw-chip-row");
             rootVisualElement.Add(chipRow);
 
             BuildChips();
@@ -100,8 +100,7 @@ namespace AudioMW.Editor
             listView.selectionType = SelectionType.Single;
             listView.style.width = 260f;
             listView.style.minWidth = 200f;
-            listView.style.borderRightWidth = 1f;
-            listView.style.borderRightColor = new StyleColor(new Color(0f, 0f, 0f, 0.2f));
+            listView.AddToClassList("audiomw-list");
             listView.makeItem = MakeRow;
             listView.bindItem = BindRow;
             listView.itemsSource = visible;
@@ -109,20 +108,11 @@ namespace AudioMW.Editor
             split.Add(listView);
 
             preview = new VisualElement();
-            preview.style.flexGrow = 1f;
-            preview.style.paddingLeft = 12f;
-            preview.style.paddingRight = 12f;
-            preview.style.paddingTop = 10f;
-            preview.style.paddingBottom = 10f;
+            preview.AddToClassList("audiomw-preview");
             split.Add(preview);
 
             statusLabel = new Label();
-            statusLabel.style.paddingLeft = 6f;
-            statusLabel.style.paddingTop = 3f;
-            statusLabel.style.paddingBottom = 3f;
-            statusLabel.style.borderTopWidth = 1f;
-            statusLabel.style.borderTopColor = new StyleColor(new Color(0f, 0f, 0f, 0.2f));
-            statusLabel.style.fontSize = 11f;
+            statusLabel.AddToClassList("audiomw-status");
             rootVisualElement.Add(statusLabel);
 
             Refresh();
@@ -159,19 +149,11 @@ namespace AudioMW.Editor
         {
             Button chip = new Button(onClick);
             chip.text = label;
-            chip.style.fontSize = 11f;
-            chip.style.paddingLeft = 8f;
-            chip.style.paddingRight = 8f;
-            chip.style.marginRight = 2f;
-            chip.style.borderTopLeftRadius = 9f;
-            chip.style.borderTopRightRadius = 9f;
-            chip.style.borderBottomLeftRadius = 9f;
-            chip.style.borderBottomRightRadius = 9f;
+            chip.AddToClassList("audiomw-chip");
 
             if (active)
             {
-                chip.AddToClassList("unity-button--active");
-                chip.style.backgroundColor = new StyleColor(new Color(0.24f, 0.48f, 0.86f, 0.28f));
+                chip.AddToClassList("audiomw-chip--active");
             }
 
             return chip;
@@ -253,13 +235,11 @@ namespace AudioMW.Editor
             VisualElement titles = new VisualElement();
 
             Label title = new Label(entry.Asset.name);
-            title.style.fontSize = 13f;
-            title.style.unityFontStyleAndWeight = FontStyle.Bold;
+            title.AddToClassList("audiomw-title");
             titles.Add(title);
 
             Label subtitle = new Label(DescribeAsset(entry));
-            subtitle.style.fontSize = 11f;
-            subtitle.style.opacity = 0.7f;
+            subtitle.AddToClassList("audiomw-subtitle");
             titles.Add(subtitle);
 
             header.Add(titles);
@@ -295,9 +275,7 @@ namespace AudioMW.Editor
                     clip.length,
                     clip.frequency,
                     clip.channels == 1 ? "mono" : clip.channels + " ch"));
-                facts.style.fontSize = 11f;
-                facts.style.opacity = 0.7f;
-                facts.style.marginLeft = 8f;
+                facts.AddToClassList("audiomw-facts");
                 transport.Add(facts);
 
                 preview.Add(transport);
@@ -305,20 +283,10 @@ namespace AudioMW.Editor
             }
 
             VisualElement note = new VisualElement();
-            note.style.flexDirection = FlexDirection.Row;
-            note.style.alignItems = Align.Center;
-            note.style.paddingLeft = 8f;
-            note.style.paddingRight = 8f;
-            note.style.paddingTop = 6f;
-            note.style.paddingBottom = 6f;
-            note.style.backgroundColor = new StyleColor(new Color(0.24f, 0.48f, 0.86f, 0.18f));
-            note.style.borderTopLeftRadius = 6f;
-            note.style.borderTopRightRadius = 6f;
-            note.style.borderBottomLeftRadius = 6f;
-            note.style.borderBottomRightRadius = 6f;
+            note.AddToClassList("audiomw-note");
 
             Label noteLabel = new Label("Editing happens in the standard Inspector");
-            noteLabel.style.fontSize = 11f;
+            noteLabel.AddToClassList("audiomw-note__label");
             note.Add(noteLabel);
 
             preview.Add(note);
@@ -359,25 +327,14 @@ namespace AudioMW.Editor
         private static VisualElement MakeTile(string label, string value)
         {
             VisualElement tile = new VisualElement();
-            tile.style.flexGrow = 1f;
-            tile.style.marginRight = 6f;
-            tile.style.paddingLeft = 8f;
-            tile.style.paddingRight = 8f;
-            tile.style.paddingTop = 6f;
-            tile.style.paddingBottom = 6f;
-            tile.style.backgroundColor = new StyleColor(new Color(0f, 0f, 0f, 0.12f));
-            tile.style.borderTopLeftRadius = 6f;
-            tile.style.borderTopRightRadius = 6f;
-            tile.style.borderBottomLeftRadius = 6f;
-            tile.style.borderBottomRightRadius = 6f;
+            tile.AddToClassList("audiomw-tile");
 
             Label caption = new Label(label);
-            caption.style.fontSize = 11f;
-            caption.style.opacity = 0.7f;
+            caption.AddToClassList("audiomw-tile__caption");
             tile.Add(caption);
 
             Label number = new Label(value);
-            number.style.fontSize = 15f;
+            number.AddToClassList("audiomw-tile__value");
             tile.Add(number);
 
             return tile;
