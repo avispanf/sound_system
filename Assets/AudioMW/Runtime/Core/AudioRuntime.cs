@@ -19,6 +19,9 @@ namespace AudioMW
         private VoiceOverDirector voiceOver;
         private readonly EventDebugger debugger = new EventDebugger();
         private readonly MixerDirector mixing = new MixerDirector();
+        private readonly System.Collections.Generic.List<VirtualVoice> virtualVoices = new System.Collections.Generic.List<VirtualVoice>();
+        private Transform cachedListener;
+        private bool virtualizationEnabled = true;
 
         public static bool Exists
         {
@@ -36,6 +39,17 @@ namespace AudioMW
 
                 return instance;
             }
+        }
+
+        public int VirtualVoiceCount
+        {
+            get { return virtualVoices.Count; }
+        }
+
+        public bool VirtualizationEnabled
+        {
+            get { return virtualizationEnabled; }
+            set { virtualizationEnabled = value; }
         }
 
         public MixerDirector Mixing
@@ -125,6 +139,7 @@ namespace AudioMW
             music.Tick();
             voiceOver.Tick();
             mixing.Tick();
+            TickVirtualization();
             AudioProfilerCounters.Sample(this);
         }
 
@@ -244,6 +259,124 @@ namespace AudioMW
             }
 
             return primary;
+        }
+
+        private void TickVirtualization()
+        {
+            if (!virtualizationEnabled)
+            {
+                return;
+            }
+
+            Transform listener = ResolveListener();
+
+            if (listener == null)
+            {
+                return;
+            }
+
+            Vector3 listenerPosition = listener.position;
+            float delta = Time.unscaledDeltaTime;
+
+            DemoteDistantVoices(listenerPosition);
+            PromoteNearVirtualVoices(listenerPosition, delta);
+        }
+
+        private void DemoteDistantVoices(Vector3 listenerPosition)
+        {
+            System.Collections.Generic.IReadOnlyList<Voice> voices = pool.Voices;
+
+            for (int i = 0; i < voices.Count; i++)
+            {
+                Voice voice = voices[i];
+
+                if (!voice.IsActive || voice.CurrentEvent == null || !voice.CurrentEvent.AllowVirtualization)
+                {
+                    continue;
+                }
+
+                if (voice.Source.spatialBlend <= 0f)
+                {
+                    continue;
+                }
+
+                float range = voice.Source.maxDistance;
+                float distance = Vector3.Distance(voice.Source.transform.position, listenerPosition);
+
+                if (!VirtualizationPolicy.ShouldVirtualize(false, distance, range))
+                {
+                    continue;
+                }
+
+                VirtualVoice virtualVoice = new VirtualVoice();
+                virtualVoice.Configure(
+                    voice.CurrentEvent,
+                    voice.CurrentParameters,
+                    voice.Source.transform.position,
+                    voice.AttachTarget,
+                    range,
+                    voice.ElapsedSeconds);
+
+                virtualVoices.Add(virtualVoice);
+                voice.Demote();
+            }
+        }
+
+        private void PromoteNearVirtualVoices(Vector3 listenerPosition, float delta)
+        {
+            for (int i = virtualVoices.Count - 1; i >= 0; i--)
+            {
+                VirtualVoice virtualVoice = virtualVoices[i];
+                virtualVoice.Advance(delta);
+
+                if (virtualVoice.IsExpired || virtualVoice.TargetLost)
+                {
+                    virtualVoices.RemoveAt(i);
+                    continue;
+                }
+
+                if (!virtualVoice.ShouldBecomeReal(listenerPosition, VirtualizationPolicy.DefaultHysteresis))
+                {
+                    continue;
+                }
+
+                Voice voice = pool.Acquire();
+
+                if (voice == null)
+                {
+                    continue;
+                }
+
+                voice.Play(
+                    virtualVoice.Event,
+                    virtualVoice.Parameters,
+                    virtualVoice.CurrentPosition,
+                    virtualVoice.Attach,
+                    virtualVoice.PlaybackOffset);
+
+                virtualVoices.RemoveAt(i);
+            }
+        }
+
+        public void ClearVirtualVoices()
+        {
+            virtualVoices.Clear();
+        }
+
+        private Transform ResolveListener()
+        {
+            if (cachedListener != null)
+            {
+                return cachedListener;
+            }
+
+#if UNITY_2023_1_OR_NEWER
+            AudioListener listener = FindFirstObjectByType<AudioListener>();
+#else
+            AudioListener listener = FindObjectOfType<AudioListener>();
+#endif
+            cachedListener = listener != null ? listener.transform : null;
+            return cachedListener;
         }
 
         public void RebuildPool(int maxVoices, int prewarm)

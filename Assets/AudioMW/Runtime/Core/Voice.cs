@@ -377,7 +377,23 @@ namespace AudioMW
             return !ReferenceEquals(attachTarget, null);
         }
 
+        public void Demote()
+        {
+            if (!active)
+            {
+                return;
+            }
+
+            source.Stop();
+            Release(false);
+        }
+
         private void Release()
+        {
+            Release(true);
+        }
+
+        private void Release(bool notify)
         {
             active = false;
             localParameters.Clear();
@@ -391,7 +407,7 @@ namespace AudioMW
 
             System.Action<Voice> handler = Released;
             Released = null;
-            if (handler != null)
+            if (notify && handler != null)
             {
                 handler(this);
             }
