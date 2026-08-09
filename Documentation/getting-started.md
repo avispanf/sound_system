@@ -103,4 +103,18 @@ step and no separate bank file: the bank is an ordinary asset listing events.
 - **Window > AudioMW > Import Auditor** — load types, memory and import
   mistakes.
 - **Window > AudioMW > Loudness Audit** — integrated LUFS and true peak per clip.
+- **Window > AudioMW > Audio Browser** — navigate every AudioMW asset, preview
+  waveforms and read per-clip loudness without leaving the window.
 - Add an **Audio Debug HUD** component to see live voices in the running game.
+
+## 7. Pick a platform tier
+
+Apply a tier at boot, before anything plays, to set the voice ceiling, DSP
+buffer size and feature toggles for the target platform:
+
+```csharp
+AudioSystem.ApplyTier(mobileTier);
+```
+
+See [optimisation.md](optimisation.md) for tiers, banks, streamed clips and the
+auditing tools.

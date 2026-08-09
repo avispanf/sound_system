@@ -26,7 +26,9 @@ void  SetVoiceParameter(Voice voice, SoundParameter parameter, float value)
 ```
 
 Values are clamped to the parameter's range. Per-voice values take precedence
-over global ones and are cleared when the voice is released.
+over global ones and are cleared when the voice is released. On a blend
+container the value cascades to every layer, so two instances of the same event
+can be driven independently.
 
 ## Banks
 
@@ -50,7 +52,8 @@ MusicPlayer Music { get; }
 `BeatTick` and `BarTick` events.
 
 `MusicClock` exposes `Tempo`, `BeatsPerBar`, `SecondsPerBeat`, `SecondsPerBar`,
-`GetBeatIndex`, `GetBarIndex`, `GetBeatInBar` and `GetNextBoundary`.
+`GetBeatIndex`, `GetBarIndex`, `GetBeatInBar`, `GetNextBoundary` and
+`GetNextMarkerTime`. `MusicPlayer` also raises `MarkerReached`.
 
 ## Voice over
 
@@ -65,6 +68,22 @@ Modes are `Queue`, `Interrupt` (only when the incoming priority is not lower)
 and `IgnoreIfBusy`. The director exposes `IsSpeaking`, `CurrentLine`,
 `QueueLength`, `DuckValue`, `DuckParameter`, `DuckFadeSeconds` and the
 `LineStarted`, `LineFinished` and `SubtitleChanged` events.
+
+## Tiers and loading
+
+```csharp
+void ApplyTier(AudioTierConfig config)
+AudioTierConfig ActiveTier { get; }
+IAudioAssetLoader AssetLoader { get; set; }
+```
+
+`AudioTierConfig` exposes `MaxVoices`, `PrewarmVoices`, `DspBuffer`,
+`OutputSampleRate`, `RealVoiceCount` and the `SpatialAudioEnabled`,
+`OcclusionEnabled` and `CustomDspEnabled` toggles, plus the `Mobile2D`,
+`Standard3D` and `HighEnd` factory presets.
+
+`SoundBank` adds `StreamedClips`, `LoadStreamed`, `UnloadStreamed`,
+`PendingStreamCount` and `IsStreamingComplete`.
 
 ## Mixing
 
@@ -107,6 +126,7 @@ decibels, and `OffsetToTarget` for normalisation planning.
 | `VoiceLine` | Create > AudioMW > Voice Line |
 | `AttenuationPreset` | Create > AudioMW > Attenuation Preset |
 | `MixerRoutingProfile` | Create > AudioMW > Mixer Routing |
+| `AudioTierConfig` | Create > AudioMW > Tier Config |
 
 ## Components
 

@@ -64,6 +64,31 @@ A pending transition can be replaced by another call, and `StopMusic` cancels
 it. The intro clip of the incoming track is skipped during a transition — intros
 belong at the start of a piece, not at every section change.
 
+## Markers
+
+Beats and bars are a metric grid, not a musical one. A section often wants to
+change at the end of a phrase, which may sit anywhere inside the loop. Markers
+name those points.
+
+Add markers to a track as a list of bar and beat positions in the inspector,
+then quantise to them:
+
+```csharp
+AudioSystem.TransitionMusic(combat, MusicQuantization.Marker);
+AudioSystem.PlayStinger(hitClip, MusicQuantization.Marker);
+```
+
+The clock resolves the nearest marker ahead of the playhead, wrapping into the
+next loop cycle when the playhead has passed them all. A track with no usable
+markers falls back to the bar grid, so marker quantisation is always safe to
+request.
+
+React to markers in gameplay:
+
+```csharp
+AudioSystem.Music.MarkerReached += marker => director.OnCue(marker.Name);
+```
+
 ## Stingers
 
 ```csharp
