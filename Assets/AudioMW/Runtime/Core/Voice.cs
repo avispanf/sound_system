@@ -16,6 +16,7 @@ namespace AudioMW
         private readonly System.Collections.Generic.List<Voice> followers = new System.Collections.Generic.List<Voice>();
         private BlendLayer blendLayer;
         private PlaybackParameters currentParameters;
+        private int handleId;
         private float lastVolumeMultiplier = 1f;
         private float lastPitchMultiplier = 1f;
         private float lastBlendWeight = 1f;
@@ -140,6 +141,12 @@ namespace AudioMW
         public Transform AttachTarget
         {
             get { return attachTarget; }
+        }
+
+        public int HandleId
+        {
+            get { return handleId; }
+            set { handleId = value; }
         }
 
         public PlaybackParameters CurrentParameters
@@ -398,6 +405,7 @@ namespace AudioMW
             active = false;
             localParameters.Clear();
             blendLayer = null;
+            handleId = 0;
             occlusionVolume = 1f;
 
             if (lowPass != null)

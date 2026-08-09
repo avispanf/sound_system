@@ -12,6 +12,7 @@ namespace AudioMW
         public Vector3 Position { get; private set; }
         public bool Loop { get; private set; }
         public float AudibleRange { get; private set; }
+        public int HandleId { get; set; }
 
         public float Elapsed
         {

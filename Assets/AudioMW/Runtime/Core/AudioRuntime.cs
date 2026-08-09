@@ -22,6 +22,9 @@ namespace AudioMW
         private readonly System.Collections.Generic.List<VirtualVoice> virtualVoices = new System.Collections.Generic.List<VirtualVoice>();
         private Transform cachedListener;
         private bool virtualizationEnabled = true;
+        private readonly System.Collections.Generic.Dictionary<int, Voice> handleVoices = new System.Collections.Generic.Dictionary<int, Voice>();
+        private readonly System.Collections.Generic.Dictionary<int, VirtualVoice> handleVirtualVoices = new System.Collections.Generic.Dictionary<int, VirtualVoice>();
+        private int nextHandleId;
 
         public static bool Exists
         {
@@ -261,6 +264,90 @@ namespace AudioMW
             return primary;
         }
 
+        public SoundHandle PlayTracked(SoundEvent soundEvent, Vector3 position, Transform attach)
+        {
+            Voice voice = Play(soundEvent, position, attach);
+
+            if (voice == null)
+            {
+                return SoundHandle.None;
+            }
+
+            nextHandleId++;
+            voice.HandleId = nextHandleId;
+            handleVoices[nextHandleId] = voice;
+
+            return new SoundHandle(nextHandleId);
+        }
+
+        public bool IsHandlePlaying(int id)
+        {
+            Voice voice;
+
+            if (handleVoices.TryGetValue(id, out voice))
+            {
+                if (voice != null && voice.IsActive && voice.HandleId == id)
+                {
+                    return true;
+                }
+
+                handleVoices.Remove(id);
+            }
+
+            return handleVirtualVoices.ContainsKey(id);
+        }
+
+        public bool IsHandleVirtual(int id)
+        {
+            return handleVirtualVoices.ContainsKey(id);
+        }
+
+        public Voice GetHandleVoice(int id)
+        {
+            Voice voice;
+
+            if (handleVoices.TryGetValue(id, out voice) && voice != null && voice.IsActive && voice.HandleId == id)
+            {
+                return voice;
+            }
+
+            return null;
+        }
+
+        public void StopHandle(int id)
+        {
+            Voice voice;
+
+            if (handleVoices.TryGetValue(id, out voice))
+            {
+                handleVoices.Remove(id);
+
+                if (voice != null && voice.HandleId == id)
+                {
+                    voice.Stop();
+                }
+            }
+
+            VirtualVoice virtualVoice;
+
+            if (handleVirtualVoices.TryGetValue(id, out virtualVoice))
+            {
+                handleVirtualVoices.Remove(id);
+                virtualVoices.Remove(virtualVoice);
+            }
+        }
+
+        public int TrackedHandleCount
+        {
+            get { return handleVoices.Count + handleVirtualVoices.Count; }
+        }
+
+        public void ClearHandles()
+        {
+            handleVoices.Clear();
+            handleVirtualVoices.Clear();
+        }
+
         private void TickVirtualization()
         {
             if (!virtualizationEnabled)
@@ -317,6 +404,14 @@ namespace AudioMW
                     range,
                     voice.ElapsedSeconds);
 
+                virtualVoice.HandleId = voice.HandleId;
+
+                if (voice.HandleId != 0)
+                {
+                    handleVoices.Remove(voice.HandleId);
+                    handleVirtualVoices[voice.HandleId] = virtualVoice;
+                }
+
                 virtualVoices.Add(virtualVoice);
                 voice.Demote();
             }
@@ -353,6 +448,13 @@ namespace AudioMW
                     virtualVoice.CurrentPosition,
                     virtualVoice.Attach,
                     virtualVoice.PlaybackOffset);
+
+                if (virtualVoice.HandleId != 0)
+                {
+                    voice.HandleId = virtualVoice.HandleId;
+                    handleVirtualVoices.Remove(virtualVoice.HandleId);
+                    handleVoices[virtualVoice.HandleId] = voice;
+                }
 
                 virtualVoices.RemoveAt(i);
             }

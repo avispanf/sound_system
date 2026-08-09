@@ -20,6 +20,22 @@ namespace AudioMW
             return AudioRuntime.Instance.Play(soundEvent, position, target);
         }
 
+        public static SoundHandle PlayTracked(SoundEvent soundEvent)
+        {
+            return AudioRuntime.Instance.PlayTracked(soundEvent, Vector3.zero, null);
+        }
+
+        public static SoundHandle PlayTrackedAtPosition(SoundEvent soundEvent, Vector3 position)
+        {
+            return AudioRuntime.Instance.PlayTracked(soundEvent, position, null);
+        }
+
+        public static SoundHandle PlayTrackedAttached(SoundEvent soundEvent, Transform target)
+        {
+            Vector3 position = target != null ? target.position : Vector3.zero;
+            return AudioRuntime.Instance.PlayTracked(soundEvent, position, target);
+        }
+
         public static void StopAll()
         {
             if (AudioRuntime.Exists)
