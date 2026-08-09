@@ -15,6 +15,7 @@ namespace AudioMW
         private readonly ParameterStore localParameters = new ParameterStore();
         private readonly System.Collections.Generic.List<Voice> followers = new System.Collections.Generic.List<Voice>();
         private BlendLayer blendLayer;
+        private PlaybackParameters currentParameters;
         private float lastVolumeMultiplier = 1f;
         private float lastPitchMultiplier = 1f;
         private float lastBlendWeight = 1f;
@@ -91,7 +92,7 @@ namespace AudioMW
             get { return currentEvent; }
         }
 
-        public void Play(SoundEvent soundEvent, PlaybackParameters parameters, Vector3 position, Transform attach)
+        public void Play(SoundEvent soundEvent, PlaybackParameters parameters, Vector3 position, Transform attach, float startOffset = 0f)
         {
             currentEvent = soundEvent;
             attachTarget = attach;
@@ -100,6 +101,7 @@ namespace AudioMW
 
             cachedTransform.position = attach != null ? attach.position : position;
 
+            currentParameters = parameters;
             baseVolume = parameters.Volume;
             basePitch = parameters.Pitch;
 
@@ -123,6 +125,26 @@ namespace AudioMW
             source.priority = soundEvent.Priority;
             ApplyParameters();
             source.Play();
+
+            if (startOffset > 0f && parameters.Clip != null && startOffset < parameters.Clip.length)
+            {
+                source.time = startOffset;
+            }
+        }
+
+        public float ElapsedSeconds
+        {
+            get { return active ? Time.unscaledTime - startTime : 0f; }
+        }
+
+        public Transform AttachTarget
+        {
+            get { return attachTarget; }
+        }
+
+        public PlaybackParameters CurrentParameters
+        {
+            get { return currentParameters; }
         }
 
         public void Stop()
