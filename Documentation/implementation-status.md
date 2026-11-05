@@ -202,6 +202,19 @@ Native checks use temporary QA assets from the generated demo WAVs. Source previ
 stop-on-source-change, saved -12 dB after selection changes, pin independence,
 empty search and 620-point Browser / 300–360-point Inspector were checked. Dark and
 light themes were inspected; their native screenshots are separate deliverables.
-No production audio or human listening approval is claimed. Music screen refinement,
+No production audio or human listening approval is claimed. At that checkpoint, Music screen refinement,
 a fuller Diagnostics table, inline weights, broad accessibility, target devices,
 real Addressables content and cloud CI credentials remain separate work.
+
+## Design 02 follow-up authoring
+
+Preview.8 completed Music scene-state UI and Diagnostics columns: 239 EditMode
+and 172 PlayMode tests passed on Unity 2022.3.62f3 and 6000.3.21f1.
+
+The subsequent container authoring tranche introduces a native SoundEventChild
+property drawer for Layered/Switch: Event, Label and dB Gain are directly visible;
+State appears for Switch or mixed parent modes. Hidden State values are preserved.
+Both UI Toolkit and IMGUI paths use the existing serialized fields. The native
+array still owns add/remove/reorder, so event/state/gain travel together. Inline
+Simple clip weights, broad keyboard/accessibility and device/listening checks
+remain open.

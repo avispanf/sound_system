@@ -37,6 +37,56 @@ namespace AudioMW.Tests
             finally { Object.DestroyImmediate(window); }
         }
 
+        [UnityTest] public IEnumerator ChildRowsPreserveStateAcrossModeChangesAndSupportGainUndo()
+        {
+            SoundEvent child = Event("Child", Clip("Clip"));
+            SoundEvent parent = Event("Parent", Clip("Unused"));
+            parent.ContainerMode = ContainerMode.Layered;
+            parent.Children = new[] { SoundEventChild.Create(child, 7, 0.5f) };
+            SerializedObject serialized = new SerializedObject(parent);
+            VisualElement row = new SoundEventChildDrawer().CreatePropertyGUI(serialized.FindProperty("children").GetArrayElementAtIndex(0));
+            EditorWindow window = ScriptableObject.CreateInstance<EditorWindow>(); temporary.Add(window); window.Show();
+            window.rootVisualElement.Add(row); row.Bind(serialized);
+            yield return null; yield return null;
+            Assert.AreEqual(DisplayStyle.None, row.Q("child-state").style.display.value);
+            DecibelGainField gain = row.Q<DecibelGainField>("child-gain");
+            Undo.IncrementCurrentGroup(); gain.value = AudioGain.FromDecibels(-12);
+            yield return null; Undo.FlushUndoRecordObjects();
+            Assert.AreEqual(-12, parent.Children[0].GainDb, 0.001f);
+            Undo.PerformUndo(); yield return null;
+            Assert.AreEqual(0.5f, parent.Children[0].Gain, 0.001f);
+            serialized.Update(); serialized.FindProperty("containerMode").enumValueIndex = (int)ContainerMode.Switch; serialized.ApplyModifiedProperties();
+            yield return null; yield return null;
+            double until = EditorApplication.timeSinceStartup + 3;
+            while (row.Q("child-state").style.display.value != DisplayStyle.Flex && EditorApplication.timeSinceStartup < until) yield return null;
+            Assert.AreEqual(DisplayStyle.Flex, row.Q("child-state").style.display.value);
+            Assert.AreEqual(7, parent.Children[0].State); Assert.AreEqual(child, parent.Children[0].Event);
+            window.Close();
+        }
+
+        [UnityTest] public IEnumerator ChildGainMultiEditChangesOnlyGainAndUndoRestoresBothValues()
+        {
+            SoundEvent child = Event("Child", Clip("Clip"));
+            SoundEvent a = Event("A", Clip("A")); SoundEvent b = Event("B", Clip("B"));
+            a.ContainerMode = ContainerMode.Layered; b.ContainerMode = ContainerMode.Switch;
+            a.Children = new[] { SoundEventChild.Create(child, 1, 0.5f) };
+            b.Children = new[] { SoundEventChild.Create(child, 2, 0.25f) };
+            SerializedObject serialized = new SerializedObject(new Object[] { a, b });
+            VisualElement row = new SoundEventChildDrawer().CreatePropertyGUI(serialized.FindProperty("children").GetArrayElementAtIndex(0));
+            EditorWindow window = ScriptableObject.CreateInstance<EditorWindow>(); temporary.Add(window); window.Show();
+            window.rootVisualElement.Add(row); row.Bind(serialized);
+            yield return null; yield return null;
+            Assert.AreEqual(DisplayStyle.Flex, row.Q("child-state").style.display.value);
+            DecibelGainField gain = row.Q<DecibelGainField>("child-gain"); Assert.IsTrue(gain.showMixedValue);
+            Undo.IncrementCurrentGroup(); gain.value = 1;
+            yield return null; Undo.FlushUndoRecordObjects();
+            Assert.AreEqual(1, a.Children[0].Gain); Assert.AreEqual(1, b.Children[0].Gain);
+            Assert.AreEqual(1, a.Children[0].State); Assert.AreEqual(2, b.Children[0].State);
+            Undo.PerformUndo(); yield return null;
+            Assert.AreEqual(0.5f, a.Children[0].Gain); Assert.AreEqual(0.25f, b.Children[0].Gain);
+            window.Close();
+        }
+
         private string folder;
         private readonly List<Object> temporary = new List<Object>();
         private readonly List<AudioBrowserWindow> browsers = new List<AudioBrowserWindow>();
