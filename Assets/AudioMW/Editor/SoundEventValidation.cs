@@ -15,6 +15,11 @@ namespace AudioMW.Editor
             if (path.Count >= 32) return "Container nesting exceeds 32 levels. Simplify the event hierarchy.";
             if (!path.Add(item)) return "Circular child reference: " + item.name + ". Remove the reference to allow playback.";
             string error = "";
+            if (item.VolumeVariationMode == VolumeVariationMode.Decibels && item.VolumeRandomDbMin > item.VolumeRandomDbMax)
+            {
+                path.Remove(item);
+                return "Minimum gain variation exceeds maximum. Swap the dB offsets to make the range clear.";
+            }
             if (item.ContainerMode == ContainerMode.Simple)
             {
                 if (!item.HasClips) error = "Add audio clips to hear this event.";

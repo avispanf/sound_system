@@ -168,3 +168,22 @@ checks remain in the complete PlayMode suite.
 Real Addressables bundles/catalogs, player/device execution, audio-device recovery,
 real demo content and human listening remain open. Cloud CI credentials are still
 absent. No new platform or audible-quality claim is made by these editor checks.
+
+
+## Decibel authoring verification
+
+The 0.5.0-preview.6 package passes 220 EditMode and 169 PlayMode tests per local
+editor (389 total): Unity 2022.3.62f3 and 6000.3.21f1. Sixteen new EditMode cases
+cover amplitude ratios, serialized legacy YAML without the new fields, deterministic
+dB variation, unchanged linear storage, quiet/silent values and live UI Toolkit
+panel binding with text/fader multi-edit plus Undo/Redo. Four new PlayMode cases
+cover inherited gain, runtime music changes without asset edits, actual mute,
+occlusion and source-volume clamping. Existing performance/lifecycle checks remain
+in the complete suites.
+
+Unity 6 dark-theme Inspector screenshots were checked at 400 and 320 points wide.
+Variation labels were shortened after the narrow check showed truncation. The QA
+used transient event copies and a temporary window; no authored demo asset changed.
+Light theme, full IMGUI interaction, screen-reader usage and human listening are
+not covered by these checks. Real demo content, device/player validation, real
+Addressables catalogs and cloud CI license credentials remain open.

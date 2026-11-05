@@ -10,7 +10,7 @@ namespace AudioMW
         [SerializeField] private string speaker;
         [SerializeField, TextArea(2, 6)] private string subtitle;
         [SerializeField] private AudioMixerGroup mixerGroup;
-        [SerializeField, Range(0f, 1f)] private float volume = 1f;
+        [SerializeField, DecibelGain] private float volume = 1f;
         [SerializeField] private int priority;
         [SerializeField] private float trailingSilence = 0.15f;
 
@@ -36,6 +36,12 @@ namespace AudioMW
         {
             get { return mixerGroup; }
             set { mixerGroup = value; }
+        }
+
+        public float VolumeDb
+        {
+            get { return AudioGain.ToDecibels(volume); }
+            set { Volume = AudioGain.FromDecibels(value); }
         }
 
         public float Volume

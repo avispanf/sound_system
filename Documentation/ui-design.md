@@ -55,8 +55,12 @@ not visual QA; record the actual checks in implementation-status.md.
 
 ## Remaining design work
 
-A decibel-first gain control needs an explicit conversion and serialization
-contract. Reference discovery needs a useful navigation destination. A future
+Gain controls now use native faders with numeric dB entry, explicit silence and
+mixed values. Storage stays linear; old variation stays additive while new events
+use a separate relative dB range. The 320-point check led to shorter variation
+labels and tooltips. See gain-authoring.md for exact semantics and evidence.
+
+Reference discovery needs a useful navigation destination. A future
 transition envelope editor needs measured playback semantics before drawing
 curves. Add these after observing pilot workflows, rather than enlarging the
 Inspector with speculative controls.

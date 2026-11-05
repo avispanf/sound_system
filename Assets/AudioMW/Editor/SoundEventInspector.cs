@@ -44,10 +44,18 @@ namespace AudioMW.Editor
             Field(sound, "volume", "Gain");
             Field(sound, "pitch", "Pitch");
             Foldout variation = Section(sound, "Variation", false);
-            Field(variation, "volumeRandomMin", "Gain offset min");
-            Field(variation, "volumeRandomMax", "Gain offset max");
-            Field(variation, "pitchRandomMin", "Pitch offset min");
-            Field(variation, "pitchRandomMax", "Pitch offset max");
+            Field(variation, "volumeVariationMode", "Gain variation");
+            VisualElement decibelVariation = new VisualElement();
+            Field(decibelVariation, "volumeRandomDbMin", "Min gain (dB)");
+            Field(decibelVariation, "volumeRandomDbMax", "Max gain (dB)");
+            variation.Add(decibelVariation);
+            VisualElement legacyVariation = new VisualElement();
+            Field(legacyVariation, "volumeRandomMin", "Linear offset min");
+            Field(legacyVariation, "volumeRandomMax", "Linear offset max");
+            legacyVariation.Add(new HelpBox("This event keeps its original additive offsets. Switching to Decibels uses a separate range and leaves these values intact.", HelpBoxMessageType.Info));
+            variation.Add(legacyVariation);
+            Field(variation, "pitchRandomMin", "Min pitch");
+            Field(variation, "pitchRandomMax", "Max pitch");
             VisualElement leaf = new VisualElement();
             Field(leaf, "loop", "Loop");
             Field(leaf, "ignorePause", "Play while paused");
@@ -76,6 +84,9 @@ namespace AudioMW.Editor
 
             System.Action refresh = () =>
             {
+                SerializedProperty variationMode = serializedObject.FindProperty("volumeVariationMode");
+                Show(decibelVariation, variationMode.hasMultipleDifferentValues || variationMode.enumValueIndex == (int)VolumeVariationMode.Decibels);
+                Show(legacyVariation, variationMode.hasMultipleDifferentValues || variationMode.enumValueIndex == (int)VolumeVariationMode.LinearOffsets);
                 SerializedProperty mode = serializedObject.FindProperty("containerMode");
                 bool mixed = mode.hasMultipleDifferentValues;
                 ContainerMode value = (ContainerMode)mode.enumValueIndex;

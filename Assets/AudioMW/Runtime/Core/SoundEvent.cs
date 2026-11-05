@@ -4,7 +4,6 @@ using UnityEngine.Audio;
 
 namespace AudioMW
 {
-    [CreateAssetMenu(fileName = "SFX_NewEvent", menuName = "AudioMW/Sound Event", order = 0)]
     public sealed class SoundEvent : ScriptableObject
     {
         [SerializeField] private ClipReference[] clipReferences = new ClipReference[0];
@@ -29,13 +28,19 @@ namespace AudioMW
         [SerializeField] private bool ignorePause;
         public bool IgnorePause { get { return ignorePause; } set { ignorePause = value; } }
 
-        [SerializeField, Range(0f, 1f)] private float volume = 1f;
+        [SerializeField, DecibelGain] private float volume = 1f;
         [SerializeField] private float volumeRandomMin;
         [SerializeField] private float volumeRandomMax;
+        [SerializeField] private VolumeVariationMode volumeVariationMode;
+        [SerializeField, Range(-80f, 24f), Tooltip("Minimum random gain offset relative to the event volume, in dB.")] private float volumeRandomDbMin;
+        [SerializeField, Range(-80f, 24f), Tooltip("Maximum random gain offset relative to the event volume, in dB.")] private float volumeRandomDbMax;
+        public VolumeVariationMode VolumeVariationMode { get { return volumeVariationMode; } set { volumeVariationMode = value; } }
+        public float VolumeRandomDbMin { get { return volumeRandomDbMin; } set { volumeRandomDbMin = float.IsNaN(value) ? 0f : Mathf.Clamp(value, -80f, 24f); } }
+        public float VolumeRandomDbMax { get { return volumeRandomDbMax; } set { volumeRandomDbMax = float.IsNaN(value) ? 0f : Mathf.Clamp(value, -80f, 24f); } }
 
         [SerializeField, Range(0.01f, 3f)] private float pitch = 1f;
-        [SerializeField] private float pitchRandomMin;
-        [SerializeField] private float pitchRandomMax;
+        [SerializeField, Tooltip("Minimum additive pitch offset. Zero keeps the authored pitch.")] private float pitchRandomMin;
+        [SerializeField, Tooltip("Maximum additive pitch offset. Zero keeps the authored pitch.")] private float pitchRandomMax;
 
         [SerializeField, Range(0f, 1f)] private float spatialBlend = 1f;
         [SerializeField] private float minDistance = 1f;
@@ -92,6 +97,12 @@ namespace AudioMW
         {
             get { return loop; }
             set { loop = value; }
+        }
+
+        public float VolumeDb
+        {
+            get { return AudioGain.ToDecibels(volume); }
+            set { Volume = AudioGain.FromDecibels(value); }
         }
 
         public float Volume
@@ -213,19 +224,27 @@ namespace AudioMW
                 return PlaybackParameters.Invalid;
             }
 
-            float volumeOffset = Lerp(volumeRandomMin, volumeRandomMax, rng);
+            float resolvedVolume = ResolveVolume(rng);
             float pitchOffset = Lerp(pitchRandomMin, pitchRandomMax, rng);
 
             return new PlaybackParameters
             {
                 Clip = GetClip(index),
-                Volume = Mathf.Clamp01(volume + volumeOffset),
+                Volume = resolvedVolume,
                 Pitch = Mathf.Clamp(pitch + pitchOffset, 0.01f, 3f),
                 IsValid = true
             };
         }
 
-        internal float ResolveVolume(System.Random rng) { return Mathf.Clamp01(volume + Lerp(volumeRandomMin, volumeRandomMax, rng)); }
+        internal float ResolveVolume(System.Random rng)
+        {
+            if (volumeVariationMode == VolumeVariationMode.Decibels)
+            {
+                float offset = Lerp(Mathf.Min(volumeRandomDbMin, volumeRandomDbMax), Mathf.Max(volumeRandomDbMin, volumeRandomDbMax), rng);
+                return Mathf.Clamp01(volume * AudioGain.FromDecibels(offset));
+            }
+            return Mathf.Clamp01(volume + Lerp(volumeRandomMin, volumeRandomMax, rng));
+        }
         internal float ResolvePitch(System.Random rng) { return Mathf.Clamp(pitch + Lerp(pitchRandomMin, pitchRandomMax, rng), 0.01f, 3f); }
 
         private static float Lerp(float min, float max, System.Random rng)
@@ -242,6 +261,7 @@ namespace AudioMW
         {
             SoundEvent instance = CreateInstance<SoundEvent>();
             instance.clips = sourceClips ?? new AudioClip[0];
+            instance.volumeVariationMode = VolumeVariationMode.Decibels;
             return instance;
         }
     }

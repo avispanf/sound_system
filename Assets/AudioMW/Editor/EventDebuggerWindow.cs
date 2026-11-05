@@ -120,7 +120,7 @@ namespace AudioMW.Editor
                         record.EventName,
                         string.IsNullOrEmpty(record.ClipName) ? "-" : record.ClipName,
                         record.DescribeOutcome(),
-                        record.DescribeVolumeChain(),
+                        record.DescribeVolumeChain() + "\n" + record.DescribeVolumeDecibels(),
                         record.FinalPitch,
                         record.Position,
                         record.Attached);

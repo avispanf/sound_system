@@ -6,6 +6,12 @@ namespace AudioMW.Editor
 {
     public static class SoundEventCreationMenu
     {
+        [MenuItem("Assets/Create/AudioMW/Sound Event", false, 0)]
+        private static void CreateEmpty()
+        {
+            ProjectWindowUtil.CreateAsset(SoundEvent.CreateRuntime(), "SFX_NewEvent.asset");
+        }
+
         private const string MenuPath = "Assets/AudioMW/Create Sound Event From Selection";
 
         [MenuItem(MenuPath, true)]
@@ -32,7 +38,7 @@ namespace AudioMW.Editor
             string assetName = clips.Length == 1 ? clips[0].name : System.IO.Path.GetFileName(directory);
             string path = AssetDatabase.GenerateUniqueAssetPath(directory + "/SFX_" + assetName + ".asset");
 
-            SoundEvent soundEvent = ScriptableObject.CreateInstance<SoundEvent>();
+            SoundEvent soundEvent = SoundEvent.CreateRuntime();
             soundEvent.Clips = SortByName(clips);
 
             AssetDatabase.CreateAsset(soundEvent, path);

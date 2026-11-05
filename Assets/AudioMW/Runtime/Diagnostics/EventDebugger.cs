@@ -15,6 +15,10 @@ namespace AudioMW
         public float BaseVolume;
         public float ParameterMultiplier;
         public float BlendWeight;
+        public float OcclusionMultiplier;
+        public float UnclampedVolume;
+        public float FinalVolumeDb { get { return AudioGain.ToDecibels(FinalVolume); } }
+        public bool WasVolumeLimited { get { return UnclampedVolume > 1f; } }
         public float FinalVolume;
         public float FinalPitch;
 
@@ -57,11 +61,21 @@ namespace AudioMW
             }
 
             return string.Format(
-                "base {0:F2} x params {1:F2} x blend {2:F2} = {3:F2}",
-                BaseVolume,
-                ParameterMultiplier,
-                BlendWeight,
-                FinalVolume);
+                "base {0:G4} x params {1:G4} x blend {2:G4} x occlusion {3:G4} = {4:G4}{5}",
+                BaseVolume, ParameterMultiplier, BlendWeight, OcclusionMultiplier, FinalVolume,
+                WasVolumeLimited ? " (limited from " + UnclampedVolume.ToString("G4") + ")" : "");
+        }
+        public string DescribeVolumeDecibels()
+        {
+            if (Outcome != PlaybackOutcome.Played) return "not played";
+            return string.Format("base {0} + params {1} + blend {2} + occlusion {3} → {4}{5}",
+                Db(BaseVolume), Db(ParameterMultiplier), Db(BlendWeight), Db(OcclusionMultiplier), Db(FinalVolume),
+                WasVolumeLimited ? " (limited to 0 dB)" : "");
+        }
+
+        private static string Db(float linear)
+        {
+            return linear > 0 ? AudioGain.ToDecibels(linear).ToString("F1") + " dB" : "−∞ dB";
         }
     }
 
@@ -124,6 +138,8 @@ namespace AudioMW
                 record.BaseVolume = voice.BaseVolume;
                 record.ParameterMultiplier = voice.LastVolumeMultiplier;
                 record.BlendWeight = voice.LastBlendWeight;
+                record.OcclusionMultiplier = voice.OcclusionVolume;
+                record.UnclampedVolume = record.BaseVolume * record.ParameterMultiplier * record.BlendWeight * record.OcclusionMultiplier;
                 record.FinalVolume = voice.Source.volume;
                 record.FinalPitch = voice.Source.pitch;
             }

@@ -7,6 +7,11 @@ The format follows Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
+- Decibel faders/numeric entry for event, music, VO and child gains, preserving
+  linear asset storage, multi-edit and Undo/Redo, with explicit silence display.
+- Relative dB volume variation for new events; old assets keep additive offsets.
+- Decibel gain APIs and debugger dB/source-volume-clamp diagnostics.
+
 - Playback clip leases spanning physical/virtual SFX, scheduled music, fade tails,
   stingers and queued speech; bank unload waits for actual resource users.
 - Audio Bank Scope component and disposable bank acquisitions for additive scenes,
@@ -48,6 +53,9 @@ The format follows Keep a Changelog and the project uses semantic versioning.
   its owned playback.
 
 ### Fixed
+
+- Event Debugger volume chains now include occlusion instead of implying an
+  unexplained difference between the factor product and final source volume.
 
 - Destroyed music/voice assets release playback resources, and standalone stingers
   release their clips after their scheduled end without requiring active music.

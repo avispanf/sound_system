@@ -57,6 +57,14 @@ assembly activation compiles with package 1.21.21 on both local editors. Real
 catalog/bundle loading and OS/device suspension remain future work. Playback
 leases and scene bank scopes are covered by the subsequent tranche below. See loading-and-pause.md.
 
+## Decibel authoring and gain diagnostics, 2026-11-05
+
+Implemented dB faders for event/music/VO/child gain without changing stored linear
+values; explicit silence and mixed selection, native Undo/Redo, and opt-in relative
+dB variation with new-event defaults. Old additive variation retains its behaviour.
+Debugger now includes occlusion, source-volume clamping and a dB view. Narrow dark
+Inspector screenshots were checked and labels shortened. See gain-authoring.md.
+
 ## Playback leases and scene scopes, 2026-11-05
 
 Added clip ownership for physical/virtual SFX, composite layers, music channels,
@@ -97,7 +105,7 @@ Play Mode transition preview. See authoring-and-runtime.md for semantics and
 ui-design.md for the interaction design. Test evidence is recorded separately
 in implementation-status.md after verification.
 
-Still planned: decibel-first authoring, richer
+Still planned: richer
 VO presets, reference discovery, Timeline/Localization integrations selected
 by pilots, performance measurements, player builds and human listening.
 Do not treat this tranche as completion of every release gate.

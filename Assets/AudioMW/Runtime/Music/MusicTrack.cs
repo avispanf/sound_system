@@ -16,7 +16,7 @@ namespace AudioMW
         [SerializeField] private int beatsPerBar = 4;
 
         [SerializeField] private AudioMixerGroup mixerGroup;
-        [SerializeField, Range(0f, 1f)] private float volume = 1f;
+        [SerializeField, DecibelGain] private float volume = 1f;
 
         public AudioClip IntroClip
         {
@@ -90,6 +90,12 @@ namespace AudioMW
         {
             get { return mixerGroup; }
             set { mixerGroup = value; }
+        }
+
+        public float VolumeDb
+        {
+            get { return AudioGain.ToDecibels(volume); }
+            set { Volume = AudioGain.FromDecibels(value); }
         }
 
         public float Volume

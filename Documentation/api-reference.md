@@ -157,3 +157,17 @@ BeginLoad and EndLoad implemented by a concrete provider.
 AudioSystem.IsPaused / SetPaused(bool) control Unity's global listener pause.
 SoundEvent.IgnorePause opts that leaf event out. See loading-and-pause.md for
 readiness, shutdown, loader lifecycle and platform verification limits.
+
+
+## Decibel gain
+
+SoundEvent, MusicTrack and VoiceLine expose VolumeDb; SoundEventChild exposes
+GainDb. Existing Volume/Gain properties and serialized fields remain linear.
+SoundEvent.VolumeVariationMode selects LinearOffsets or Decibels, with separate
+VolumeRandomDbMin/Max values. New factory/menu events use Decibels; old serialized
+events keep the zero-valued LinearOffsets default. MusicPlayer.SetVolumeDb changes
+runtime gain and VolumeDb reports it. AudioGain converts amplitude ratios.
+
+EventDebugRecord includes OcclusionMultiplier, UnclampedVolume, FinalVolumeDb,
+WasVolumeLimited and DescribeVolumeDecibels alongside the linear chain. See
+[gain-authoring.md](gain-authoring.md) for silence, clamps and compatibility.

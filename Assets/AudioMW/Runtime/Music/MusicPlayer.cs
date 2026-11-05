@@ -56,6 +56,8 @@ namespace AudioMW
         private float volume = 1f;
         private readonly Dictionary<AudioSource, double> stingerEnds = new Dictionary<AudioSource, double>();
         public float Volume { get { return volume; } }
+        public float VolumeDb { get { return AudioGain.ToDecibels(volume); } }
+        public void SetVolumeDb(float decibels) { SetVolume(AudioGain.FromDecibels(decibels)); }
         public int RetiringTrackCount { get { return retiring.Count; } }
         public double TransitionEndDspTime { get; private set; }
         public bool IsCrossfading { get { return retiring.Count > 0; } }
