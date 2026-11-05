@@ -201,7 +201,7 @@ namespace AudioMW
                 if (slot.Virtual == null) continue;
                 float volumeMultiplier, pitchMultiplier;
                 ParameterEvaluation.Evaluate(slot.Layer.Bindings, parameters, out volumeMultiplier, out pitchMultiplier);
-                slot.Virtual.Advance(delta * Mathf.Clamp(slot.Layer.Parameters.Pitch * pitchMultiplier, 0.01f, 3f));
+                slot.Virtual.Advance((AudioListener.pause && !slot.Layer.Event.IgnorePause ? 0 : delta) * Mathf.Clamp(slot.Layer.Parameters.Pitch * pitchMultiplier, 0.01f, 3f));
                 if (slot.Virtual.IsExpired || slot.Virtual.TargetLost)
                 {
                     slot.Virtual.Clear();

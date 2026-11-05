@@ -113,6 +113,7 @@ namespace AudioMW
             source.volume = parameters.Volume;
             source.pitch = parameters.Pitch;
             source.loop = soundEvent.Loop;
+            source.ignoreListenerPause = soundEvent.IgnorePause;
             source.outputAudioMixerGroup = soundEvent.MixerGroup;
             if (soundEvent.AttenuationPreset != null)
             {
@@ -307,6 +308,8 @@ namespace AudioMW
             }
 
             ApplyParameters();
+
+            if (AudioListener.pause && !source.ignoreListenerPause) return true;
 
             if (!source.loop && !source.isPlaying)
             {

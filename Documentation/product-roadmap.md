@@ -47,6 +47,16 @@ Tools/prepare_test_project.py before running the existing version matrix
 and other Unity 6 dependencies. Remote CI, credentials and image availability
 remain unverified; local checks used 2022.3.62f3 and 6000.3.21f1.
 
+## Loading and pause tranche, 2026-11-05
+
+Implemented bank-owned async requests with stale-callback rejection, shared
+loader/clip ownership, graph reference discovery, addressed SoundEvent playback
+and shutdown ordering. Added global listener pause and opt-out menu events;
+virtual lifetime, VO and music timing freeze consistently. Optional Addressables
+assembly activation compiles with package 1.21.21 on both local editors. Real
+catalog/bundle loading, per-playback asset leases, OS/device suspension and
+scene bank-scope components remain future work. See loading-and-pause.md.
+
 ## Runtime lifetime and profiling tranche, 2026-11-05
 
 Added reentrant release notification dispatch, runtime-wide handle ID lifetime,

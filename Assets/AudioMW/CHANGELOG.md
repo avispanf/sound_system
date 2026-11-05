@@ -7,6 +7,12 @@ The format follows Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
+- SoundEvent clip references and automatic address discovery through bank event
+  graphs, with atomic rejection while addressed content is not ready.
+- Reference-counted cached loader base and optional Addressables assembly that
+  activates from the installed package version.
+- Global audio pause API and per-event Play while paused for menu SFX.
+
 - Runtime load and lifecycle regression scenarios with calibrated allocation
   reporting and AudioMW.Play / AudioMW.Tick profiler markers.
 
@@ -37,6 +43,12 @@ The format follows Keep a Changelog and the project uses semantic versioning.
   its owned playback.
 
 ### Fixed
+
+- Bank loads deduplicate pending addresses, retain the accepting loader, ignore
+  stale callbacks, release on destruction and clear ownership on shutdown.
+- Shared references and native clips remain retained by other loaded banks.
+- Virtual playback, VO ducking/queue timing and music scheduling freeze during
+  listener pause; pooled voices reset their pause opt-out flag on assignment.
 
 - Release callbacks are dispatched after runtime mutations, allowing reentrant
   playback and StopAll without collection corruption.

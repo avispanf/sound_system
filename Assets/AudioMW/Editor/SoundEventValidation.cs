@@ -21,10 +21,10 @@ namespace AudioMW.Editor
                 else
                 {
                     bool usable = false;
-                    for (int i = 0; i < item.Clips.Length; i++)
+                    for (int i = 0; i < item.TotalClipCount; i++)
                     {
                         float weight = i < item.ClipWeights.Length ? item.ClipWeights[i] : 1f;
-                        if (item.Clips[i] != null && (item.SelectionMode != ClipSelectionMode.WeightedRandom ||
+                        if ((item.GetClip(i) != null || (i >= item.Clips.Length && item.ClipReferences[i - item.Clips.Length] != null && item.ClipReferences[i - item.Clips.Length].IsAddressed)) && (item.SelectionMode != ClipSelectionMode.WeightedRandom ||
                             (weight > 0 && !float.IsNaN(weight) && !float.IsInfinity(weight)))) usable = true;
                     }
                     if (!usable) error = "Assign a clip with a positive weight to allow playback.";

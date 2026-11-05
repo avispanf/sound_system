@@ -67,6 +67,13 @@ namespace AudioMW
             bool valid = true;
             if (item.ContainerMode == ContainerMode.Simple)
             {
+                if (item.HasUnresolvedReferences)
+                {
+                    Failure = PlaybackOutcome.RejectedClipNotLoaded;
+                    bindings.RemoveRange(bindingStart, bindings.Count - bindingStart);
+                    path.Remove(item);
+                    return false;
+                }
                 PlaybackParameters parameters = item.Resolve(random);
                 if (parameters.IsValid)
                 {

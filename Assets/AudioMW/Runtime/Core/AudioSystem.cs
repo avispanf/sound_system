@@ -36,6 +36,9 @@ namespace AudioMW
             return AudioRuntime.Instance.PlayTracked(soundEvent, position, target, initialParameters);
         }
 
+        public static bool IsPaused { get { return AudioListener.pause; } }
+        public static void SetPaused(bool paused) { AudioListener.pause = paused; }
+
         public static void StopAll()
         {
             if (AudioRuntime.Exists)

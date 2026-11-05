@@ -7,10 +7,27 @@ namespace AudioMW
     [CreateAssetMenu(fileName = "SFX_NewEvent", menuName = "AudioMW/Sound Event", order = 0)]
     public sealed class SoundEvent : ScriptableObject
     {
+        [SerializeField] private ClipReference[] clipReferences = new ClipReference[0];
+        public ClipReference[] ClipReferences { get { return clipReferences; } set { clipReferences = value ?? new ClipReference[0]; ResetSelection(); } }
+        public int TotalClipCount { get { return clips.Length + clipReferences.Length; } }
+        public bool HasUnresolvedReferences
+        {
+            get { foreach (ClipReference reference in clipReferences) if (reference != null && reference.IsAddressed && (!reference.IsResolved || reference.Clip.loadState != AudioDataLoadState.Loaded)) return true; return false; }
+        }
+        public AudioClip GetClip(int index)
+        {
+            if (index < 0 || index >= TotalClipCount) return null;
+            if (index < clips.Length) return clips[index];
+            ClipReference reference = clipReferences[index - clips.Length];
+            return reference != null ? reference.Clip : null;
+        }
+
         [SerializeField] private AudioClip[] clips = new AudioClip[0];
         [SerializeField] private ClipSelectionMode selectionMode = ClipSelectionMode.RandomNoRepeat;
         [SerializeField] private AudioMixerGroup mixerGroup;
         [SerializeField] private bool loop;
+        [SerializeField] private bool ignorePause;
+        public bool IgnorePause { get { return ignorePause; } set { ignorePause = value; } }
 
         [SerializeField, Range(0f, 1f)] private float volume = 1f;
         [SerializeField] private float volumeRandomMin;
@@ -167,7 +184,7 @@ namespace AudioMW
 
         public bool HasClips
         {
-            get { return clips != null && clips.Length > 0; }
+            get { return TotalClipCount > 0; }
         }
 
         public void ResetSelection()
@@ -180,7 +197,7 @@ namespace AudioMW
 
         public PlaybackParameters Resolve(System.Random rng)
         {
-            if (!HasClips)
+            if (!HasClips || HasUnresolvedReferences)
             {
                 return PlaybackParameters.Invalid;
             }
@@ -190,8 +207,8 @@ namespace AudioMW
                 selector = new ClipSelector();
             }
 
-            int index = selector.Next(selectionMode, clips.Length, rng, clipWeights);
-            if (index < 0 || clips[index] == null)
+            int index = selector.Next(selectionMode, TotalClipCount, rng, clipWeights);
+            if (index < 0 || GetClip(index) == null)
             {
                 return PlaybackParameters.Invalid;
             }
@@ -201,7 +218,7 @@ namespace AudioMW
 
             return new PlaybackParameters
             {
-                Clip = clips[index],
+                Clip = GetClip(index),
                 Volume = Mathf.Clamp01(volume + volumeOffset),
                 Pitch = Mathf.Clamp(pitch + pitchOffset, 0.01f, 3f),
                 IsValid = true

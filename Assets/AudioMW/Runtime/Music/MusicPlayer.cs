@@ -291,6 +291,7 @@ namespace AudioMW
 
         public void Tick()
         {
+            if (AudioListener.pause) return;
             if (!playing || currentTrack == null)
             {
                 return;

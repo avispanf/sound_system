@@ -132,3 +132,16 @@ decibels, and `OffsetToTarget` for normalisation planning.
 
 `SoundEmitter`, `SoundScatterer`, `MixerSnapshotZone`, `AudioDebugHud`,
 `DemoDirector`.
+
+## Addressed events and pause
+
+SoundEvent.ClipReferences adds address/direct references after the ordinary
+Clips array in selection order. GetClip(index), TotalClipCount and
+HasUnresolvedReferences describe that combined content. SoundBank discovers
+event references through its child graph and owns the accepting loader.
+CachedAudioAssetLoader supplies shared pending/completed ownership, with
+BeginLoad and EndLoad implemented by a concrete provider.
+
+AudioSystem.IsPaused / SetPaused(bool) control Unity's global listener pause.
+SoundEvent.IgnorePause opts that leaf event out. See loading-and-pause.md for
+readiness, shutdown, loader lifecycle and platform verification limits.

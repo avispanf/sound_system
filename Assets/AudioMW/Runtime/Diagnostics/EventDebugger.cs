@@ -28,6 +28,8 @@ namespace AudioMW
                 case PlaybackOutcome.RejectedNoClips:
                     return "event has no usable clips";
 
+                case PlaybackOutcome.RejectedClipNotLoaded:
+                    return "addressed clips are not loaded; load their sound bank first";
                 case PlaybackOutcome.RejectedRuntimeStopping:
                     return "audio runtime is shutting down";
                 case PlaybackOutcome.RejectedContainerGraph:

@@ -141,6 +141,7 @@ namespace AudioMW
 
         public void Tick()
         {
+            if (AudioListener.pause && !source.ignoreListenerPause) return;
             float delta = Time.unscaledDeltaTime;
 
             if (currentLine != null && !justStarted && !source.isPlaying)

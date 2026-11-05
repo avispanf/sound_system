@@ -44,6 +44,7 @@ namespace AudioMW
         private int operationDepth;
         private bool flushingReleases;
         private bool stopping;
+        internal bool IsStopping { get { return stopping; } }
         private readonly Queue<ReleaseNotification> releases = new Queue<ReleaseNotification>();
         private struct ReleaseNotification
         {
@@ -527,6 +528,7 @@ namespace AudioMW
                 voiceOver.Reset();
                 mixing.Clear();
                 globalParameters.Clear();
+                SoundBank.UnloadAll();
             }
             finally
             {

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace AudioMW
@@ -10,6 +11,8 @@ namespace AudioMW
         [SerializeField] private string address;
 
         [NonSerialized] private AudioClip resolved;
+
+        [NonSerialized] private Dictionary<object, AudioClip> owners;
 
         public AudioClip DirectClip
         {
@@ -23,7 +26,7 @@ namespace AudioMW
 
         public bool IsAddressed
         {
-            get { return clip == null && !string.IsNullOrEmpty(address); }
+            get { return clip == null && !string.IsNullOrWhiteSpace(address); }
         }
 
         public bool IsResolved
@@ -33,7 +36,13 @@ namespace AudioMW
 
         public AudioClip Clip
         {
-            get { return clip != null ? clip : resolved; }
+            get
+            {
+                if (clip != null) return clip;
+                if (resolved != null) return resolved;
+                if (owners != null) foreach (AudioClip owned in owners.Values) if (owned != null) return owned;
+                return null;
+            }
         }
 
         public void SetResolved(AudioClip value)
@@ -44,6 +53,18 @@ namespace AudioMW
         public void ClearResolved()
         {
             resolved = null;
+            if (owners != null) owners.Clear();
+        }
+
+        internal void ResolveFor(object owner, AudioClip value)
+        {
+            if (owners == null) owners = new Dictionary<object, AudioClip>();
+            owners[owner] = value;
+        }
+
+        internal void ReleaseFor(object owner)
+        {
+            if (owners != null) owners.Remove(owner);
         }
 
         public static ClipReference Direct(AudioClip clip)

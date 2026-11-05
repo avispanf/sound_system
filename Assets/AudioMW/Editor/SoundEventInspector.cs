@@ -16,6 +16,9 @@ namespace AudioMW.Editor
             Field(root, "containerMode", "Playback");
             VisualElement simple = new VisualElement();
             Field(simple, "clips", "Audio clips");
+            Foldout references = Section(simple, "Addressed clips", false);
+            Field(references, "clipReferences", "Clip references");
+            references.Add(new HelpBox("Assign addresses here and include this event in a Sound Bank. Load the bank before playback. Weights follow Audio clips first, then Clip references.", HelpBoxMessageType.Info));
             Field(simple, "selectionMode", "Selection");
             VisualElement weighted = new VisualElement();
             Field(weighted, "clipWeights", "Clip weights");
@@ -47,6 +50,7 @@ namespace AudioMW.Editor
             Field(variation, "pitchRandomMax", "Pitch offset max");
             VisualElement leaf = new VisualElement();
             Field(leaf, "loop", "Loop");
+            Field(leaf, "ignorePause", "Play while paused");
             Field(leaf, "mixerGroup", "Mixer output");
             sound.Add(leaf);
 

@@ -125,3 +125,23 @@ Release notifications now run after operation collection mutations; a raw
 Voice can already be reused, so callbacks should retain SoundHandles when
 acting on playback ownership. The original pre-existing EditorSettings change
 remains separate. Cloud CI licensing and human listening remain open.
+
+## Addressed loading and pause verification
+
+The 0.5.0-preview.4 core package passed 200 EditMode and 148 PlayMode tests
+in both Unity 2022.3.62f3 and 6000.3.21f1 (348 per version). Six new bank
+regressions initially failed and now pass; further cases cover shared pending
+loads, completed-cache ownership, stale generations, loader replacement,
+callback failure isolation, retries, shared references, nested event discovery,
+atomic addressed playback and shutdown ordering. Listener-pause scenarios cover
+virtual lifetime, VO/duck state, music boundaries and opt-out menu events.
+
+The optional Addressables 1.21.21 assembly and validation helper compile and
+activate on both editors. This is not a real catalog/bundle load test. The
+provider's final late-handle validity guard was separately compiled in those
+checks; it is excluded from the default core test assembly set. Runtime loading
+behaviour was exercised with deterministic providers and native test clips.
+
+See loading-and-pause.md for explicit bank loading/unloading, per-playback
+lease limitations, optional assembly references and the remaining device/OS,
+real content, scene-scope and human-listening release gates.

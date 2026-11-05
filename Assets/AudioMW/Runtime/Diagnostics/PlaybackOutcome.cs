@@ -10,6 +10,7 @@ namespace AudioMW
         RejectedCooldown = 5,
         RejectedInstanceLimit = 6,
         RejectedContainerGraph = 7,
-        RejectedRuntimeStopping = 8
+        RejectedRuntimeStopping = 8,
+        RejectedClipNotLoaded = 9
     }
 }

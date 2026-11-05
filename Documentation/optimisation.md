@@ -54,8 +54,8 @@ AudioSystem.LoadBank(levelBank);
 yield return new WaitUntil(() => levelBank.IsStreamingComplete);
 ```
 
-The Addressables backend requires the `AUDIOMW_ADDRESSABLES` define and the
-Addressables package. Without a loader assigned, addressed clips simply stay
+The optional Addressables assembly activates automatically when a compatible
+Addressables package is installed; no global define is needed. Without a loader assigned, addressed clips simply stay
 unresolved and the bank reports itself complete — nothing throws.
 
 To integrate a different system, implement four methods: `CanLoad`,
@@ -85,3 +85,5 @@ over months stays coherent.
 
 Results export to CSV. Clips that are not set to Decompress On Load cannot be
 read and are reported as unreadable rather than measured as silence.
+
+See [loading and pause](loading-and-pause.md) for ownership and readiness semantics.

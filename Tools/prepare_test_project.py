@@ -5,9 +5,11 @@ import re
 import shutil
 
 
-def prepare(destination, unity_version, archive=None):
+def prepare(destination, unity_version, archive=None, addressables_version=None):
     if not re.fullmatch(r"(?:2022\.3|6000\.\d+)\.\d+[abfp]\d+", unity_version):
         raise ValueError("Use a supported full Unity version, for example 2022.3.62f3.")
+    if addressables_version is not None and not re.fullmatch(r"\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?", addressables_version):
+        raise ValueError("Use a full Addressables package version.")
     if archive is not None:
         archive = archive.resolve(strict=True)
     repository = Path(__file__).resolve().parents[1]
@@ -35,6 +37,13 @@ def prepare(destination, unity_version, archive=None):
         validation = destination / "Assets" / "Editor" / "AudioMWDistributionValidation"
         validation.mkdir(parents=True, exist_ok=True)
         shutil.copy2(repository / "Tools" / "PackageValidation" / "ValidateDistribution.cs", validation)
+    optional = destination / "Assets" / "Editor" / "AudioMWAddressablesValidation"
+    if optional.exists():
+        shutil.rmtree(optional)
+    if addressables_version is not None:
+        dependencies["com.unity.addressables"] = addressables_version
+        optional.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(repository / "Tools" / "PackageValidation" / "ValidateAddressables.cs", optional)
     (destination / "Packages").mkdir(exist_ok=True)
     (destination / "Packages" / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     (destination / "ProjectSettings").mkdir(exist_ok=True)
@@ -47,5 +56,6 @@ if __name__ == "__main__":
     parser.add_argument("--destination", type=Path, required=True)
     parser.add_argument("--unity-version", required=True)
     parser.add_argument("--archive", type=Path)
+    parser.add_argument("--addressables-version")
     args = parser.parse_args()
-    prepare(args.destination, args.unity_version, args.archive)
+    prepare(args.destination, args.unity_version, args.archive, args.addressables_version)

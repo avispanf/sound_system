@@ -325,6 +325,7 @@ namespace AudioMW.Editor
             SoundEvent selectedEvent = entry.Asset as SoundEvent;
             if (selectedEvent != null)
             {
+                if (selectedEvent.HasUnresolvedReferences) preview.Add(new HelpBox("Addressed clips load through their Sound Bank at runtime. Preview is available after loading.", HelpBoxMessageType.Info));
                 string message = SoundEventValidation.Describe(selectedEvent);
                 if (!string.IsNullOrEmpty(message)) preview.Add(new HelpBox(message, HelpBoxMessageType.Warning));
             }
@@ -424,7 +425,7 @@ namespace AudioMW.Editor
             if (item == null || visited.Count >= 32 || !visited.Add(item)) return null;
             if (item.ContainerMode == ContainerMode.Simple)
             {
-                foreach (AudioClip clip in item.Clips) if (clip != null) return clip;
+                for (int i = 0; i < item.TotalClipCount; i++) if (item.GetClip(i) != null) return item.GetClip(i);
             }
             else if (item.ContainerMode == ContainerMode.Blend)
             {
@@ -454,7 +455,7 @@ namespace AudioMW.Editor
 
                 if (soundEvent.ContainerMode == ContainerMode.Layered || soundEvent.ContainerMode == ContainerMode.Switch)
                     return soundEvent.ContainerMode + " container   " + soundEvent.Children.Length + " child events";
-                return ObjectNames.NicifyVariableName(soundEvent.SelectionMode.ToString()) + "   " + soundEvent.Clips.Length + " clips";
+                return ObjectNames.NicifyVariableName(soundEvent.SelectionMode.ToString()) + "   " + soundEvent.TotalClipCount + " clips";
             }
 
             MusicTrack track = entry.Asset as MusicTrack;

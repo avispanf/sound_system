@@ -53,7 +53,7 @@ Optional integrations activate through scripting define symbols:
 
 | Define | Enables |
 |---|---|
-| `AUDIOMW_ADDRESSABLES` | Addressables backend for streamed clips |
+| `AUDIOMW_ADDRESSABLES` | Defined automatically inside the optional Addressables assembly |
 | `AUDIOMW_PROFILING_CORE` | Counters in the Unity Profiler |
 
 ## Quick start
@@ -90,7 +90,7 @@ are generated placeholders produced by `Window/AudioMW/Build Demo Content`.
 
 ## Tests
 
-322 tests run under the Unity Test Framework: 182 edit mode, 140 play mode.
+348 tests run under the Unity Test Framework: 200 edit mode, 148 play mode.
 On 2026-11-05, all passed locally in Unity 6000.3.21f1 and in an isolated
 Unity 2022.3.62f3 project containing the package. These batchmode runs do not
 verify the demo, player builds, audible quality, or the published package.
@@ -111,3 +111,5 @@ for the commercial assumptions being tested.
 - [Build and install the UPM preview archive](Documentation/distribution.md)
 
 - [Runtime profiling and lifetime checks](Documentation/runtime-profiling.md)
+
+- [Addressed events, bank ownership and pause](Documentation/loading-and-pause.md)
