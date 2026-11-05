@@ -7,6 +7,11 @@ The format follows Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
+- Playback clip leases spanning physical/virtual SFX, scheduled music, fade tails,
+  stingers and queued speech; bank unload waits for actual resource users.
+- Audio Bank Scope component and disposable bank acquisitions for additive scenes,
+  with readiness diagnostics and independent manual/scoped ownership.
+
 - SoundEvent clip references and automatic address discovery through bank event
   graphs, with atomic rejection while addressed content is not ready.
 - Reference-counted cached loader base and optional Addressables assembly that
@@ -43,6 +48,9 @@ The format follows Keep a Changelog and the project uses semantic versioning.
   its owned playback.
 
 ### Fixed
+
+- Destroyed music/voice assets release playback resources, and standalone stingers
+  release their clips after their scheduled end without requiring active music.
 
 - Bank loads deduplicate pending addresses, retain the accepting loader, ignore
   stale callbacks, release on destruction and clear ownership on shutdown.

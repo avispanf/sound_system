@@ -7,7 +7,26 @@ namespace AudioMW
     public sealed class VoiceOverDirector
     {
         private readonly AudioSource source;
-        private readonly List<VoiceLine> queue = new List<VoiceLine>();
+        private sealed class QueuedLine
+        {
+            public VoiceLine Line;
+            public AudioClip Clip;
+            public AudioClipLifetime Lifetime;
+            public QueuedLine(VoiceLine line)
+            {
+                Line = line;
+                Clip = line.Clip;
+                Lifetime = AudioClipLifetime.RetainPlayback(Clip);
+            }
+            public void Release()
+            {
+                AudioClipLifetime lifetime = Lifetime;
+                Lifetime = null;
+                if (lifetime != null) lifetime.ReleasePlayback();
+            }
+        }
+        private readonly List<QueuedLine> queue = new List<QueuedLine>();
+        private QueuedLine current;
 
         private VoiceLine currentLine;
         private float silenceTimer;
@@ -36,7 +55,7 @@ namespace AudioMW
 
         public bool IsSpeaking
         {
-            get { return currentLine != null; }
+            get { return current != null; }
         }
 
         public VoiceLine CurrentLine
@@ -78,9 +97,10 @@ namespace AudioMW
                 return false;
             }
 
-            if (currentLine == null)
+            if (current != null && currentLine == null) FinishCurrent(true);
+            if (current == null)
             {
-                StartLine(line);
+                StartLine(new QueuedLine(line));
                 return true;
             }
 
@@ -95,19 +115,20 @@ namespace AudioMW
                         return false;
                     }
 
+                    QueuedLine incoming = new QueuedLine(line);
                     FinishCurrent(true);
-                    StartLine(line);
+                    StartLine(incoming);
                     return true;
 
                 default:
-                    queue.Add(line);
+                    queue.Add(new QueuedLine(line));
                     return true;
             }
         }
 
         public void Skip()
         {
-            if (currentLine != null)
+            if (current != null)
             {
                 FinishCurrent(true);
             }
@@ -115,9 +136,9 @@ namespace AudioMW
 
         public void Stop()
         {
-            queue.Clear();
+            ClearQueue();
 
-            if (currentLine != null)
+            if (current != null)
             {
                 FinishCurrent(true);
             }
@@ -144,9 +165,9 @@ namespace AudioMW
             if (AudioListener.pause && !source.ignoreListenerPause) return;
             float delta = Time.unscaledDeltaTime;
 
-            if (currentLine != null && !justStarted && !source.isPlaying)
+            if (current != null && (currentLine == null || (!justStarted && !source.isPlaying)))
             {
-                FinishCurrent(false);
+                FinishCurrent(currentLine == null);
                 silenceTimer = lastTrailingSilence;
             }
 
@@ -158,9 +179,10 @@ namespace AudioMW
 
                 if (silenceTimer <= 0f)
                 {
-                    VoiceLine next = queue[0];
+                    QueuedLine next = queue[0];
                     queue.RemoveAt(0);
-                    StartLine(next);
+                    if (next.Line != null && next.Clip != null) StartLine(next);
+                    else next.Release();
                 }
             }
 
@@ -169,20 +191,33 @@ namespace AudioMW
 
         public void Destroy()
         {
-            queue.Clear();
+            ClearQueue();
             currentLine = null;
-
             if (source != null)
             {
+                source.Stop();
+                source.clip = null;
                 UnityEngine.Object.Destroy(source.gameObject);
             }
+            QueuedLine previous = current;
+            current = null;
+            if (previous != null) previous.Release();
         }
 
-        private void StartLine(VoiceLine line)
+        private void ClearQueue()
         {
+            QueuedLine[] owned = queue.ToArray();
+            queue.Clear();
+            foreach (QueuedLine line in owned) line.Release();
+        }
+
+        private void StartLine(QueuedLine queued)
+        {
+            VoiceLine line = queued.Line;
+            current = queued;
             currentLine = line;
 
-            source.clip = line.Clip;
+            source.clip = queued.Clip;
             source.volume = line.Volume;
             source.outputAudioMixerGroup = line.MixerGroup;
             source.Play();
@@ -212,6 +247,9 @@ namespace AudioMW
             }
 
             source.clip = null;
+            QueuedLine previous = current;
+            current = null;
+            if (previous != null) previous.Release();
 
             if (LineFinished != null && finished != null)
             {

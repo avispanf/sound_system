@@ -142,6 +142,29 @@ provider's final late-handle validity guard was separately compiled in those
 checks; it is excluded from the default core test assembly set. Runtime loading
 behaviour was exercised with deterministic providers and native test clips.
 
-See loading-and-pause.md for explicit bank loading/unloading, per-playback
-lease limitations, optional assembly references and the remaining device/OS,
-real content, scene-scope and human-listening release gates.
+See loading-and-pause.md for current bank loading/unloading contracts and optional
+assembly references. The following tranche adds the previously missing playback
+leases and scene scopes. Device/OS, real content and listening gates remain open.
+
+
+## Playback ownership and scene-scope verification
+
+The 0.5.0-preview.5 package is verified through installed UPM tarballs in both
+Unity 2022.3.62f3 and 6000.3.21f1: 204 EditMode and 165 PlayMode tests, 369 per
+version. Twenty-one added scenarios cover independent/idempotent bank leases,
+manual/scoped ownership, pending cancellation, force-reset generations, loader
+conflicts, multiple live handles, virtual playback, natural/composite completion,
+queued VO, scheduled stingers, music cancellation and fade tails, destroyed assets,
+shared direct/streamed ownership, playback predating bank loading and actual
+additive-scene unload. Native unloading
+uses a temporary imported WAV rather than a runtime-generated clip.
+
+Audio Bank Scope uses the native Inspector with a compact readiness message and
+locks its serialized bank list in Play Mode. Code can replace Banks through its
+property, which releases/reacquires ownership. Inspector compilation is covered;
+full visual/interaction sign-off is not claimed. Existing warm-allocation/load
+checks remain in the complete PlayMode suite.
+
+Real Addressables bundles/catalogs, player/device execution, audio-device recovery,
+real demo content and human listening remain open. Cloud CI credentials are still
+absent. No new platform or audible-quality claim is made by these editor checks.

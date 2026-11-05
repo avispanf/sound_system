@@ -35,7 +35,15 @@ can be driven independently.
 ```csharp
 void LoadBank(SoundBank bank)
 void UnloadBank(SoundBank bank)
+System.IDisposable AcquireBank(SoundBank bank)
 ```
+
+AcquireBank returns an independent ownership token. Dispose it to release that
+owner; repeated Dispose is safe. SoundBank.Acquire(loader) is also available,
+using AudioSystem.AssetLoader by default. ScopeCount reports scoped owners;
+LoadBank/UnloadBank retain their separate idempotent manual ownership.
+AudioMW playback retains its selected clips across bank unload. See
+[loading-and-pause.md](loading-and-pause.md) for readiness and force-reset rules.
 
 ## Music
 
@@ -130,8 +138,12 @@ decibels, and `OffsetToTarget` for normalisation planning.
 
 ## Components
 
-`SoundEmitter`, `SoundScatterer`, `MixerSnapshotZone`, `AudioDebugHud`,
+`AudioBankScope`, `SoundEmitter`, `SoundScatterer`, `MixerSnapshotZone`, `AudioDebugHud`,
 `DemoDirector`.
+
+AudioBankScope retains its Banks while enabled and releases on scene unload or
+disable. IsReady gates playback of addressed events. Shared banks remain loaded
+until their last scoped/manual owner leaves; detached playback may finish later.
 
 ## Addressed events and pause
 

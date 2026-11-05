@@ -23,6 +23,7 @@ namespace AudioMW
         private readonly MusicClock clock = new MusicClock();
         private readonly List<Channel> channels = new List<Channel>();
 
+        private readonly Dictionary<AudioSource, AudioClipLifetime> clipLeases = new Dictionary<AudioSource, AudioClipLifetime>();
         private AudioSource introSource;
         private MusicTrack currentTrack;
         private double nextScheduleDspTime;
@@ -144,7 +145,7 @@ namespace AudioMW
             {
                 introSource.outputAudioMixerGroup = track.MixerGroup;
                 introSource.volume = track.Volume * volume;
-                introSource.clip = track.IntroClip;
+                SetClip(introSource, track.IntroClip);
                 introSource.PlayScheduled(startTime);
                 bodyStart += MusicTrack.GetExactDuration(track.IntroClip);
             }
@@ -171,13 +172,13 @@ namespace AudioMW
             if (introSource != null)
             {
                 introSource.Stop();
-                introSource.clip = null;
+                SetClip(introSource, null);
             }
 
             DiscardPending();
             foreach (Retiring item in retiring) { DestroyChannels(item.Channels); DestroySource(item.Intro); }
             retiring.Clear();
-            foreach (AudioSource stinger in stingerSources) { stinger.Stop(); stinger.clip = null; }
+            foreach (AudioSource stinger in stingerSources) { stinger.Stop(); SetClip(stinger, null); }
             stingerEnds.Clear();
             TransitionEndDspTime = 0;
             ClearChannels();
@@ -292,9 +293,13 @@ namespace AudioMW
         public void Tick()
         {
             if (AudioListener.pause) return;
-            if (!playing || currentTrack == null)
+            CollectStingers();
+            if (!playing) return;
+            if (currentTrack == null) { Stop(); return; }
+            if (!ReferenceEquals(pendingTrack, null) && pendingTrack == null)
             {
-                return;
+                DiscardPending();
+                SetFadeOut(channels, introSource, 0, 0, MusicFadeCurve.Linear, true);
             }
 
             double now = AudioSettings.dspTime;
@@ -311,7 +316,7 @@ namespace AudioMW
             for (int i = retiring.Count - 1; i >= 0; i--)
             {
                 Retiring item = retiring[i];
-                if (now >= item.End)
+                if (now >= item.End || item.Track == null)
                 {
                     DestroyChannels(item.Channels);
                     DestroySource(item.Intro);
@@ -389,7 +394,7 @@ namespace AudioMW
             if (next.BodyDuration <= 0 && next.IntroClip != null)
             {
                 pendingIntro = CreateSource("Music Pending Intro");
-                pendingIntro.clip = next.IntroClip;
+                SetClip(pendingIntro, next.IntroClip);
                 pendingIntro.outputAudioMixerGroup = next.MixerGroup;
                 pendingIntro.volume = next.Volume * volume;
                 pendingIntro.GetComponent<MusicDspGain>().SetEnvelope(new DspGainEnvelope(boundary, duration, curve));
@@ -433,9 +438,34 @@ namespace AudioMW
             AudioSource source = AcquireStingerSource();
             source.outputAudioMixerGroup = currentTrack != null ? currentTrack.MixerGroup : null;
             source.volume = Mathf.Clamp01(volume);
-            source.clip = clip;
+            SetClip(source, clip);
             source.PlayScheduled(time);
             stingerEnds[source] = time + MusicTrack.GetExactDuration(clip);
+        }
+
+        private void CollectStingers()
+        {
+            double now = AudioSettings.dspTime;
+            foreach (AudioSource source in stingerSources)
+            {
+                double end;
+                if (!stingerEnds.TryGetValue(source, out end) || now < end) continue;
+                stingerEnds.Remove(source);
+                source.Stop();
+                SetClip(source, null);
+            }
+        }
+
+        private void SetClip(AudioSource source, AudioClip clip)
+        {
+            if (source.clip == clip) return;
+            AudioClipLifetime next = AudioClipLifetime.RetainPlayback(clip);
+            AudioClipLifetime previous;
+            clipLeases.TryGetValue(source, out previous);
+            clipLeases.Remove(source);
+            source.clip = clip;
+            if (next != null) clipLeases.Add(source, next);
+            if (previous != null) previous.ReleasePlayback();
         }
 
         private AudioSource AcquireStingerSource()
@@ -456,10 +486,7 @@ namespace AudioMW
 
         private void DiscardPending()
         {
-            if (pendingTrack == null)
-            {
-                return;
-            }
+            if (ReferenceEquals(pendingTrack, null) && pendingChannels.Count == 0 && pendingIntro == null) return;
 
             DestroyChannels(pendingChannels);
             DestroySource(pendingIntro);
@@ -482,7 +509,7 @@ namespace AudioMW
             {
                 DestroyChannels(channels);
                 introSource.Stop();
-                introSource.clip = null;
+                SetClip(introSource, null);
             }
             if (pendingIntro != null)
             {
@@ -508,7 +535,7 @@ namespace AudioMW
             pendingStartDspTime = 0.0;
         }
 
-        private static void DestroyChannels(List<Channel> target)
+        private void DestroyChannels(List<Channel> target)
         {
             for (int i = 0; i < target.Count; i++)
             {
@@ -518,8 +545,7 @@ namespace AudioMW
                 {
                     if (channel.Sources[s] != null)
                     {
-                        channel.Sources[s].Stop();
-                        UnityEngine.Object.Destroy(channel.Sources[s].gameObject);
+                        DestroySource(channel.Sources[s]);
                     }
                 }
             }
@@ -560,6 +586,7 @@ namespace AudioMW
                 AudioSource source = CreateSource(label + " " + i.ToString("D2"));
                 source.outputAudioMixerGroup = track.MixerGroup;
                 source.volume = track.Volume * channel.CurrentWeight * volume;
+                SetClip(source, clip);
                 channel.Sources[i] = source;
             }
 
@@ -589,10 +616,11 @@ namespace AudioMW
             ScheduleChannels(channels, dspTime, 0, AudioSettings.dspTime);
         }
 
-        private static void DestroySource(AudioSource source)
+        private void DestroySource(AudioSource source)
         {
             if (source == null) return;
             source.Stop();
+            SetClip(source, null);
             UnityEngine.Object.Destroy(source.gameObject);
         }
 
@@ -609,7 +637,7 @@ namespace AudioMW
             gain.SetEnvelope(cancel ? gain.Envelope.WithoutFadeOut() : gain.Envelope.WithFadeOut(start, seconds, curve));
         }
 
-        private static bool ScheduleChannels(List<Channel> group, double start, double offset, double now)
+        private bool ScheduleChannels(List<Channel> group, double start, double offset, double now)
         {
             foreach (Channel channel in group) if (channel.Ends[channel.NextIndex] > now) return false;
             foreach (Channel channel in group)
@@ -619,7 +647,7 @@ namespace AudioMW
                 AudioSource source = channel.Sources[index];
                 double length = MusicTrack.GetExactDuration(channel.Clip);
                 if (offset >= length) { channel.Ends[index] = start; continue; }
-                source.clip = channel.Clip;
+                SetClip(source, channel.Clip);
                 source.timeSamples = Math.Min(channel.Clip.samples - 1, (int)(offset * channel.Clip.frequency));
                 source.PlayScheduled(start);
                 channel.Ends[index] = start + length - offset;
@@ -627,7 +655,7 @@ namespace AudioMW
             return true;
         }
 
-        private static void ScheduleAhead(List<Channel> group, MusicTrack track, ref double next, double duration, double now, double end)
+        private void ScheduleAhead(List<Channel> group, MusicTrack track, ref double next, double duration, double now, double end)
         {
             if (track == null || !track.Loop || duration <= 0 || group.Count == 0) return;
             if (next < now)

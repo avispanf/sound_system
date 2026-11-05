@@ -90,7 +90,7 @@ are generated placeholders produced by `Window/AudioMW/Build Demo Content`.
 
 ## Tests
 
-348 tests run under the Unity Test Framework: 200 edit mode, 148 play mode.
+369 tests run under the Unity Test Framework: 204 edit mode, 165 play mode.
 On 2026-11-05, all passed locally in Unity 6000.3.21f1 and in an isolated
 Unity 2022.3.62f3 project containing the package. These batchmode runs do not
 verify the demo, player builds, audible quality, or the published package.

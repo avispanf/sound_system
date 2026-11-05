@@ -75,6 +75,11 @@ namespace AudioMW
             set { assetLoader = value ?? NullAudioAssetLoader.Instance; }
         }
 
+        public static System.IDisposable AcquireBank(SoundBank bank)
+        {
+            return bank != null ? bank.Acquire(assetLoader) : null;
+        }
+
         public static void LoadBank(SoundBank bank)
         {
             if (bank != null)

@@ -20,9 +20,10 @@ the composite event is started. Retrying playback is an explicit gameplay action
 4. Start events when ready. IsStreamingComplete only means no pending loader
    callbacks; it does not establish that every address succeeded or audio data
    has finished loading.
-5. Stop the bank's playback users before calling AudioSystem.UnloadBank(bank).
-   Playback does not yet acquire an independent loading lease. Global Shutdown
-   guarantees that SFX, music and VO are stopped before registered banks unload.
+5. Call AudioSystem.UnloadBank(bank) when the loading owner no longer needs it.
+   Existing AudioMW playback retains its selected clips until completion or stop.
+   Addressed references become unresolved when the last bank owner leaves, so
+   new addressed playback requires loading the bank again.
 
 SoundBank assets are ScriptableObject loading groups, not compiled binary banks.
 The LoadOnStartup field does not discover or load otherwise unreferenced assets;
@@ -48,11 +49,63 @@ address. Shared ClipReference objects retain separate bank owners. Failed loads
 release ownership and can be retried. Callback exceptions are logged while
 other cached-loader consumers still receive completion.
 
-Native clip-data holds are counted across distinct loaded banks; unloading one
-bank leaves data retained by another bank. Shutdown unloads all registered banks
-and a new play session resets the registry, including when domain reload is off.
-Stop other playback users before individually unloading a bank; third-party
-AudioSources are outside this ownership system.
+Clip ownership is counted across loaded banks and AudioMW playback. Physical
+and virtual SFX retain the selected layer, including while paused. Completed
+composite layers release independently of longer siblings. Music retains
+scheduled channels, pending transitions, outgoing fade tails, intros and
+stingers. VO retains accepted queued lines before they start, and releases
+cancelled or finished lines. Destroyed track/line assets also trigger cleanup.
+
+A loader acquisition for a clip remains held until the bank request is released
+and no bank or AudioMW playback still owns that clip. If several providers resolve
+the same AudioClip, their retired acquisitions can remain held until the clip's
+last playback/native-bank owner leaves. This intentionally favours asset safety
+over early release of equivalent provider handles. Native audio-data unloading
+also waits for outstanding stream owners. No new allocation is required to retain
+an already registered clip on the SFX trigger path. Direct playback is registered
+even if it starts before a bank is loaded; unused lifetime records are recycled in
+a bounded cache of at most 128 records, with all asset/provider references cleared.
+
+Third-party AudioSources, direct calls to loader.ReleaseAll, and external
+UnloadAudioData calls are outside this ownership system. Keep those owners alive
+explicitly. MusicTrack and VoiceLine still hold direct clip fields; assign/play or
+queue a resolved clip before releasing its bank, rather than keeping a raw clip
+reference and starting playback after its last owner has already released it.
+Shutdown stops AudioMW playback before force-releasing registered banks.
+
+## Scene and code scopes
+
+Add **AudioMW > Audio Bank Scope** to a scene object and assign its Banks list.
+It acquires on enable and releases on disable, including scene unload. Two
+additive scenes can own the same bank independently; duplicate entries within
+one component are acquired once. Detached one-shots, music tails and speech can
+finish after the scene releases its loading owner. Attached emitters still follow
+their existing stop-on-disable/target lifetime rules.
+
+The scope Inspector shows Ready, Loading audio or a useful unavailable message.
+Its bank list is editable before Play Mode. `scope.IsReady` is the gameplay gate;
+use a bounded wait and an error UI. Enable order starts loading early but does
+not make async audio immediately ready. Failed addresses remain unavailable;
+fix the cause and disable/enable the scope to retry. Configure the asset loader
+before enabling a scene scope. All overlapping scopes of a bank use the same
+loader; an attempted replacement throws without stealing another scope's owner.
+
+For code ownership:
+
+```csharp
+System.IDisposable bankLease = AudioSystem.AcquireBank(bank);
+bankLease.Dispose();
+```
+
+`bank.Acquire(loader)` also returns an independent, idempotently disposable lease;
+its default loader is AudioSystem.AssetLoader. Legacy LoadBank/UnloadBank remain
+one idempotent manual owner, separate from scopes. UnloadBank cannot evict a scene
+scope. IsLoaded describes the actual native-bank hold, and ScopeCount reports
+independent scoped owners. Playback can still be completing when IsLoaded is
+false. Shutdown/UnloadAll invalidate existing scope tokens; disposing an old token
+cannot release an owner acquired after the reset. Re-enable scope components to
+acquire again after an explicit Shutdown. Treat UnloadAll as a force reset, not
+normal scene cleanup.
 
 ## Optional Addressables provider
 

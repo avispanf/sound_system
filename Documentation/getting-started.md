@@ -93,6 +93,13 @@ AudioSystem.LoadBank(levelBank);
 AudioSystem.UnloadBank(previousBank);
 ```
 
+For scene ownership, add **AudioMW > Audio Bank Scope**, assign its Banks and
+wait for IsReady before starting addressed events. Multiple additive scenes may
+share a bank. Disabling the last scope releases loading ownership; already active
+AudioMW sounds retain their clips until completion or stop. For explicit code
+ownership, keep the disposable token from AudioSystem.AcquireBank(bank). See
+[loading-and-pause.md](loading-and-pause.md) for async loaders and failure handling.
+
 Banks here are a convenience over Unity's own clip loading. There is no build
 step and no separate bank file: the bank is an ordinary asset listing events.
 

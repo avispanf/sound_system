@@ -54,8 +54,18 @@ loader/clip ownership, graph reference discovery, addressed SoundEvent playback
 and shutdown ordering. Added global listener pause and opt-out menu events;
 virtual lifetime, VO and music timing freeze consistently. Optional Addressables
 assembly activation compiles with package 1.21.21 on both local editors. Real
-catalog/bundle loading, per-playback asset leases, OS/device suspension and
-scene bank-scope components remain future work. See loading-and-pause.md.
+catalog/bundle loading and OS/device suspension remain future work. Playback
+leases and scene bank scopes are covered by the subsequent tranche below. See loading-and-pause.md.
+
+## Playback leases and scene scopes, 2026-11-05
+
+Added clip ownership for physical/virtual SFX, composite layers, music channels,
+pending transitions, outgoing tails, stingers and accepted VO queues. Bank unload
+releases its loading ownership while playback completes safely. Native and
+provider-loaded clips share a registry, including direct banks using a resolved
+clip. AudioBankScope and disposable bank leases support overlapping additive
+scenes; manual loading is a separate owner. The scope Inspector reports loading
+readiness without adding an authoring window. See loading-and-pause.md.
 
 ## Runtime lifetime and profiling tranche, 2026-11-05
 

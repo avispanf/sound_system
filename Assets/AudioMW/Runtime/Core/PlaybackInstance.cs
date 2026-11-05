@@ -10,6 +10,7 @@ namespace AudioMW
             public readonly PlaybackPlan.Layer Layer = new PlaybackPlan.Layer();
             public VirtualVoice VirtualCache;
             public Voice Voice;
+            public AudioClipLifetime Lifetime;
             public VirtualVoice Virtual;
         }
 
@@ -83,6 +84,7 @@ namespace AudioMW
                 Voice voice = pool.AcquireFree();
                 Slot slot = freeSlots.Count > 0 ? freeSlots.Pop() : new Slot();
                 slot.Layer.CopyFrom(layer);
+                slot.Lifetime = AudioClipLifetime.RetainPlayback(layer.Parameters.Clip);
                 slot.Voice = voice;
                 slots.Add(slot);
                 Configure(slot, position, 0f);
@@ -151,6 +153,7 @@ namespace AudioMW
                     }
                     if (slot.Virtual != null) slot.Virtual.Clear();
                     slot.Virtual = null;
+                    ReleaseLifetime(slot);
                     slot.Layer.Clear();
                     freeSlots.Push(slot);
                 }
@@ -164,6 +167,13 @@ namespace AudioMW
                 stopping = false;
                 runtime.EndOperation();
             }
+        }
+
+        private static void ReleaseLifetime(Slot slot)
+        {
+            AudioClipLifetime lifetime = slot.Lifetime;
+            slot.Lifetime = null;
+            if (lifetime != null) lifetime.ReleasePlayback();
         }
 
         public void ClearVirtual()
@@ -216,6 +226,8 @@ namespace AudioMW
                 slot.Virtual = null;
                 if (Primary == null) Primary = slot.Voice;
             }
+            foreach (Slot slot in slots)
+                if (slot.Virtual == null && (slot.Voice == null || !slot.Voice.IsActive)) ReleaseLifetime(slot);
             if (!IsPlaying) Stop();
             else RefreshFollowers();
         }

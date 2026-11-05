@@ -11,6 +11,45 @@ namespace AudioMW
         [SerializeField] private ClipReference[] streamedClips = new ClipReference[0];
 
         [System.NonSerialized] private bool loaded;
+        [System.NonSerialized] private bool manualLoad;
+        [System.NonSerialized] private bool manualStreams;
+        [System.NonSerialized] private int scopeCount;
+        [System.NonSerialized] private int scopeGeneration;
+        public int ScopeCount { get { return scopeCount; } }
+
+        private sealed class Lease : System.IDisposable
+        {
+            private SoundBank bank;
+            private readonly int generation;
+            internal Lease(SoundBank bank) { this.bank = bank; generation = bank.scopeGeneration; }
+            public void Dispose()
+            {
+                SoundBank owned = bank;
+                bank = null;
+                if (owned != null && generation == owned.scopeGeneration) owned.ReleaseScope();
+            }
+        }
+
+        public System.IDisposable Acquire(IAudioAssetLoader loader = null)
+        {
+            if (AudioRuntime.Exists && AudioRuntime.Instance.IsStopping) return null;
+            loader = loader ?? AudioSystem.AssetLoader;
+            foreach (Request request in requests.Values)
+                if (!ReferenceEquals(request.Loader, loader))
+                    throw new System.InvalidOperationException("A scoped bank must keep its original audio asset loader until all owners release it.");
+            Lease lease = new Lease(this);
+            scopeCount++;
+            try { EnsureLoaded(); EnsureStreamed(loader); return lease; }
+            catch { lease.Dispose(); throw; }
+        }
+
+        private void ReleaseScope()
+        {
+            scopeCount--;
+            if (scopeCount > 0) return;
+            if (!manualStreams) UnloadRequests();
+            if (!manualLoad) UnloadDirect();
+        }
         [System.NonSerialized] private readonly List<AudioClip> loadedClips = new List<AudioClip>();
 
         public SoundEvent[] Events
@@ -61,11 +100,13 @@ namespace AudioMW
         public void Load()
         {
             if (AudioRuntime.Exists && AudioRuntime.Instance.IsStopping) return;
-            if (loaded)
-            {
-                return;
-            }
+            manualLoad = true;
+            EnsureLoaded();
+        }
 
+        private void EnsureLoaded()
+        {
+            if (loaded) return;
             loadedClips.Clear();
 
             for (int i = 0; i < events.Length; i++)
@@ -87,7 +128,7 @@ namespace AudioMW
 
             foreach (AudioClip clip in loadedClips)
             {
-                int count; clipUsers.TryGetValue(clip, out count); clipUsers[clip] = count + 1;
+                AudioClipLifetime.RetainBank(clip);
             }
             loaded = true;
             activeBanks.Add(this);
@@ -100,20 +141,30 @@ namespace AudioMW
             public bool Active = true;
             public bool Pending = true;
             public AudioClip Clip;
+            public AudioClipLifetime.StreamOwner Lifetime;
             public readonly List<ClipReference> References = new List<ClipReference>();
         }
         [System.NonSerialized] private readonly Dictionary<string, Request> requests = new Dictionary<string, Request>(System.StringComparer.Ordinal);
         private static readonly HashSet<SoundBank> activeBanks = new HashSet<SoundBank>();
-        private static readonly Dictionary<AudioClip, int> clipUsers = new Dictionary<AudioClip, int>();
 
         public void LoadStreamed(IAudioAssetLoader loader)
         {
             if (AudioRuntime.Exists && AudioRuntime.Instance.IsStopping) return;
             if (loader == null) return;
+            if (scopeCount > 0)
+                foreach (Request request in requests.Values)
+                    if (!ReferenceEquals(request.Loader, loader))
+                        throw new System.InvalidOperationException("Cannot replace the audio asset loader of a scoped bank.");
+            manualStreams = true;
+            EnsureStreamed(loader);
+        }
+
+        private void EnsureStreamed(IAudioAssetLoader loader)
+        {
             List<ClipReference> references = CollectReferences();
             IAudioAssetLoader previousLoader = null;
             foreach (Request previous in requests.Values) { previousLoader = previous.Loader; break; }
-            if (previousLoader != null && !ReferenceEquals(previousLoader, loader)) UnloadStreamed(null);
+            if (previousLoader != null && !ReferenceEquals(previousLoader, loader)) UnloadRequests();
             for (int i = 0; i < references.Count; i++)
             {
                 ClipReference reference = references[i];
@@ -147,6 +198,7 @@ namespace AudioMW
             PendingStreamCount--;
             if (clip == null) { RemoveRequest(request); return; }
             request.Clip = clip;
+            request.Lifetime = AudioClipLifetime.RetainStream(clip, request.Loader, request.Address);
             if (clip.loadState == AudioDataLoadState.Unloaded) clip.LoadAudioData();
             foreach (ClipReference reference in request.References)
                 if (reference.IsAddressed && reference.Address == request.Address) reference.ResolveFor(request, clip);
@@ -161,27 +213,51 @@ namespace AudioMW
             foreach (ClipReference reference in request.References) reference.ReleaseFor(request);
             request.References.Clear(); request.Clip = null;
             if (!loaded && requests.Count == 0) activeBanks.Remove(this);
-            request.Loader.Release(request.Address);
+            if (request.Lifetime != null) request.Lifetime.Release();
+            else request.Loader.Release(request.Address);
+            request.Lifetime = null;
         }
 
         public void UnloadStreamed(IAudioAssetLoader loader)
+        {
+            manualStreams = false;
+            if (scopeCount == 0) UnloadRequests();
+        }
+
+        private void UnloadRequests()
         {
             Request[] owned = new Request[requests.Count]; requests.Values.CopyTo(owned, 0);
             foreach (Request request in owned) RemoveRequest(request);
         }
 
-        private void OnDestroy() { UnloadStreamed(null); Unload(); }
+        private void ForceUnload()
+        {
+            scopeGeneration++;
+            scopeCount = 0;
+            manualStreams = false;
+            manualLoad = false;
+            UnloadRequests();
+            UnloadDirect();
+        }
+
+        private void OnDestroy() { ForceUnload(); }
 
         public static void UnloadAll()
         {
             SoundBank[] banks = new SoundBank[activeBanks.Count]; activeBanks.CopyTo(banks);
-            foreach (SoundBank bank in banks) if (bank != null) { bank.UnloadStreamed(null); bank.Unload(); }
+            foreach (SoundBank bank in banks) if (bank != null) bank.ForceUnload();
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetSession() { UnloadAll(); activeBanks.Clear(); clipUsers.Clear(); }
+        private static void ResetSession() { UnloadAll(); activeBanks.Clear(); }
 
         public void Unload()
+        {
+            manualLoad = false;
+            if (scopeCount == 0) UnloadDirect();
+        }
+
+        private void UnloadDirect()
         {
             if (!loaded)
             {
@@ -190,17 +266,7 @@ namespace AudioMW
 
             for (int i = 0; i < loadedClips.Count; i++)
             {
-                AudioClip clip = loadedClips[i];
-                int count;
-                if (!ReferenceEquals(clip, null) && clipUsers.TryGetValue(clip, out count))
-                {
-                    if (count > 1) clipUsers[clip] = count - 1;
-                    else
-                    {
-                        clipUsers.Remove(clip);
-                        if (clip != null && clip.loadState == AudioDataLoadState.Loaded) clip.UnloadAudioData();
-                    }
-                }
+                AudioClipLifetime.ReleaseBank(loadedClips[i]);
             }
 
             loadedClips.Clear();
