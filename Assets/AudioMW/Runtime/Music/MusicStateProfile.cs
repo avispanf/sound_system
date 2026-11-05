@@ -17,6 +17,8 @@ namespace AudioMW
         public string From;
         public string To;
         public MusicQuantization Quantization = MusicQuantization.Bar;
+        [Min(0f)] public float FadeSeconds;
+        public MusicFadeCurve Curve;
     }
 
     [CreateAssetMenu(fileName = "MusicStates", menuName = "AudioMW/Music State Profile", order = 5)]
@@ -24,14 +26,19 @@ namespace AudioMW
     {
         [SerializeField] private MusicState[] states = new MusicState[0];
         [SerializeField] private MusicTransitionRule[] transitions = new MusicTransitionRule[0];
+        [SerializeField, Min(0f)] private float defaultFadeSeconds;
+        [SerializeField] private MusicFadeCurve defaultCurve;
         [SerializeField] private MusicQuantization defaultQuantization = MusicQuantization.Bar;
 
+        public float DefaultFadeSeconds { get { return defaultFadeSeconds; } set { defaultFadeSeconds = Mathf.Clamp(value, 0, 30); } }
+        public MusicFadeCurve DefaultCurve { get { return defaultCurve; } set { defaultCurve = value; } }
         public MusicState[] States { get { return states; } set { states = value ?? new MusicState[0]; } }
         public MusicTransitionRule[] Transitions { get { return transitions; } set { transitions = value ?? new MusicTransitionRule[0]; } }
         public MusicQuantization DefaultQuantization { get { return defaultQuantization; } set { defaultQuantization = value; } }
 
         public string Validate()
         {
+            if (!ValidFade(defaultFadeSeconds)) return "Default crossfade must be between 0 and 30 seconds.";
             HashSet<string> names = new HashSet<string>(StringComparer.Ordinal);
             HashSet<MusicTrack> tracks = new HashSet<MusicTrack>();
             foreach (MusicState state in states)
@@ -45,11 +52,14 @@ namespace AudioMW
             HashSet<Tuple<string, string>> routes = new HashSet<Tuple<string, string>>();
             foreach (MusicTransitionRule rule in transitions)
             {
+                if (rule != null && !ValidFade(rule.FadeSeconds)) return "Transition crossfade must be between 0 and 30 seconds.";
                 if (rule == null || !names.Contains(rule.From) || !names.Contains(rule.To)) return "Each transition must name an existing source and destination state.";
                 if (!routes.Add(Tuple.Create(rule.From, rule.To))) return "Remove the duplicate transition from " + rule.From + " to " + rule.To + ".";
             }
             return "";
         }
+
+        private static bool ValidFade(float value) { return !float.IsNaN(value) && !float.IsInfinity(value) && value >= 0 && value <= 30; }
 
         public string StateFor(MusicTrack track)
         {
@@ -65,9 +75,11 @@ namespace AudioMW
             if (player.PendingTrack == target.Track || (player.CurrentTrack == target.Track && !player.IsTransitionPending)) return true;
             string from = StateFor(player.CurrentTrack);
             MusicQuantization quantization = defaultQuantization;
+            float fade = defaultFadeSeconds;
+            MusicFadeCurve curve = defaultCurve;
             foreach (MusicTransitionRule rule in transitions)
-                if (rule.From == from && rule.To == destination) { quantization = rule.Quantization; break; }
-            player.TransitionTo(target.Track, quantization);
+                if (rule.From == from && rule.To == destination) { quantization = rule.Quantization; fade = rule.FadeSeconds; curve = rule.Curve; break; }
+            player.TransitionTo(target.Track, quantization, fade, curve);
             return true;
         }
     }

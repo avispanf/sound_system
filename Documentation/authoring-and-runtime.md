@@ -95,8 +95,33 @@ pending track and countdown. Repeating the same pending request does not
 reschedule it. Rules resolve from the currently playing state, not a pending
 state that has not yet started.
 
-Transitions use the existing music scheduler: start from silence includes the
-intro; transitioning to another state enters its body. This tranche does not
-add crossfade envelopes or prove audible/sample-accurate results under frame
-stalls. Human listening, rapid replacement under load and target-device capture
-remain release gates.
+Transitions enter the destination body; a target with only an intro plays that
+intro and ends. Starting from silence includes the intro. `FadeSeconds` is a
+crossfade duration in seconds (0 to 30), beginning at the quantized boundary.
+Zero seconds makes a cut. A route overrides the default duration and curve.
+Linear fades preserve the sum of gains; EqualPower preserves the sum of squared
+gains and is intended for less correlated material. Correlated stems can peak
+higher with EqualPower, so choose the curve by listening and leave headroom.
+
+On native audio platforms the gain envelope processes each sample in
+OnAudioFilterRead against DSP time. The immutable envelope is published to the
+audio thread atomically. Crossfade cleanup and scheduling remain on the main
+thread. Already queued buffers retain their DSP envelope during a frame stall;
+this does not guarantee uninterrupted music through arbitrarily long stalls
+beyond the scheduler's queued audio. WebGL does not support this managed DSP
+path and uses cuts; the preview displays that limitation.
+
+`CancelTransition()` succeeds before the scheduled boundary. Requesting the
+current state cancels another pending destination without restarting the clock.
+After a fade begins, a new destination may be scheduled while earlier outgoing
+tails finish their own envelopes. `Stop()` clears queued destinations, retiring
+tracks and scheduled stingers. Stingers reserve their source until their queued
+end so two future stingers cannot overwrite one another.
+
+`MusicPlayer.SetVolume` controls runtime music gain without modifying the track
+asset; it persists across track changes. State preview shows the incoming gain,
+remaining crossfade time and a cancel action for pending transitions.
+
+Human listening, target-device output capture and device-change recovery remain
+release gates. The DSP implementation follows Unity's
+[OnAudioFilterRead example](https://docs.unity.com/en-us/engine/6000.3/script-reference/unityengine/monobehaviour/onaudiofilterread).

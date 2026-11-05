@@ -7,6 +7,9 @@ The format follows Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
+- DSP-buffer crossfades with Linear/EqualPower curves, authored default and
+  per-route durations, live fade progress and pending-transition cancellation.
+
 - Reproducible UPM archive assembly with demo sample, user documentation,
   GUID dependency checks and tarball-based compatibility fixtures.
 
@@ -28,6 +31,14 @@ The format follows Keep a Changelog and the project uses semantic versioning.
   its owned playback.
 
 ### Fixed
+
+- Replacing or cancelling a transition no longer leaves a scheduled cut on
+  the current track; earlier fading tails survive rapid subsequent changes.
+- Short loop scheduling respects occupied source slots and catches up after
+  a missed scheduling window; intro-only music ends correctly.
+- Music volume changes affect runtime gain without writing track assets.
+- Scheduled stingers reserve distinct sources; stop/destroy clean all music
+  sources, queued transitions and retiring tracks.
 
 - Demo no longer references a URP package material or additional light component.
 

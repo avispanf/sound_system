@@ -115,3 +115,17 @@ AudioSystem.VoiceOver.DuckFadeSeconds = 0.25f;
 
 Because ducking is a parameter rather than a fixed snapshot, it can be selective:
 music and ambience drop while important gameplay cues stay where they are.
+
+## Authored crossfades
+
+MusicStateProfile provides default and route-specific FadeSeconds and Curve.
+Use Linear or EqualPower, with zero seconds for a cut. The transition starts at
+the requested musical boundary and keeps the outgoing track alive until its
+envelope ends. Call CancelTransition before the boundary to return to the
+current track. See authoring-and-runtime.md for scheduling and platform limits.
+
+```csharp
+AudioSystem.TransitionMusic(combatTrack, MusicQuantization.Bar, 0.75f, MusicFadeCurve.EqualPower);
+AudioSystem.Music.CancelTransition();
+AudioSystem.Music.SetVolume(0.8f);
+```

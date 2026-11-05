@@ -15,6 +15,7 @@ namespace AudioMW
             public AudioClip Clip;
             public readonly AudioSource[] Sources = new AudioSource[2];
             public int NextIndex;
+            public readonly double[] Ends = new double[2];
             public float CurrentWeight = 1f;
         }
 
@@ -36,6 +37,33 @@ namespace AudioMW
         private double pendingStartDspTime;
         private readonly List<double> markerBeats = new List<double>();
         private int lastMarkerIndex = -1;
+
+        private sealed class Retiring
+        {
+            public readonly List<Channel> Channels = new List<Channel>();
+            public MusicTrack Track;
+            public AudioSource Intro;
+            public double Next;
+            public double Duration;
+            public double End;
+        }
+
+        private readonly List<Retiring> retiring = new List<Retiring>();
+        private double pendingFadeSeconds;
+        private AudioSource pendingIntro;
+        private double pendingNextSchedule;
+        private float volume = 1f;
+        private readonly Dictionary<AudioSource, double> stingerEnds = new Dictionary<AudioSource, double>();
+        public float Volume { get { return volume; } }
+        public int RetiringTrackCount { get { return retiring.Count; } }
+        public double TransitionEndDspTime { get; private set; }
+        public bool IsCrossfading { get { return retiring.Count > 0; } }
+        public bool SupportsDspFades { get { return Application.platform != RuntimePlatform.WebGLPlayer; } }
+
+        public float TransitionGain
+        {
+            get { return channels.Count > 0 ? channels[0].Sources[0].GetComponent<MusicDspGain>().Envelope.Evaluate(AudioSettings.dspTime) : 0f; }
+        }
 
         public event Action<int> BeatTick;
         public event Action<int> BarTick;
@@ -103,6 +131,7 @@ namespace AudioMW
             Stop();
 
             currentTrack = track;
+            introSource.GetComponent<MusicDspGain>().SetEnvelope(new DspGainEnvelope());
             clock.Configure(track.Tempo, track.BeatsPerBar);
             clock.Start(startTime);
 
@@ -114,7 +143,7 @@ namespace AudioMW
             if (track.IntroClip != null)
             {
                 introSource.outputAudioMixerGroup = track.MixerGroup;
-                introSource.volume = track.Volume;
+                introSource.volume = track.Volume * volume;
                 introSource.clip = track.IntroClip;
                 introSource.PlayScheduled(startTime);
                 bodyStart += MusicTrack.GetExactDuration(track.IntroClip);
@@ -145,7 +174,12 @@ namespace AudioMW
                 introSource.clip = null;
             }
 
-            CancelPendingTransition();
+            DiscardPending();
+            foreach (Retiring item in retiring) { DestroyChannels(item.Channels); DestroySource(item.Intro); }
+            retiring.Clear();
+            foreach (AudioSource stinger in stingerSources) { stinger.Stop(); stinger.clip = null; }
+            stingerEnds.Clear();
+            TransitionEndDspTime = 0;
             ClearChannels();
 
             RebuildMarkers(null);
@@ -158,10 +192,8 @@ namespace AudioMW
 
         public void SetVolume(float volume)
         {
-            if (currentTrack != null)
-            {
-                currentTrack.Volume = volume;
-            }
+            this.volume = Mathf.Clamp01(volume);
+            UpdateWeights();
         }
 
         public float GetLayerWeight(int index)
@@ -271,18 +303,26 @@ namespace AudioMW
                 FinalizeTransition();
             }
 
-            if (bodyDuration > 0.0)
+            if (pendingTrack != null && pendingTrack.BodyDuration > 0)
+                ScheduleAhead(pendingChannels, pendingTrack, ref pendingNextSchedule, pendingTrack.BodyDuration, now, double.PositiveInfinity);
+            ScheduleAhead(channels, currentTrack, ref nextScheduleDspTime, bodyDuration, now,
+                pendingTrack != null ? pendingStartDspTime + pendingFadeSeconds : double.PositiveInfinity);
+            for (int i = retiring.Count - 1; i >= 0; i--)
             {
-                if (currentTrack.Loop && now + ScheduleLookahead >= nextScheduleDspTime)
+                Retiring item = retiring[i];
+                if (now >= item.End)
                 {
-                    ScheduleBody(nextScheduleDspTime);
-                    nextScheduleDspTime += bodyDuration;
+                    DestroyChannels(item.Channels);
+                    DestroySource(item.Intro);
+                    retiring.RemoveAt(i);
                 }
-                else if (!currentTrack.Loop && now >= nextScheduleDspTime)
-                {
-                    Stop();
-                    return;
-                }
+                else ScheduleAhead(item.Channels, item.Track, ref item.Next, item.Duration, now, item.End);
+            }
+            double naturalEnd = bodyDuration > 0 ? nextScheduleDspTime : clock.StartDspTime + currentTrack.IntroDuration;
+            if ((bodyDuration <= 0 || !currentTrack.Loop) && pendingTrack == null && retiring.Count == 0 && now >= naturalEnd)
+            {
+                Stop();
+                return;
             }
 
             UpdateWeights();
@@ -292,19 +332,14 @@ namespace AudioMW
 
         public void Destroy()
         {
-            ClearChannels();
-
-            if (introSource != null)
-            {
-                UnityEngine.Object.Destroy(introSource.gameObject);
-                introSource = null;
-            }
-
-            playing = false;
-            currentTrack = null;
+            Stop();
+            DestroySource(introSource);
+            introSource = null;
+            foreach (AudioSource stinger in stingerSources) DestroySource(stinger);
+            stingerSources.Clear();
         }
 
-        public void TransitionTo(MusicTrack next, MusicQuantization quantization)
+        public void TransitionTo(MusicTrack next, MusicQuantization quantization, float fadeSeconds = 0f, MusicFadeCurve curve = MusicFadeCurve.Linear)
         {
             if (next == null || !next.HasContent)
             {
@@ -317,9 +352,13 @@ namespace AudioMW
                 return;
             }
 
-            CancelPendingTransition();
-
             double now = AudioSettings.dspTime;
+            if (pendingTrack != null && now >= pendingStartDspTime) FinalizeTransition();
+            if (next == pendingTrack) return;
+            CancelTransition();
+            if (next == currentTrack) return;
+            double duration = SupportsDspFades && !float.IsNaN(fadeSeconds) && !float.IsInfinity(fadeSeconds) ? Mathf.Clamp(fadeSeconds, 0f, 30f) : 0;
+
             double boundary;
 
             if (quantization == MusicQuantization.Immediate)
@@ -335,37 +374,37 @@ namespace AudioMW
                 boundary = clock.GetNextBoundary(now, quantization);
             }
 
-            for (int i = 0; i < channels.Count; i++)
-            {
-                Channel channel = channels[i];
-                for (int s = 0; s < channel.Sources.Length; s++)
-                {
-                    if (channel.Sources[s].isPlaying)
-                    {
-                        channel.Sources[s].SetScheduledEndTime(boundary);
-                    }
-                }
-            }
-
-            if (introSource != null && introSource.isPlaying)
-            {
-                introSource.SetScheduledEndTime(boundary);
-            }
-
-            BuildChannels(next, pendingChannels);
-
-            for (int i = 0; i < pendingChannels.Count; i++)
-            {
-                Channel channel = pendingChannels[i];
-                AudioSource source = channel.Sources[channel.NextIndex];
-                channel.NextIndex = (channel.NextIndex + 1) % channel.Sources.Length;
-                source.clip = channel.Clip;
-                source.PlayScheduled(boundary);
-            }
-
             pendingTrack = next;
             pendingStartDspTime = boundary;
+            pendingFadeSeconds = duration;
+
+            SetFadeOut(channels, introSource, boundary, duration, curve, false);
+            BuildChannels(next, pendingChannels);
+            foreach (Channel channel in pendingChannels)
+                foreach (AudioSource source in channel.Sources)
+                    source.GetComponent<MusicDspGain>().SetEnvelope(new DspGainEnvelope(boundary, duration, curve));
+            ScheduleChannels(pendingChannels, boundary, 0, now);
+            pendingNextSchedule = boundary + next.BodyDuration;
+            if (next.BodyDuration <= 0 && next.IntroClip != null)
+            {
+                pendingIntro = CreateSource("Music Pending Intro");
+                pendingIntro.clip = next.IntroClip;
+                pendingIntro.outputAudioMixerGroup = next.MixerGroup;
+                pendingIntro.volume = next.Volume * volume;
+                pendingIntro.GetComponent<MusicDspGain>().SetEnvelope(new DspGainEnvelope(boundary, duration, curve));
+                pendingIntro.PlayScheduled(boundary);
+            }
         }
+
+        public bool CancelTransition()
+        {
+            if (pendingTrack == null) return false;
+            if (AudioSettings.dspTime >= pendingStartDspTime) { FinalizeTransition(); return false; }
+            DiscardPending();
+            SetFadeOut(channels, introSource, 0, 0, MusicFadeCurve.Linear, true);
+            return true;
+        }
+
 
         public void PlayStinger(AudioClip clip, MusicQuantization quantization, float volume = 1f)
         {
@@ -395,13 +434,15 @@ namespace AudioMW
             source.volume = Mathf.Clamp01(volume);
             source.clip = clip;
             source.PlayScheduled(time);
+            stingerEnds[source] = time + MusicTrack.GetExactDuration(clip);
         }
 
         private AudioSource AcquireStingerSource()
         {
             for (int i = 0; i < stingerSources.Count; i++)
             {
-                if (!stingerSources[i].isPlaying)
+                double end;
+                if (!stingerEnds.TryGetValue(stingerSources[i], out end) || AudioSettings.dspTime >= end)
                 {
                     return stingerSources[i];
                 }
@@ -412,7 +453,7 @@ namespace AudioMW
             return created;
         }
 
-        private void CancelPendingTransition()
+        private void DiscardPending()
         {
             if (pendingTrack == null)
             {
@@ -420,26 +461,37 @@ namespace AudioMW
             }
 
             DestroyChannels(pendingChannels);
+            DestroySource(pendingIntro);
+            pendingIntro = null;
             pendingTrack = null;
             pendingStartDspTime = 0.0;
         }
 
         private void FinalizeTransition()
         {
-            DestroyChannels(channels);
-
-            for (int i = 0; i < pendingChannels.Count; i++)
+            if (pendingFadeSeconds > 0)
             {
-                channels.Add(pendingChannels[i]);
+                Retiring item = new Retiring { Track = currentTrack, Intro = introSource, Next = nextScheduleDspTime, Duration = bodyDuration, End = pendingStartDspTime + pendingFadeSeconds };
+                item.Channels.AddRange(channels);
+                channels.Clear();
+                retiring.Add(item);
+                introSource = CreateSource("Music Intro");
             }
-
-            pendingChannels.Clear();
-
-            if (introSource != null)
+            else
             {
+                DestroyChannels(channels);
                 introSource.Stop();
                 introSource.clip = null;
             }
+            if (pendingIntro != null)
+            {
+                DestroySource(introSource);
+                introSource = pendingIntro;
+                pendingIntro = null;
+            }
+            channels.AddRange(pendingChannels);
+            pendingChannels.Clear();
+            TransitionEndDspTime = pendingStartDspTime + pendingFadeSeconds;
 
             currentTrack = pendingTrack;
             RebuildMarkers(currentTrack);
@@ -447,7 +499,7 @@ namespace AudioMW
             clock.Start(pendingStartDspTime);
 
             bodyDuration = currentTrack.BodyDuration;
-            nextScheduleDspTime = pendingStartDspTime + bodyDuration;
+            nextScheduleDspTime = pendingNextSchedule;
             lastBeatIndex = -1;
             lastBarIndex = -1;
 
@@ -506,7 +558,7 @@ namespace AudioMW
             {
                 AudioSource source = CreateSource(label + " " + i.ToString("D2"));
                 source.outputAudioMixerGroup = track.MixerGroup;
-                source.volume = track.Volume * channel.CurrentWeight;
+                source.volume = track.Volume * channel.CurrentWeight * volume;
                 channel.Sources[i] = source;
             }
 
@@ -522,6 +574,7 @@ namespace AudioMW
             source.playOnAwake = false;
             source.loop = false;
             source.spatialBlend = 0f;
+            source.gameObject.AddComponent<MusicDspGain>();
             return source;
         }
 
@@ -532,25 +585,80 @@ namespace AudioMW
 
         private void ScheduleBody(double dspTime)
         {
-            for (int i = 0; i < channels.Count; i++)
-            {
-                Channel channel = channels[i];
-                AudioSource source = channel.Sources[channel.NextIndex];
-                channel.NextIndex = (channel.NextIndex + 1) % channel.Sources.Length;
+            ScheduleChannels(channels, dspTime, 0, AudioSettings.dspTime);
+        }
 
+        private static void DestroySource(AudioSource source)
+        {
+            if (source == null) return;
+            source.Stop();
+            UnityEngine.Object.Destroy(source.gameObject);
+        }
+
+        private static void SetFadeOut(List<Channel> group, AudioSource intro, double start, double seconds, MusicFadeCurve curve, bool cancel)
+        {
+            foreach (Channel channel in group)
+                foreach (AudioSource source in channel.Sources) SetFadeOut(source, start, seconds, curve, cancel);
+            if (intro != null) SetFadeOut(intro, start, seconds, curve, cancel);
+        }
+
+        private static void SetFadeOut(AudioSource source, double start, double seconds, MusicFadeCurve curve, bool cancel)
+        {
+            MusicDspGain gain = source.GetComponent<MusicDspGain>();
+            gain.SetEnvelope(cancel ? gain.Envelope.WithoutFadeOut() : gain.Envelope.WithFadeOut(start, seconds, curve));
+        }
+
+        private static bool ScheduleChannels(List<Channel> group, double start, double offset, double now)
+        {
+            foreach (Channel channel in group) if (channel.Ends[channel.NextIndex] > now) return false;
+            foreach (Channel channel in group)
+            {
+                int index = channel.NextIndex;
+                channel.NextIndex = (index + 1) % 2;
+                AudioSource source = channel.Sources[index];
+                double length = MusicTrack.GetExactDuration(channel.Clip);
+                if (offset >= length) { channel.Ends[index] = start; continue; }
                 source.clip = channel.Clip;
-                source.PlayScheduled(dspTime);
+                source.timeSamples = Math.Min(channel.Clip.samples - 1, (int)(offset * channel.Clip.frequency));
+                source.PlayScheduled(start);
+                channel.Ends[index] = start + length - offset;
+            }
+            return true;
+        }
+
+        private static void ScheduleAhead(List<Channel> group, MusicTrack track, ref double next, double duration, double now, double end)
+        {
+            if (track == null || !track.Loop || duration <= 0 || group.Count == 0) return;
+            if (next < now)
+            {
+                double offset = (now + StartOffset - next) % duration;
+                if (ScheduleChannels(group, now + StartOffset, offset, now)) next = now + StartOffset + duration - offset;
+            }
+            while (next < end && next <= now + ScheduleLookahead)
+            {
+                if (!ScheduleChannels(group, next, 0, now)) break;
+                next += duration;
             }
         }
 
         private void UpdateWeights()
         {
-            float trackVolume = currentTrack.Volume;
+            if (currentTrack == null) return;
+            UpdateGroupWeights(channels, currentTrack);
+            if (pendingTrack != null) UpdateGroupWeights(pendingChannels, pendingTrack);
+            foreach (Retiring item in retiring) UpdateGroupWeights(item.Channels, item.Track);
+            if (introSource != null) introSource.volume = currentTrack.Volume * volume;
+            foreach (Retiring item in retiring) if (item.Intro != null) item.Intro.volume = item.Track.Volume * volume;
+        }
+
+        private void UpdateGroupWeights(List<Channel> group, MusicTrack track)
+        {
+            float trackVolume = track.Volume * volume;
             float delta = Time.unscaledDeltaTime;
 
-            for (int i = 0; i < channels.Count; i++)
+            for (int i = 0; i < group.Count; i++)
             {
-                Channel channel = channels[i];
+                Channel channel = group[i];
                 float target = channel.Layer != null ? ResolveWeight(channel.Layer) : 1f;
 
                 if (channel.Layer != null && channel.Layer.FadeSeconds > 0f)

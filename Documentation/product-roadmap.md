@@ -47,6 +47,15 @@ Tools/prepare_test_project.py before running the existing version matrix
 and other Unity 6 dependencies. Remote CI, credentials and image availability
 remain unverified; local checks used 2022.3.62f3 and 6000.3.21f1.
 
+## Music transition tranche, 2026-11-05
+
+Implemented DSP-buffer Linear/EqualPower crossfades, route/default durations,
+pre-boundary cancellation, rapid replacements with independently retiring
+tracks, runtime-only music volume, safe queued stingers, and frame-stall tests.
+The preview shows fade gain/countdown and disables cancellation after commitment.
+Native platforms use OnAudioFilterRead; WebGL uses cuts. Human listening,
+target-device measurements and audio-device recovery remain release gates.
+
 ## Implementation tranche, 2026-11-05
 
 Implemented in the working tree: weighted random and shuffle bag selection;
@@ -59,7 +68,7 @@ Play Mode transition preview. See authoring-and-runtime.md for semantics and
 ui-design.md for the interaction design. Test evidence is recorded separately
 in implementation-status.md after verification.
 
-Still planned: decibel-first authoring, authored crossfade envelopes, richer
+Still planned: decibel-first authoring, richer
 VO presets, reference discovery, Timeline/Localization integrations selected
 by pilots, performance measurements, player builds and human listening.
 Do not treat this tranche as completion of every release gate.

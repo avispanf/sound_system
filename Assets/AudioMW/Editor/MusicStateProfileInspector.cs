@@ -12,8 +12,10 @@ namespace AudioMW.Editor
             VisualElement root = new VisualElement();
             root.Add(new PropertyField(serializedObject.FindProperty("states"), "States"));
             root.Add(new PropertyField(serializedObject.FindProperty("defaultQuantization"), "Default transition"));
+            root.Add(new PropertyField(serializedObject.FindProperty("defaultFadeSeconds"), "Default crossfade (s)"));
+            root.Add(new PropertyField(serializedObject.FindProperty("defaultCurve"), "Default curve"));
             root.Add(new PropertyField(serializedObject.FindProperty("transitions"), "Transition rules"));
-            root.Add(new HelpBox("Names are case-sensitive. A route overrides the default timing. Transitions enter the destination body; intros play when starting from silence.", HelpBoxMessageType.Info));
+            root.Add(new HelpBox("Names are case-sensitive. A route overrides timing, crossfade duration and curve. Zero seconds makes a cut. Transitions enter the destination body; intros play when starting from silence.", HelpBoxMessageType.Info));
             HelpBox message = new HelpBox("", HelpBoxMessageType.Warning);
             root.Add(message);
             System.Action refresh = () =>

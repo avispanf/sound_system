@@ -90,3 +90,18 @@ The builder passed four Python tests and a repeatability check. CI now assembles
 and installs the tarball before package tests. The prior Actions run stopped
 at licensing; no repository Actions secrets are configured. No cloud-green
 claim or Asset Store submission is made.
+
+## Music transition verification
+
+The subsequent 0.5.0-preview.2 UPM archive passed 181 EditMode and 126 PlayMode
+tests in both Unity 2022.3.62f3 and 6000.3.21f1: 307 per version. Fifteen new
+tests cover sample-buffer envelopes, Linear/EqualPower laws, cancellation,
+replacement, multiple outgoing tails, intro-only targets, runtime volume,
+scheduled stinger cleanup and native callback processing during a 450 ms
+main-thread stall. This is automated DSP evidence, not human listening.
+
+Crossfades use immutable DSP-time envelopes in OnAudioFilterRead on native
+audio platforms. The main thread schedules clips and cleans completed groups.
+WebGL uses cuts because the managed DSP path is unavailable. Crossfade UI
+fields/progress/cancellation compile on both tested editors; no full visual
+or interaction sign-off is claimed for this UI extension.

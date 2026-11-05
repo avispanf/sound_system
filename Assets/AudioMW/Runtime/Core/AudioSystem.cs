@@ -95,9 +95,9 @@ namespace AudioMW
             AudioRuntime.Instance.Music.Play(track, quantization);
         }
 
-        public static void TransitionMusic(MusicTrack track, MusicQuantization quantization = MusicQuantization.Bar)
+        public static void TransitionMusic(MusicTrack track, MusicQuantization quantization = MusicQuantization.Bar, float fadeSeconds = 0f, MusicFadeCurve curve = MusicFadeCurve.Linear)
         {
-            AudioRuntime.Instance.Music.TransitionTo(track, quantization);
+            AudioRuntime.Instance.Music.TransitionTo(track, quantization, fadeSeconds, curve);
         }
 
         public static void PlayStinger(AudioClip clip, MusicQuantization quantization = MusicQuantization.Beat, float volume = 1f)

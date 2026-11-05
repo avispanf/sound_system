@@ -11,6 +11,7 @@ namespace AudioMW.Editor
         private VisualElement stateButtons;
         private Label status;
         private HelpBox help;
+        private IVisualElementScheduledItem refresh;
 
         [MenuItem("Window/AudioMW/Music Transitions")]
         public static void OpenMenu() { Open(null); }
@@ -28,6 +29,7 @@ namespace AudioMW.Editor
         public void CreateGUI()
         {
             VisualElement root = rootVisualElement;
+            if (refresh != null) refresh.Pause();
             root.Clear();
             root.style.paddingLeft = root.style.paddingRight = 12;
             root.style.paddingTop = root.style.paddingBottom = 12;
@@ -44,8 +46,10 @@ namespace AudioMW.Editor
             stateButtons.style.flexGrow = 1;
             root.Add(stateButtons);
             Button stop = new Button(AudioSystem.StopMusic) { text = "Stop music" };
+            Button cancel = new Button(() => { if (EditorApplication.isPlaying && AudioRuntime.Exists) AudioSystem.Music.CancelTransition(); }) { text = "Cancel pending transition", tooltip = "Cancel a transition before its scheduled boundary. A crossfade that has already started continues." };
+            root.Add(cancel);
             root.Add(stop);
-            root.schedule.Execute(() => { stop.SetEnabled(EditorApplication.isPlaying && AudioRuntime.Exists); UpdateStatus(); }).Every(100);
+            refresh = root.schedule.Execute(() => { stop.SetEnabled(EditorApplication.isPlaying && AudioRuntime.Exists); cancel.SetEnabled(EditorApplication.isPlaying && AudioRuntime.Exists && AudioSystem.Music.IsTransitionPending); UpdateStatus(); }).Every(100);
             Rebuild();
         }
 
@@ -74,6 +78,9 @@ namespace AudioMW.Editor
             MusicPlayer player = AudioSystem.Music;
             string current = player.CurrentTrack != null ? player.CurrentTrack.name : "Stopped";
             status.text = "Playing: " + current;
+            if (player.IsCrossfading)
+                status.text += "\nCrossfading • gain " + player.TransitionGain.ToString("F2") + " • " + System.Math.Max(0, player.TransitionEndDspTime - AudioSettings.dspTime).ToString("F2") + " s remaining";
+            if (!player.SupportsDspFades) status.text += "\nDSP crossfades are unavailable on this platform; transitions use cuts.";
             if (player.IsTransitionPending)
                 status.text += "\nNext: " + player.PendingTrack.name + " • in " + System.Math.Max(0, player.PendingStartDspTime - AudioSettings.dspTime).ToString("F2") + " s";
         }
