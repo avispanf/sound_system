@@ -442,6 +442,7 @@ namespace AudioMW
             }
 
             currentTrack = pendingTrack;
+            RebuildMarkers(currentTrack);
             clock.Configure(currentTrack.Tempo, currentTrack.BeatsPerBar);
             clock.Start(pendingStartDspTime);
 

@@ -2,7 +2,7 @@
   "name": "com.avispanf.audiomw",
   "version": "0.4.0",
   "displayName": "AudioMW",
-  "description": "FMOD-level adaptive music and audio, entirely inside Unity. No banks, no build step, everything in Git and in the Inspector.",
+  "description": "Unity-native sound events, layered and switch containers, adaptive music, voice management and audio diagnostics. Author directly in the Inspector without external audio banks.",
   "unity": "2022.3",
   "author": {
     "name": "Anton Panfilov",

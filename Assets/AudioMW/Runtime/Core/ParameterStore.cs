@@ -51,6 +51,15 @@ namespace AudioMW
             }
         }
 
+        public void CopyFrom(ParameterStore other)
+        {
+            if (ReferenceEquals(this, other)) return;
+            values.Clear();
+            if (other == null) return;
+            foreach (KeyValuePair<SoundParameter, float> item in other.values)
+                if (item.Key != null) values[item.Key] = item.Value;
+        }
+
         public void Clear()
         {
             values.Clear();

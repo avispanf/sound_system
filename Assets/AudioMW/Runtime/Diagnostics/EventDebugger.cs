@@ -28,11 +28,17 @@ namespace AudioMW
                 case PlaybackOutcome.RejectedNoClips:
                     return "event has no usable clips";
 
+                case PlaybackOutcome.RejectedContainerGraph:
+                    return "container has a circular reference or exceeds 32 levels";
+                case PlaybackOutcome.RejectedCooldown:
+                    return "Event cooldown has not elapsed.";
+                case PlaybackOutcome.RejectedInstanceLimit:
+                    return "Event, emitter or concurrency group limit reached.";
                 case PlaybackOutcome.RejectedNoVoice:
-                    return "voice limit reached, nothing to steal";
+                    return "voice capacity cannot fit this event under its limit policy";
 
                 case PlaybackOutcome.RejectedNoValidLayers:
-                    return "blend container has no valid layers";
+                    return "container resolves no playable layers; check clips and state selection";
 
                 default:
                     return "played";

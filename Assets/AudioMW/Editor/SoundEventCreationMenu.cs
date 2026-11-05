@@ -36,6 +36,7 @@ namespace AudioMW.Editor
             soundEvent.Clips = SortByName(clips);
 
             AssetDatabase.CreateAsset(soundEvent, path);
+            Undo.RegisterCreatedObjectUndo(soundEvent, "Create sound event");
             AssetDatabase.SaveAssets();
             Selection.activeObject = soundEvent;
             EditorGUIUtility.PingObject(soundEvent);

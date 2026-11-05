@@ -68,7 +68,10 @@ namespace AudioMW.Editor
 
         public void CreateGUI()
         {
-            StyleSheet sheet = AssetDatabase.LoadAssetAtPath<StyleSheet>("Assets/AudioMW/Editor/UI/AudioMWStyles.uss");
+            rootVisualElement.Clear();
+            string scriptPath = AssetDatabase.GetAssetPath(MonoScript.FromScriptableObject(this));
+            string stylePath = System.IO.Path.GetDirectoryName(scriptPath).Replace('\\', '/') + "/UI/AudioMWStyles.uss";
+            StyleSheet sheet = AssetDatabase.LoadAssetAtPath<StyleSheet>(stylePath);
 
             if (sheet != null)
             {
@@ -94,15 +97,14 @@ namespace AudioMW.Editor
 
             BuildChips();
 
-            VisualElement split = new VisualElement();
-            split.style.flexDirection = FlexDirection.Row;
+            TwoPaneSplitView split = new TwoPaneSplitView(0, 260, TwoPaneSplitViewOrientation.Horizontal);
+            split.viewDataKey = "AudioMW.Browser.Split";
             split.style.flexGrow = 1f;
             rootVisualElement.Add(split);
 
             listView = new ListView();
             listView.fixedItemHeight = 22f;
             listView.selectionType = SelectionType.Single;
-            listView.style.width = 260f;
             listView.style.minWidth = 200f;
             listView.AddToClassList("audiomw-list");
             listView.makeItem = MakeRow;
@@ -111,7 +113,8 @@ namespace AudioMW.Editor
             listView.selectionChanged += OnSelectionChanged;
             split.Add(listView);
 
-            preview = new VisualElement();
+            preview = new ScrollView(ScrollViewMode.Vertical);
+            preview.style.minWidth = 280;
             preview.AddToClassList("audiomw-preview");
             split.Add(preview);
 
@@ -152,7 +155,8 @@ namespace AudioMW.Editor
         private static Button MakeChip(string label, bool active, System.Action onClick)
         {
             Button chip = new Button(onClick);
-            chip.text = label;
+            chip.text = active ? "✓ " + label : label;
+            chip.tooltip = active ? "Selected: " + label : "Show " + label.ToLowerInvariant();
             chip.AddToClassList("audiomw-chip");
 
             if (active)
@@ -288,8 +292,9 @@ namespace AudioMW.Editor
                 transport.style.marginBottom = 10f;
 
                 Button play = new Button(() => EditorAudioPreview.Play(clip));
-                play.text = "Play";
-                play.style.width = 56f;
+                play.text = "Preview clip";
+                play.tooltip = "Audition the source clip. Event routing, layers and parameters are evaluated in Play Mode.";
+                play.style.width = 96f;
                 transport.Add(play);
 
                 Button stop = new Button(EditorAudioPreview.Stop);
@@ -315,7 +320,14 @@ namespace AudioMW.Editor
             noteLabel.AddToClassList("audiomw-note__label");
             note.Add(noteLabel);
 
+            noteLabel.style.whiteSpace = WhiteSpace.Normal;
             preview.Add(note);
+            SoundEvent selectedEvent = entry.Asset as SoundEvent;
+            if (selectedEvent != null)
+            {
+                string message = SoundEventValidation.Describe(selectedEvent);
+                if (!string.IsNullOrEmpty(message)) preview.Add(new HelpBox(message, HelpBoxMessageType.Warning));
+            }
         }
 
         private static VisualElement BuildMetrics(AudioClip clip)
@@ -326,9 +338,9 @@ namespace AudioMW.Editor
 
             LoudnessResult result = Measure(clip);
 
-            row.Add(MakeTile("Loudness", result.HasSignal ? result.IntegratedLufs.ToString("F1") : "n/a"));
-            row.Add(MakeTile("True peak", result.HasSignal ? result.TruePeakDb.ToString("F1") : "n/a"));
-            row.Add(MakeTile("Memory", FormatBytes((long)clip.samples * clip.channels * 4L)));
+            row.Add(MakeTile("LUFS", result.HasSignal ? result.IntegratedLufs.ToString("F1") : "n/a"));
+            row.Add(MakeTile("dBTP", result.HasSignal ? result.TruePeakDb.ToString("F1") : "n/a"));
+            row.Add(MakeTile("PCM size", FormatBytes((long)clip.samples * clip.channels * 4L)));
 
             return row;
         }
@@ -382,22 +394,7 @@ namespace AudioMW.Editor
 
             if (soundEvent != null)
             {
-                if (soundEvent.HasClips && soundEvent.Clips[0] != null)
-                {
-                    return soundEvent.Clips[0];
-                }
-
-                BlendLayer[] layers = soundEvent.BlendLayers;
-
-                for (int i = 0; i < layers.Length; i++)
-                {
-                    if (layers[i] != null && layers[i].Clip != null)
-                    {
-                        return layers[i].Clip;
-                    }
-                }
-
-                return null;
+                return FirstEventClip(soundEvent, new HashSet<SoundEvent>());
             }
 
             MusicTrack track = entry.Asset as MusicTrack;
@@ -422,6 +419,28 @@ namespace AudioMW.Editor
             return null;
         }
 
+        private static AudioClip FirstEventClip(SoundEvent item, HashSet<SoundEvent> visited)
+        {
+            if (item == null || visited.Count >= 32 || !visited.Add(item)) return null;
+            if (item.ContainerMode == ContainerMode.Simple)
+            {
+                foreach (AudioClip clip in item.Clips) if (clip != null) return clip;
+            }
+            else if (item.ContainerMode == ContainerMode.Blend)
+            {
+                foreach (BlendLayer layer in item.BlendLayers) if (layer != null && layer.Clip != null) return layer.Clip;
+            }
+            else
+            {
+                foreach (SoundEventChild child in item.Children)
+                {
+                    AudioClip clip = FirstEventClip(child != null ? child.Event : null, visited);
+                    if (clip != null) return clip;
+                }
+            }
+            return null;
+        }
+
         private static string DescribeAsset(Entry entry)
         {
             SoundEvent soundEvent = entry.Asset as SoundEvent;
@@ -433,7 +452,9 @@ namespace AudioMW.Editor
                     return "Blend container   " + soundEvent.BlendLayers.Length + " layers";
                 }
 
-                return soundEvent.SelectionMode + "   " + soundEvent.Clips.Length + " clips";
+                if (soundEvent.ContainerMode == ContainerMode.Layered || soundEvent.ContainerMode == ContainerMode.Switch)
+                    return soundEvent.ContainerMode + " container   " + soundEvent.Children.Length + " child events";
+                return ObjectNames.NicifyVariableName(soundEvent.SelectionMode.ToString()) + "   " + soundEvent.Clips.Length + " clips";
             }
 
             MusicTrack track = entry.Asset as MusicTrack;
@@ -475,7 +496,7 @@ namespace AudioMW.Editor
                     return EditorGUIUtility.IconContent("AudioClip Icon").image;
 
                 case AssetKind.Parameter:
-                    return EditorGUIUtility.IconContent("AnimationCurve Icon").image;
+                    return EditorGUIUtility.IconContent("ScriptableObject Icon").image;
 
                 case AssetKind.Bank:
                     return EditorGUIUtility.IconContent("Folder Icon").image;
@@ -620,6 +641,23 @@ namespace AudioMW.Editor
                 listView.Rebuild();
             }
 
+            if (preview != null)
+            {
+                int selectedIndex = visible.FindIndex(entry => !entry.IsHeader && entry.Asset == selected);
+                if (selectedIndex >= 0)
+                {
+                    listView.SetSelectionWithoutNotify(new[] { selectedIndex });
+                    BuildPreview(visible[selectedIndex]);
+                }
+                else
+                {
+                    selected = null;
+                    preview.Clear();
+                    preview.Add(new HelpBox(matching.Count == 0
+                        ? "No matching audio assets. Clear search or filters, or create an event from selected clips."
+                        : "Select an asset to inspect its content and preview a source clip. Edit settings in the Inspector.", HelpBoxMessageType.Info));
+                }
+            }
             UpdateStatus();
         }
 

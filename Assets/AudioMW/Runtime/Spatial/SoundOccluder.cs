@@ -11,7 +11,7 @@ namespace AudioMW
         [SerializeField] private SoundParameter occlusionParameter;
 
         private readonly OcclusionSampler sampler = new OcclusionSampler();
-        private Voice voice;
+        private SoundHandle handle;
         private float sampleTimer;
 
         public float Occlusion
@@ -26,7 +26,7 @@ namespace AudioMW
 
         public Voice ActiveVoice
         {
-            get { return voice; }
+            get { return handle.Voice; }
         }
 
         public SoundEvent Event
@@ -63,21 +63,19 @@ namespace AudioMW
                 return;
             }
 
-            voice = AudioSystem.PlayAttached(soundEvent, transform);
+            Stop();
+            handle = AudioSystem.PlayTrackedAttached(soundEvent, transform);
         }
 
         public void Stop()
         {
-            if (voice != null)
-            {
-                voice.ClearOcclusion();
-                voice.Stop();
-                voice = null;
-            }
+            handle.Stop();
+            handle = SoundHandle.None;
         }
 
         private void Update()
         {
+            Voice voice = handle.Voice;
             if (voice == null || !voice.IsActive)
             {
                 return;

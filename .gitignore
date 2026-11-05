@@ -43,3 +43,5 @@ docs_tmp.tgz
 diag.txt
 
 spec_parts.txt
+
+/.ci/TestProject/

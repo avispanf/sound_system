@@ -14,7 +14,7 @@ namespace AudioMW
 
         private readonly List<Vector3> worldPoints = new List<Vector3>();
         private Transform follower;
-        private Voice voice;
+        private SoundHandle handle;
 
         public SoundEvent Event
         {
@@ -30,7 +30,7 @@ namespace AudioMW
 
         public Voice ActiveVoice
         {
-            get { return voice; }
+            get { return handle.Voice; }
         }
 
         public Transform Follower
@@ -97,21 +97,19 @@ namespace AudioMW
 
             EnsureFollower();
             follower.position = ClosestPointTo(ListenerPosition());
-            voice = AudioSystem.PlayAttached(soundEvent, follower);
+            Stop();
+            handle = AudioSystem.PlayTrackedAttached(soundEvent, follower);
         }
 
         public void Stop()
         {
-            if (voice != null)
-            {
-                voice.Stop();
-                voice = null;
-            }
+            handle.Stop();
+            handle = SoundHandle.None;
         }
 
         private void LateUpdate()
         {
-            if (voice == null || !voice.IsActive || follower == null)
+            if (!handle.IsPlaying || follower == null)
             {
                 return;
             }

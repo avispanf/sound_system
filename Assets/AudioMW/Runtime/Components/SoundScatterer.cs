@@ -22,7 +22,7 @@ namespace AudioMW
 
         private float timer;
         private bool running;
-        private int liveCount;
+        private readonly System.Collections.Generic.List<SoundHandle> playing = new System.Collections.Generic.List<SoundHandle>();
         private System.Random rng;
 
         public SoundEvent Event
@@ -44,7 +44,7 @@ namespace AudioMW
 
         public int LiveCount
         {
-            get { return liveCount; }
+            get { playing.RemoveAll(handle => !handle.IsPlaying); return playing.Count; }
         }
 
         public void Configure(float intervalMin, float intervalMax, float radiusMin, float radiusMax, int concurrent)
@@ -80,7 +80,8 @@ namespace AudioMW
         public void StopScattering()
         {
             running = false;
-            liveCount = 0;
+            foreach (SoundHandle handle in playing) handle.Stop();
+            playing.Clear();
         }
 
         private void Update()
@@ -102,25 +103,14 @@ namespace AudioMW
 
         public Voice Spawn()
         {
-            if (soundEvent == null || liveCount >= maxConcurrent)
+            if (soundEvent == null || LiveCount >= maxConcurrent)
             {
                 return null;
             }
 
-            Voice voice = AudioSystem.PlayAtPosition(soundEvent, NextPosition());
-            if (voice != null)
-            {
-                liveCount++;
-                voice.Released += OnVoiceReleased;
-            }
-
-            return voice;
-        }
-
-        private void OnVoiceReleased(Voice voice)
-        {
-            voice.Released -= OnVoiceReleased;
-            liveCount = Mathf.Max(0, liveCount - 1);
+            SoundHandle handle = AudioSystem.PlayTrackedAtPosition(soundEvent, NextPosition());
+            if (handle.IsAssigned) playing.Add(handle);
+            return handle.Voice;
         }
 
         public Vector3 NextPosition()

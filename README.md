@@ -90,6 +90,20 @@ are generated placeholders produced by `Window/AudioMW/Build Demo Content`.
 
 ## Tests
 
-208 tests run under the Unity Test Framework: 127 edit mode, 81 play mode. The
-loudness meter is calibrated against the EBU R128 reference case; play-mode
-tests wait on conditions rather than fixed durations.
+292 tests run under the Unity Test Framework: 176 edit mode, 116 play mode.
+On 2026-11-05, all passed locally in Unity 6000.3.21f1 and in an isolated
+Unity 2022.3.62f3 project containing the package. These batchmode runs do not
+verify the demo, player builds, audible quality, or the published package.
+The loudness meter is calibrated against the EBU R128 reference case;
+play-mode tests wait on conditions rather than fixed durations.
+
+See [Documentation/product-roadmap.md](Documentation/product-roadmap.md) for
+release gates and [the market and pricing research](Documentation/market-and-pricing-2026-11-05.md)
+for the commercial assumptions being tested.
+
+### Authoring and product decisions
+
+- [Containers, voice limits and music states](Documentation/authoring-and-runtime.md)
+- [Editor UI specification](Documentation/ui-design.md)
+- [Project license and pricing model](Documentation/commercial-model.md)
+- [Implementation and verification status](Documentation/implementation-status.md)

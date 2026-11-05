@@ -3,6 +3,44 @@
 All notable changes to this package are documented here.
 The format follows Keep a Changelog and the project uses semantic versioning.
 
+## [Unreleased]
+
+### Added
+
+- Weighted random and shuffle bag clip selection.
+- Nested Layered and Switch event containers with initial instance parameters,
+  inherited gain/pitch/bindings and cycle/depth validation.
+- Event and emitter limits, cooldowns, shared concurrency groups and four
+  admission policies with whole-instance stealing and atomic voice admission.
+- Contextual SoundEvent Inspector, creation presets and actionable validation.
+- Music state profiles, UnityEvent-compatible controller and Play Mode
+  transition preview with pending-state countdown.
+
+### Changed
+
+- Browser uses resizable panes, a scrolling preview, explicit clip audition,
+  native theme styling and package-relative stylesheet lookup.
+- Built-in emitter, scatterer, spline and occluder components retain handles.
+  Emitter Stop stops all its overlapping instances; scatterer stop also stops
+  its owned playback.
+
+### Fixed
+
+- Composite handles remain valid after the first layer ends. Group stop,
+  stealing, pool rebuild and StopAll include virtual layers.
+- Virtual playback preserves instance parameters, inherited bindings, blend
+  definitions and occlusion; playback advances at parameter-adjusted pitch.
+- Virtual expiration cleans handle ownership even without an active listener;
+  promotion never steals another voice merely to become physical.
+- Browser parameter icon works on Unity 2022.3; source size is labelled PCM
+  size rather than implying a measured runtime-memory footprint.
+- Music markers refresh when a pending transition becomes the current track.
+
+
+- Voice-over duck release test now observes duck attack and speech completion
+  before requiring an exact return to zero, preventing an initial zero from
+  being mistaken for a completed release.
+
 ## [0.4.0] - 2026-08-09
 
 ### Added

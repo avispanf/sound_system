@@ -4,6 +4,9 @@ namespace AudioMW
 {
     public sealed class Voice
     {
+        internal PlaybackInstance Owner;
+        internal ParameterBinding[] Bindings;
+        internal void ClearFollowers() { followers.Clear(); }
         private readonly AudioSource source;
         private readonly Transform cachedTransform;
 
@@ -156,6 +159,7 @@ namespace AudioMW
 
         public void Stop()
         {
+            if (Owner != null) { Owner.Stop(); return; }
             for (int i = 0; i < followers.Count; i++)
             {
                 followers[i].Stop();
@@ -173,6 +177,12 @@ namespace AudioMW
         }
 
         public void ApplyOcclusion(float volumeMultiplier, float cutoffHz)
+        {
+            if (Owner != null) { Owner.ApplyOcclusion(volumeMultiplier, cutoffHz); return; }
+            ApplyOcclusionSelf(volumeMultiplier, cutoffHz);
+        }
+
+        internal void ApplyOcclusionSelf(float volumeMultiplier, float cutoffHz)
         {
             occlusionVolume = Mathf.Clamp01(volumeMultiplier);
 
@@ -204,14 +214,7 @@ namespace AudioMW
 
         public void ClearOcclusion()
         {
-            occlusionVolume = 1f;
-
-            if (lowPass != null)
-            {
-                lowPass.enabled = false;
-            }
-
-            ApplyParameters();
+            ApplyOcclusion(1f, 22000f);
         }
 
         public float OcclusionVolume
@@ -221,6 +224,7 @@ namespace AudioMW
 
         public void SetLocalParameter(SoundParameter parameter, float value)
         {
+            if (Owner != null) { Owner.SetParameter(parameter, value); return; }
             if (parameter == null)
             {
                 return;
@@ -237,6 +241,7 @@ namespace AudioMW
 
         public void ClearLocalParameters()
         {
+            if (Owner != null) { Owner.ClearParameters(); return; }
             localParameters.Clear();
             ApplyParameters();
 
@@ -250,6 +255,7 @@ namespace AudioMW
         {
             get
             {
+                if (Owner != null) return Owner.IsPlaying;
                 if (active)
                 {
                     return true;
@@ -311,46 +317,8 @@ namespace AudioMW
                 return;
             }
 
-            if (!currentEvent.HasParameterBindings)
-            {
-                lastVolumeMultiplier = 1f;
-                lastPitchMultiplier = 1f;
-                lastBlendWeight = EvaluateBlendWeight();
-                source.volume = Mathf.Clamp01(baseVolume * lastBlendWeight * occlusionVolume);
-                return;
-            }
-
-            float volumeMultiplier = 1f;
-            float pitchMultiplier = 1f;
-            ParameterBinding[] bindings = currentEvent.ParameterBindings;
-
-            for (int i = 0; i < bindings.Length; i++)
-            {
-                ParameterBinding binding = bindings[i];
-                if (binding == null || !binding.IsValid)
-                {
-                    continue;
-                }
-
-                float raw;
-                if (!localParameters.TryGet(binding.Parameter, out raw))
-                {
-                    raw = AudioRuntime.Exists
-                        ? AudioRuntime.Instance.GlobalParameters.Get(binding.Parameter)
-                        : binding.Parameter.DefaultValue;
-                }
-
-                float evaluated = binding.Evaluate(raw);
-
-                if (binding.Target == ParameterTarget.Volume)
-                {
-                    volumeMultiplier *= evaluated;
-                }
-                else
-                {
-                    pitchMultiplier *= evaluated;
-                }
-            }
+            float volumeMultiplier, pitchMultiplier;
+            ParameterEvaluation.Evaluate(Bindings ?? currentEvent.ParameterBindings, localParameters, out volumeMultiplier, out pitchMultiplier);
 
             lastVolumeMultiplier = volumeMultiplier;
             lastPitchMultiplier = pitchMultiplier;
@@ -403,6 +371,7 @@ namespace AudioMW
         private void Release(bool notify)
         {
             active = false;
+            Bindings = null;
             localParameters.Clear();
             blendLayer = null;
             handleId = 0;

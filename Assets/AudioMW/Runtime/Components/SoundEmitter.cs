@@ -10,7 +10,18 @@ namespace AudioMW
         [SerializeField] private bool attachToTransform = true;
         [SerializeField] private bool stopOnDisable = true;
 
-        private Voice activeVoice;
+        private readonly System.Collections.Generic.List<SoundHandle> playing = new System.Collections.Generic.List<SoundHandle>();
+        private readonly ParameterStore parameters = new ParameterStore();
+
+        public void SetParameter(SoundParameter parameter, float value)
+        {
+            parameters.Set(parameter, value);
+            for (int i = playing.Count - 1; i >= 0; i--)
+            {
+                if (!playing[i].IsPlaying) playing.RemoveAt(i);
+                else playing[i].SetParameter(parameter, value);
+            }
+        }
 
         public SoundEvent Event
         {
@@ -41,18 +52,17 @@ namespace AudioMW
                 return;
             }
 
-            activeVoice = attachToTransform
-                ? AudioSystem.PlayAttached(soundEvent, transform)
-                : AudioSystem.PlayAtPosition(soundEvent, transform.position);
+            playing.RemoveAll(handle => !handle.IsPlaying);
+            SoundHandle handle = attachToTransform
+                ? AudioSystem.PlayTrackedAttached(soundEvent, transform, parameters)
+                : AudioSystem.PlayTrackedAtPosition(soundEvent, transform.position, parameters);
+            if (handle.IsAssigned) playing.Add(handle);
         }
 
         public void Stop()
         {
-            if (activeVoice != null)
-            {
-                activeVoice.Stop();
-                activeVoice = null;
-            }
+            foreach (SoundHandle handle in playing) handle.Stop();
+            playing.Clear();
         }
 
         private void OnDrawGizmosSelected()

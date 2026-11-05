@@ -46,12 +46,8 @@ namespace AudioMW
 
         public void SetParameter(SoundParameter parameter, float value)
         {
-            Voice voice = Voice;
-
-            if (voice != null)
-            {
-                voice.SetLocalParameter(parameter, value);
-            }
+            if (IsAssigned && AudioRuntime.Exists)
+                AudioRuntime.Instance.SetHandleParameter(id, parameter, value);
         }
 
         public override string ToString()

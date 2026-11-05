@@ -32,7 +32,26 @@ namespace AudioMW
         [SerializeField] private SoundParameter blendParameter;
         [SerializeField] private BlendLayer[] blendLayers = new BlendLayer[0];
 
+        [SerializeField] private float[] clipWeights = new float[0];
+        [SerializeField] private SoundEventChild[] children = new SoundEventChild[0];
+        [SerializeField] private SoundParameter switchParameter;
+        [SerializeField, Min(0)] private int maxInstances;
+        [SerializeField, Min(0)] private int maxInstancesPerEmitter;
+        [SerializeField, Min(0f)] private float cooldownSeconds;
+        [SerializeField] private VoiceLimitPolicy limitPolicy = VoiceLimitPolicy.StealOldest;
+        [SerializeField] private ConcurrencyGroup concurrencyGroup;
+
         [NonSerialized] private ClipSelector selector;
+
+        public float[] ClipWeights { get { return clipWeights; } set { clipWeights = value ?? new float[0]; ResetSelection(); } }
+        public SoundEventChild[] Children { get { return children; } set { children = value ?? new SoundEventChild[0]; } }
+        public SoundParameter SwitchParameter { get { return switchParameter; } set { switchParameter = value; } }
+        public int MaxInstances { get { return Mathf.Max(0, maxInstances); } set { maxInstances = Mathf.Max(0, value); } }
+        public int MaxInstancesPerEmitter { get { return Mathf.Max(0, maxInstancesPerEmitter); } set { maxInstancesPerEmitter = Mathf.Max(0, value); } }
+        public float CooldownSeconds { get { return Mathf.Max(0f, cooldownSeconds); } set { cooldownSeconds = Mathf.Max(0f, value); } }
+        public VoiceLimitPolicy LimitPolicy { get { return limitPolicy; } set { limitPolicy = value; } }
+        public ConcurrencyGroup ConcurrencyGroup { get { return concurrencyGroup; } set { concurrencyGroup = value; } }
+
 
         public AudioClip[] Clips
         {
@@ -171,7 +190,7 @@ namespace AudioMW
                 selector = new ClipSelector();
             }
 
-            int index = selector.Next(selectionMode, clips.Length, rng);
+            int index = selector.Next(selectionMode, clips.Length, rng, clipWeights);
             if (index < 0 || clips[index] == null)
             {
                 return PlaybackParameters.Invalid;
@@ -188,6 +207,9 @@ namespace AudioMW
                 IsValid = true
             };
         }
+
+        internal float ResolveVolume(System.Random rng) { return Mathf.Clamp01(volume + Lerp(volumeRandomMin, volumeRandomMax, rng)); }
+        internal float ResolvePitch(System.Random rng) { return Mathf.Clamp(pitch + Lerp(pitchRandomMin, pitchRandomMax, rng), 0.01f, 3f); }
 
         private static float Lerp(float min, float max, System.Random rng)
         {

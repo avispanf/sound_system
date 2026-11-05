@@ -154,14 +154,19 @@ namespace AudioMW.Tests
             AudioSystem.VoiceOver.DuckParameter = duck;
             AudioSystem.VoiceOver.DuckFadeSeconds = 0.05f;
 
-            VoiceLine line = MakeLine("Anna", "Short", 0.15f);
+            VoiceLine line = MakeLine("Anna", "Short", 0.6f);
             line.TrailingSilence = 0f;
 
             AudioSystem.PlayVoiceLine(line);
 
-            yield return AudioTestUtil.WaitForApproximately(() => AudioSystem.GetParameter(duck), 0f, 0.05f, "duck parameter to fall back");
+            yield return AudioTestUtil.WaitForApproximately(() => AudioSystem.GetParameter(duck), 1f, 0.05f, "duck parameter to rise before release");
+            Assert.IsTrue(AudioSystem.VoiceOver.IsSpeaking);
 
-            Assert.AreEqual(0f, AudioSystem.GetParameter(duck), 0.05f);
+            yield return AudioTestUtil.WaitUntil(() => !AudioSystem.VoiceOver.IsSpeaking, "speech to finish before checking duck release");
+            yield return AudioTestUtil.WaitUntil(() => AudioSystem.GetParameter(duck) == 0f, "duck parameter to reach zero after speech", 0.5f);
+
+            Assert.AreEqual(0f, AudioSystem.GetParameter(duck));
+            Assert.AreEqual(0f, AudioSystem.VoiceOver.DuckValue);
         }
 
         [UnityTest]

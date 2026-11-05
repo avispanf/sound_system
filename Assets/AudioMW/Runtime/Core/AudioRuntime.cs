@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 namespace AudioMW
 {
@@ -19,11 +20,11 @@ namespace AudioMW
         private VoiceOverDirector voiceOver;
         private readonly EventDebugger debugger = new EventDebugger();
         private readonly MixerDirector mixing = new MixerDirector();
-        private readonly System.Collections.Generic.List<VirtualVoice> virtualVoices = new System.Collections.Generic.List<VirtualVoice>();
+        private readonly List<PlaybackInstance> instances = new List<PlaybackInstance>();
+        private readonly Dictionary<int, PlaybackInstance> handles = new Dictionary<int, PlaybackInstance>();
+        private readonly Dictionary<SoundEvent, float> lastStarted = new Dictionary<SoundEvent, float>();
         private Transform cachedListener;
         private bool virtualizationEnabled = true;
-        private readonly System.Collections.Generic.Dictionary<int, Voice> handleVoices = new System.Collections.Generic.Dictionary<int, Voice>();
-        private readonly System.Collections.Generic.Dictionary<int, VirtualVoice> handleVirtualVoices = new System.Collections.Generic.Dictionary<int, VirtualVoice>();
         private int nextHandleId;
 
         public static bool Exists
@@ -46,7 +47,7 @@ namespace AudioMW
 
         public int VirtualVoiceCount
         {
-            get { return virtualVoices.Count; }
+            get { int count = 0; foreach (PlaybackInstance playback in instances) count += playback.VirtualCount; return count; }
         }
 
         public bool VirtualizationEnabled
@@ -159,331 +160,204 @@ namespace AudioMW
             }
         }
 
-        public Voice Play(SoundEvent soundEvent, Vector3 position, Transform attach)
+        public Voice Play(SoundEvent soundEvent, Vector3 position, Transform attach, ParameterStore initialParameters = null)
+        {
+            PlaybackInstance playback = StartPlayback(soundEvent, position, attach, initialParameters);
+            return playback != null ? playback.Primary : null;
+        }
+
+        private PlaybackInstance StartPlayback(SoundEvent soundEvent, Vector3 position, Transform attach, ParameterStore initialParameters)
         {
             if (soundEvent == null)
             {
-                rejectedRequests++;
-                debugger.Record(null, PlaybackOutcome.RejectedNullEvent, null, position, attach != null);
+                Reject(null, PlaybackOutcome.RejectedNullEvent, position, attach);
                 return null;
             }
-
             playRequests++;
-
-            bool blend = soundEvent.IsBlendContainer;
-            Voice result = blend
-                ? PlayBlend(soundEvent, position, attach)
-                : PlaySimple(soundEvent, position, attach);
-
-            if (result == null)
+            CleanupInstances();
+            float last;
+            if (soundEvent.CooldownSeconds > 0f && lastStarted.TryGetValue(soundEvent, out last) && Time.unscaledTime - last < soundEvent.CooldownSeconds)
             {
-                rejectedRequests++;
-
-                PlaybackOutcome outcome;
-                if (blend)
-                {
-                    outcome = PlaybackOutcome.RejectedNoValidLayers;
-                }
-                else if (!soundEvent.HasClips)
-                {
-                    outcome = PlaybackOutcome.RejectedNoClips;
-                }
-                else
-                {
-                    outcome = PlaybackOutcome.RejectedNoVoice;
-                }
-
-                debugger.Record(soundEvent, outcome, null, position, attach != null);
-            }
-            else
-            {
-                debugger.Record(soundEvent, PlaybackOutcome.Played, result, position, attach != null);
-            }
-
-            return result;
-        }
-
-        private Voice PlaySimple(SoundEvent soundEvent, Vector3 position, Transform attach)
-        {
-            PlaybackParameters parameters = soundEvent.Resolve(rng);
-            if (!parameters.IsValid)
-            {
+                Reject(soundEvent, PlaybackOutcome.RejectedCooldown, position, attach);
                 return null;
             }
-
-            Voice voice = pool.Acquire();
-            if (voice == null)
+            PlaybackPlan plan = new PlaybackPlan();
+            if (!plan.Build(soundEvent, rng, initialParameters, globalParameters, pool.MaxVoices))
             {
+                Reject(soundEvent, plan.Failure, position, attach);
                 return null;
             }
-
-            voice.Play(soundEvent, parameters, position, attach);
-            return voice;
+            List<PlaybackInstance> victims = new List<PlaybackInstance>();
+            bool admitted = SelectVictims(victims, p => p.Event == soundEvent, soundEvent.MaxInstances, soundEvent.LimitPolicy) &&
+                SelectVictims(victims, p => p.Event == soundEvent && p.Attach == attach, soundEvent.MaxInstancesPerEmitter, soundEvent.LimitPolicy);
+            ConcurrencyGroup group = soundEvent.ConcurrencyGroup;
+            if (admitted && group != null)
+                admitted = SelectVictims(victims, p => p.Event.ConcurrencyGroup == group, group.MaxInstances, group.Policy);
+            if (!admitted)
+            {
+                Reject(soundEvent, PlaybackOutcome.RejectedInstanceLimit, position, attach);
+                return null;
+            }
+            int available = pool.FreeCount;
+            foreach (PlaybackInstance victim in victims) available += victim.ReservedCount;
+            while (available < plan.Layers.Count)
+            {
+                PlaybackInstance victim = ChooseVictim(victims, p => p.ReservedCount > 0, soundEvent.LimitPolicy);
+                if (victim == null)
+                {
+                    Reject(soundEvent, PlaybackOutcome.RejectedNoVoice, position, attach);
+                    return null;
+                }
+                victims.Add(victim);
+                available += victim.ReservedCount;
+            }
+            foreach (PlaybackInstance victim in victims) { victim.Stop(); pool.RecordSteal(); }
+            CleanupInstances();
+            PlaybackInstance playback = new PlaybackInstance(soundEvent, attach, initialParameters);
+            playback.Start(plan, pool, position);
+            instances.Add(playback);
+            lastStarted[soundEvent] = Time.unscaledTime;
+            debugger.Record(soundEvent, PlaybackOutcome.Played, playback.Primary, position, attach != null);
+            return playback;
         }
 
-        private Voice PlayBlend(SoundEvent soundEvent, Vector3 position, Transform attach)
+        private bool SelectVictims(List<PlaybackInstance> victims, System.Predicate<PlaybackInstance> match, int limit, VoiceLimitPolicy policy)
         {
-            BlendLayer[] layers = soundEvent.BlendLayers;
-            Voice primary = null;
-
-            for (int i = 0; i < layers.Length; i++)
+            if (limit <= 0) return true;
+            int count = 0;
+            foreach (PlaybackInstance item in instances) if (!victims.Contains(item) && match(item)) count++;
+            while (count >= limit)
             {
-                BlendLayer layer = layers[i];
-                if (layer == null || !layer.IsValid)
-                {
-                    continue;
-                }
-
-                Voice voice = pool.Acquire();
-                if (voice == null)
-                {
-                    break;
-                }
-
-                PlaybackParameters parameters = new PlaybackParameters
-                {
-                    Clip = layer.Clip,
-                    Volume = soundEvent.Volume,
-                    Pitch = soundEvent.Pitch,
-                    IsValid = true
-                };
-
-                voice.BlendLayer = layer;
-                voice.Play(soundEvent, parameters, position, attach);
-
-                if (primary == null)
-                {
-                    primary = voice;
-                }
-                else
-                {
-                    primary.AddFollower(voice);
-                }
+                PlaybackInstance victim = ChooseVictim(victims, match, policy);
+                if (victim == null) return false;
+                victims.Add(victim);
+                count--;
             }
-
-            return primary;
+            return true;
         }
 
-        public SoundHandle PlayTracked(SoundEvent soundEvent, Vector3 position, Transform attach)
+        private PlaybackInstance ChooseVictim(List<PlaybackInstance> excluded, System.Predicate<PlaybackInstance> match, VoiceLimitPolicy policy)
         {
-            Voice voice = Play(soundEvent, position, attach);
-
-            if (voice == null)
+            if (policy == VoiceLimitPolicy.RejectNewest) return null;
+            PlaybackInstance best = null;
+            foreach (PlaybackInstance candidate in instances)
             {
-                return SoundHandle.None;
+                if (excluded.Contains(candidate) || !match(candidate)) continue;
+                if (best == null ||
+                    (policy == VoiceLimitPolicy.StealOldest && candidate.Started < best.Started) ||
+                    (policy == VoiceLimitPolicy.StealQuietest && candidate.Volume < best.Volume) ||
+                    (policy == VoiceLimitPolicy.StealLowestPriority && candidate.Event.Priority > best.Event.Priority)) best = candidate;
             }
+            return best;
+        }
 
-            nextHandleId++;
-            voice.HandleId = nextHandleId;
-            handleVoices[nextHandleId] = voice;
+        private void Reject(SoundEvent soundEvent, PlaybackOutcome outcome, Vector3 position, Transform attach)
+        {
+            rejectedRequests++;
+            debugger.Record(soundEvent, outcome, null, position, attach != null);
+        }
 
+        public SoundHandle PlayTracked(SoundEvent soundEvent, Vector3 position, Transform attach, ParameterStore initialParameters = null)
+        {
+            PlaybackInstance playback = StartPlayback(soundEvent, position, attach, initialParameters);
+            if (playback == null) return SoundHandle.None;
+            do { nextHandleId = nextHandleId == int.MaxValue ? 1 : nextHandleId + 1; } while (handles.ContainsKey(nextHandleId));
+            playback.HandleId = nextHandleId;
+            playback.Primary.HandleId = nextHandleId;
+            handles[nextHandleId] = playback;
             return new SoundHandle(nextHandleId);
         }
 
         public bool IsHandlePlaying(int id)
         {
-            Voice voice;
-
-            if (handleVoices.TryGetValue(id, out voice))
-            {
-                if (voice != null && voice.IsActive && voice.HandleId == id)
-                {
-                    return true;
-                }
-
-                handleVoices.Remove(id);
-            }
-
-            return handleVirtualVoices.ContainsKey(id);
+            PlaybackInstance playback;
+            return handles.TryGetValue(id, out playback) && playback.IsPlaying;
         }
 
         public bool IsHandleVirtual(int id)
         {
-            return handleVirtualVoices.ContainsKey(id);
+            PlaybackInstance playback;
+            return handles.TryGetValue(id, out playback) && playback.VirtualCount > 0;
         }
 
         public Voice GetHandleVoice(int id)
         {
-            Voice voice;
+            PlaybackInstance playback;
+            return handles.TryGetValue(id, out playback) ? playback.ActiveVoice : null;
+        }
 
-            if (handleVoices.TryGetValue(id, out voice) && voice != null && voice.IsActive && voice.HandleId == id)
-            {
-                return voice;
-            }
-
-            return null;
+        public void SetHandleParameter(int id, SoundParameter parameter, float value)
+        {
+            PlaybackInstance playback;
+            if (handles.TryGetValue(id, out playback)) playback.SetParameter(parameter, value);
         }
 
         public void StopHandle(int id)
         {
-            Voice voice;
-
-            if (handleVoices.TryGetValue(id, out voice))
-            {
-                handleVoices.Remove(id);
-
-                if (voice != null && voice.HandleId == id)
-                {
-                    voice.Stop();
-                }
-            }
-
-            VirtualVoice virtualVoice;
-
-            if (handleVirtualVoices.TryGetValue(id, out virtualVoice))
-            {
-                handleVirtualVoices.Remove(id);
-                virtualVoices.Remove(virtualVoice);
-            }
+            PlaybackInstance playback;
+            if (handles.TryGetValue(id, out playback)) playback.Stop();
+            handles.Remove(id);
+            CleanupInstances();
         }
 
         public int TrackedHandleCount
         {
-            get { return handleVoices.Count + handleVirtualVoices.Count; }
+            get { CleanupInstances(); return handles.Count; }
         }
 
         public void ClearHandles()
         {
-            handleVoices.Clear();
-            handleVirtualVoices.Clear();
+            foreach (PlaybackInstance playback in handles.Values) playback.HandleId = 0;
+            handles.Clear();
         }
 
         private void TickVirtualization()
         {
-            if (!virtualizationEnabled)
-            {
-                return;
-            }
-
             Transform listener = ResolveListener();
-
-            if (listener == null)
-            {
-                return;
-            }
-
-            Vector3 listenerPosition = listener.position;
-            float delta = Time.unscaledDeltaTime;
-
-            DemoteDistantVoices(listenerPosition);
-            PromoteNearVirtualVoices(listenerPosition, delta);
+            foreach (PlaybackInstance playback in instances)
+                playback.Tick(pool, listener, virtualizationEnabled, Time.unscaledDeltaTime);
+            CleanupInstances();
         }
 
-        private void DemoteDistantVoices(Vector3 listenerPosition)
+        private void CleanupInstances()
         {
-            System.Collections.Generic.IReadOnlyList<Voice> voices = pool.Voices;
-
-            for (int i = 0; i < voices.Count; i++)
+            for (int i = instances.Count - 1; i >= 0; i--)
             {
-                Voice voice = voices[i];
-
-                if (!voice.IsActive || voice.CurrentEvent == null || !voice.CurrentEvent.AllowVirtualization)
-                {
-                    continue;
-                }
-
-                if (voice.Source.spatialBlend <= 0f)
-                {
-                    continue;
-                }
-
-                float range = voice.Source.maxDistance;
-                float distance = Vector3.Distance(voice.Source.transform.position, listenerPosition);
-
-                if (!VirtualizationPolicy.ShouldVirtualize(false, distance, range))
-                {
-                    continue;
-                }
-
-                VirtualVoice virtualVoice = new VirtualVoice();
-                virtualVoice.Configure(
-                    voice.CurrentEvent,
-                    voice.CurrentParameters,
-                    voice.Source.transform.position,
-                    voice.AttachTarget,
-                    range,
-                    voice.ElapsedSeconds);
-
-                virtualVoice.HandleId = voice.HandleId;
-
-                if (voice.HandleId != 0)
-                {
-                    handleVoices.Remove(voice.HandleId);
-                    handleVirtualVoices[voice.HandleId] = virtualVoice;
-                }
-
-                virtualVoices.Add(virtualVoice);
-                voice.Demote();
-            }
-        }
-
-        private void PromoteNearVirtualVoices(Vector3 listenerPosition, float delta)
-        {
-            for (int i = virtualVoices.Count - 1; i >= 0; i--)
-            {
-                VirtualVoice virtualVoice = virtualVoices[i];
-                virtualVoice.Advance(delta);
-
-                if (virtualVoice.IsExpired || virtualVoice.TargetLost)
-                {
-                    virtualVoices.RemoveAt(i);
-                    continue;
-                }
-
-                if (!virtualVoice.ShouldBecomeReal(listenerPosition, VirtualizationPolicy.DefaultHysteresis))
-                {
-                    continue;
-                }
-
-                Voice voice = pool.Acquire();
-
-                if (voice == null)
-                {
-                    continue;
-                }
-
-                voice.Play(
-                    virtualVoice.Event,
-                    virtualVoice.Parameters,
-                    virtualVoice.CurrentPosition,
-                    virtualVoice.Attach,
-                    virtualVoice.PlaybackOffset);
-
-                if (virtualVoice.HandleId != 0)
-                {
-                    voice.HandleId = virtualVoice.HandleId;
-                    handleVirtualVoices.Remove(virtualVoice.HandleId);
-                    handleVoices[virtualVoice.HandleId] = voice;
-                }
-
-                virtualVoices.RemoveAt(i);
+                PlaybackInstance playback = instances[i];
+                if (playback.IsPlaying) continue;
+                playback.Stop();
+                if (playback.HandleId != 0) handles.Remove(playback.HandleId);
+                instances.RemoveAt(i);
             }
         }
 
         public void ClearVirtualVoices()
         {
-            virtualVoices.Clear();
+            foreach (PlaybackInstance playback in instances) playback.ClearVirtual();
+            CleanupInstances();
         }
 
         private Transform ResolveListener()
         {
-            if (cachedListener != null)
+            if (cachedListener != null && cachedListener.gameObject.activeInHierarchy && cachedListener.GetComponent<AudioListener>().enabled)
             {
                 return cachedListener;
             }
 
 #if UNITY_2023_1_OR_NEWER
-            AudioListener listener = FindFirstObjectByType<AudioListener>();
+            AudioListener[] listeners = FindObjectsByType<AudioListener>(FindObjectsSortMode.None);
 #else
-            AudioListener listener = FindObjectOfType<AudioListener>();
+            AudioListener[] listeners = FindObjectsOfType<AudioListener>();
 #endif
-            cachedListener = listener != null ? listener.transform : null;
+            cachedListener = null;
+            foreach (AudioListener listener in listeners)
+                if (listener.isActiveAndEnabled) { cachedListener = listener.transform; break; }
             return cachedListener;
         }
 
         public void RebuildPool(int maxVoices, int prewarm)
         {
-            pool.StopAll();
+            StopAll();
             pool.DestroyAll();
             pool = new VoicePool(transform, maxVoices);
             pool.Prewarm(prewarm);
@@ -491,12 +365,16 @@ namespace AudioMW
 
         public void StopAll()
         {
+            foreach (PlaybackInstance playback in instances) playback.Stop();
+            instances.Clear();
+            handles.Clear();
+            lastStarted.Clear();
             pool.StopAll();
         }
 
         public void Shutdown()
         {
-            pool.StopAll();
+            StopAll();
             pool.DestroyAll();
             music.Stop();
             voiceOver.Stop();

@@ -62,7 +62,7 @@ namespace AudioMW
         {
             for (int i = 0; i < voices.Count; i++)
             {
-                if (!voices[i].IsActive)
+                if (!voices[i].IsActive && voices[i].Owner == null)
                 {
                     return voices[i];
                 }
@@ -75,6 +75,24 @@ namespace AudioMW
 
             return StealOldest();
         }
+
+        internal int FreeCount
+        {
+            get
+            {
+                int count = maxVoices - voices.Count;
+                foreach (Voice voice in voices) if (!voice.IsActive && voice.Owner == null) count++;
+                return count;
+            }
+        }
+
+        internal Voice AcquireFree()
+        {
+            foreach (Voice voice in voices) if (!voice.IsActive && voice.Owner == null) return voice;
+            return voices.Count < maxVoices ? CreateVoice() : null;
+        }
+
+        internal void RecordSteal() { stealCount++; }
 
         public void Prewarm(int count)
         {
@@ -134,7 +152,7 @@ namespace AudioMW
 
             for (int i = 0; i < voices.Count; i++)
             {
-                if (!voices[i].IsActive)
+                if (!voices[i].IsActive && voices[i].Owner == null)
                 {
                     continue;
                 }
