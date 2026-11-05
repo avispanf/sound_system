@@ -125,5 +125,21 @@ namespace AudioMW.Tests
             Assert.IsFalse(virtualVoice.ShouldBecomeReal(Vector3.zero, VirtualizationPolicy.DefaultHysteresis));
             Assert.IsTrue(virtualVoice.ShouldBecomeReal(new Vector3(0f, 0f, 25f), VirtualizationPolicy.DefaultHysteresis));
         }
+
+        [Test]
+        public void ClearingVirtualVoiceDropsItsClipAndAttachment()
+        {
+            UnityEngine.AudioClip clip = UnityEngine.AudioClip.Create("Clear test", 4410, 1, 44100, false);
+            SoundEvent item = SoundEvent.CreateRuntime(clip);
+            VirtualVoice voice = new VirtualVoice();
+            voice.Configure(item, item.Resolve(new System.Random(1)), UnityEngine.Vector3.one, null, 25, 0);
+            voice.HandleId = 4;
+            voice.Clear();
+            Assert.IsNull(voice.Parameters.Clip);
+            Assert.IsNull(voice.Event);
+            Assert.AreEqual(0, voice.HandleId);
+            UnityEngine.Object.DestroyImmediate(item);
+            UnityEngine.Object.DestroyImmediate(clip);
+        }
     }
 }

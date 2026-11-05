@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Unity.Profiling;
 
 namespace AudioMW
 {
@@ -25,7 +26,54 @@ namespace AudioMW
         private readonly Dictionary<SoundEvent, float> lastStarted = new Dictionary<SoundEvent, float>();
         private Transform cachedListener;
         private bool virtualizationEnabled = true;
-        private int nextHandleId;
+        private static readonly ProfilerMarker TickMarker = new ProfilerMarker("AudioMW.Tick");
+        private static readonly ProfilerMarker PlayMarker = new ProfilerMarker("AudioMW.Play");
+        private sealed class RequestContext
+        {
+            public readonly PlaybackPlan Plan = new PlaybackPlan();
+            public readonly List<PlaybackInstance> Victims = new List<PlaybackInstance>();
+        }
+        private enum AdmissionScope { Event, Emitter, Group, Pool }
+        private readonly Stack<PlaybackInstance> freeInstances = new Stack<PlaybackInstance>();
+        public int CachedInstanceCount { get { return freeInstances.Count; } }
+        private readonly Stack<RequestContext> requests = new Stack<RequestContext>();
+        private readonly List<SoundEvent> expiredCooldowns = new List<SoundEvent>();
+        private float nextCooldownSweep;
+        public int CooldownEntryCount { get { return lastStarted.Count; } }
+        private static int nextHandleId;
+        private int operationDepth;
+        private bool flushingReleases;
+        private bool stopping;
+        private readonly Queue<ReleaseNotification> releases = new Queue<ReleaseNotification>();
+        private struct ReleaseNotification
+        {
+            public Voice Voice;
+            public System.Action<Voice> Handler;
+        }
+
+        internal void BeginOperation() { operationDepth++; }
+        internal void EndOperation()
+        {
+            operationDepth--;
+            if (operationDepth != 0 || flushingReleases) return;
+            flushingReleases = true;
+            try
+            {
+                while (releases.Count > 0)
+                {
+                    ReleaseNotification notification = releases.Dequeue();
+                    notification.Handler(notification.Voice);
+                }
+            }
+            finally { flushingReleases = false; }
+        }
+
+        internal void NotifyReleased(Voice voice, System.Action<Voice> handler)
+        {
+            releases.Enqueue(new ReleaseNotification { Voice = voice, Handler = handler });
+            BeginOperation();
+            EndOperation();
+        }
 
         public static bool Exists
         {
@@ -139,12 +187,21 @@ namespace AudioMW
 
         private void LateUpdate()
         {
-            pool.Tick();
-            music.Tick();
-            voiceOver.Tick();
-            mixing.Tick();
-            TickVirtualization();
-            AudioProfilerCounters.Sample(this);
+            BeginOperation();
+            using (TickMarker.Auto())
+            {
+                try
+                {
+                    SweepCooldowns();
+                    pool.Tick();
+                    music.Tick();
+                    voiceOver.Tick();
+                    mixing.Tick();
+                    TickVirtualization();
+                    AudioProfilerCounters.Sample(this);
+                }
+                finally { EndOperation(); }
+            }
         }
 
         private void OnApplicationQuit()
@@ -156,6 +213,8 @@ namespace AudioMW
         {
             if (instance == this)
             {
+                stopping = true;
+                Shutdown();
                 instance = null;
             }
         }
@@ -168,67 +227,82 @@ namespace AudioMW
 
         private PlaybackInstance StartPlayback(SoundEvent soundEvent, Vector3 position, Transform attach, ParameterStore initialParameters)
         {
-            if (soundEvent == null)
+            RequestContext request = requests.Count > 0 ? requests.Pop() : new RequestContext();
+            BeginOperation();
+            using (PlayMarker.Auto())
             {
-                Reject(null, PlaybackOutcome.RejectedNullEvent, position, attach);
-                return null;
-            }
-            playRequests++;
-            CleanupInstances();
-            float last;
-            if (soundEvent.CooldownSeconds > 0f && lastStarted.TryGetValue(soundEvent, out last) && Time.unscaledTime - last < soundEvent.CooldownSeconds)
-            {
-                Reject(soundEvent, PlaybackOutcome.RejectedCooldown, position, attach);
-                return null;
-            }
-            PlaybackPlan plan = new PlaybackPlan();
-            if (!plan.Build(soundEvent, rng, initialParameters, globalParameters, pool.MaxVoices))
-            {
-                Reject(soundEvent, plan.Failure, position, attach);
-                return null;
-            }
-            List<PlaybackInstance> victims = new List<PlaybackInstance>();
-            bool admitted = SelectVictims(victims, p => p.Event == soundEvent, soundEvent.MaxInstances, soundEvent.LimitPolicy) &&
-                SelectVictims(victims, p => p.Event == soundEvent && p.Attach == attach, soundEvent.MaxInstancesPerEmitter, soundEvent.LimitPolicy);
-            ConcurrencyGroup group = soundEvent.ConcurrencyGroup;
-            if (admitted && group != null)
-                admitted = SelectVictims(victims, p => p.Event.ConcurrencyGroup == group, group.MaxInstances, group.Policy);
-            if (!admitted)
-            {
-                Reject(soundEvent, PlaybackOutcome.RejectedInstanceLimit, position, attach);
-                return null;
-            }
-            int available = pool.FreeCount;
-            foreach (PlaybackInstance victim in victims) available += victim.ReservedCount;
-            while (available < plan.Layers.Count)
-            {
-                PlaybackInstance victim = ChooseVictim(victims, p => p.ReservedCount > 0, soundEvent.LimitPolicy);
-                if (victim == null)
+                try
                 {
-                    Reject(soundEvent, PlaybackOutcome.RejectedNoVoice, position, attach);
-                    return null;
+                    if (stopping)
+                    {
+                        Reject(soundEvent, PlaybackOutcome.RejectedRuntimeStopping, position, attach);
+                        return null;
+                    }
+                    if (soundEvent == null)
+                    {
+                        Reject(null, PlaybackOutcome.RejectedNullEvent, position, attach);
+                        return null;
+                    }
+                    playRequests++;
+                    CleanupInstances();
+                    float last;
+                    if (soundEvent.CooldownSeconds > 0f && lastStarted.TryGetValue(soundEvent, out last) && Time.unscaledTime - last < soundEvent.CooldownSeconds)
+                    {
+                        Reject(soundEvent, PlaybackOutcome.RejectedCooldown, position, attach);
+                        return null;
+                    }
+                    PlaybackPlan plan = request.Plan;
+                    if (!plan.Build(soundEvent, rng, initialParameters, globalParameters, pool.MaxVoices))
+                    {
+                        Reject(soundEvent, plan.Failure, position, attach);
+                        return null;
+                    }
+                    List<PlaybackInstance> victims = request.Victims;
+                    bool admitted = SelectVictims(victims, soundEvent, attach, AdmissionScope.Event, soundEvent.MaxInstances, soundEvent.LimitPolicy) &&
+                    SelectVictims(victims, soundEvent, attach, AdmissionScope.Emitter, soundEvent.MaxInstancesPerEmitter, soundEvent.LimitPolicy);
+                    ConcurrencyGroup group = soundEvent.ConcurrencyGroup;
+                    if (admitted && group != null)
+                    admitted = SelectVictims(victims, soundEvent, attach, AdmissionScope.Group, group.MaxInstances, group.Policy);
+                    if (!admitted)
+                    {
+                        Reject(soundEvent, PlaybackOutcome.RejectedInstanceLimit, position, attach);
+                        return null;
+                    }
+                    int available = pool.FreeCount;
+                    foreach (PlaybackInstance victim in victims) available += victim.ReservedCount;
+                    while (available < plan.Layers.Count)
+                    {
+                        PlaybackInstance victim = ChooseVictim(victims, soundEvent, attach, AdmissionScope.Pool, soundEvent.LimitPolicy);
+                        if (victim == null)
+                        {
+                            Reject(soundEvent, PlaybackOutcome.RejectedNoVoice, position, attach);
+                            return null;
+                        }
+                        victims.Add(victim);
+                        available += victim.ReservedCount;
+                    }
+                    foreach (PlaybackInstance victim in victims) { victim.Stop(); pool.RecordSteal(); }
+                    CleanupInstances();
+                    PlaybackInstance playback = freeInstances.Count > 0 ? freeInstances.Pop() : new PlaybackInstance(this);
+                    playback.Initialize(soundEvent, attach, initialParameters);
+                    playback.Start(plan, pool, position);
+                    instances.Add(playback);
+                    lastStarted[soundEvent] = Time.unscaledTime;
+                    debugger.Record(soundEvent, PlaybackOutcome.Played, playback.Primary, position, attach != null);
+                    return playback;
                 }
-                victims.Add(victim);
-                available += victim.ReservedCount;
+                finally { request.Plan.Clear(); request.Victims.Clear(); requests.Push(request); EndOperation(); }
             }
-            foreach (PlaybackInstance victim in victims) { victim.Stop(); pool.RecordSteal(); }
-            CleanupInstances();
-            PlaybackInstance playback = new PlaybackInstance(soundEvent, attach, initialParameters);
-            playback.Start(plan, pool, position);
-            instances.Add(playback);
-            lastStarted[soundEvent] = Time.unscaledTime;
-            debugger.Record(soundEvent, PlaybackOutcome.Played, playback.Primary, position, attach != null);
-            return playback;
         }
 
-        private bool SelectVictims(List<PlaybackInstance> victims, System.Predicate<PlaybackInstance> match, int limit, VoiceLimitPolicy policy)
+        private bool SelectVictims(List<PlaybackInstance> victims, SoundEvent root, Transform attach, AdmissionScope scope, int limit, VoiceLimitPolicy policy)
         {
             if (limit <= 0) return true;
             int count = 0;
-            foreach (PlaybackInstance item in instances) if (!victims.Contains(item) && match(item)) count++;
+            foreach (PlaybackInstance item in instances) if (!victims.Contains(item) && Matches(item, root, attach, scope)) count++;
             while (count >= limit)
             {
-                PlaybackInstance victim = ChooseVictim(victims, match, policy);
+                PlaybackInstance victim = ChooseVictim(victims, root, attach, scope, policy);
                 if (victim == null) return false;
                 victims.Add(victim);
                 count--;
@@ -236,19 +310,41 @@ namespace AudioMW
             return true;
         }
 
-        private PlaybackInstance ChooseVictim(List<PlaybackInstance> excluded, System.Predicate<PlaybackInstance> match, VoiceLimitPolicy policy)
+        private PlaybackInstance ChooseVictim(List<PlaybackInstance> excluded, SoundEvent root, Transform attach, AdmissionScope scope, VoiceLimitPolicy policy)
         {
             if (policy == VoiceLimitPolicy.RejectNewest) return null;
             PlaybackInstance best = null;
             foreach (PlaybackInstance candidate in instances)
             {
-                if (excluded.Contains(candidate) || !match(candidate)) continue;
+                if (excluded.Contains(candidate) || !Matches(candidate, root, attach, scope)) continue;
                 if (best == null ||
-                    (policy == VoiceLimitPolicy.StealOldest && candidate.Started < best.Started) ||
-                    (policy == VoiceLimitPolicy.StealQuietest && candidate.Volume < best.Volume) ||
-                    (policy == VoiceLimitPolicy.StealLowestPriority && candidate.Event.Priority > best.Event.Priority)) best = candidate;
+                (policy == VoiceLimitPolicy.StealOldest && candidate.Started < best.Started) ||
+                (policy == VoiceLimitPolicy.StealQuietest && candidate.Volume < best.Volume) ||
+                (policy == VoiceLimitPolicy.StealLowestPriority && candidate.Event.Priority > best.Event.Priority)) best = candidate;
             }
             return best;
+        }
+
+        private static bool Matches(PlaybackInstance candidate, SoundEvent root, Transform attach, AdmissionScope scope)
+        {
+            switch (scope)
+            {
+                case AdmissionScope.Event: return candidate.Event == root;
+                case AdmissionScope.Emitter: return candidate.Event == root && candidate.Attach == attach;
+                case AdmissionScope.Group: return candidate.Event != null && candidate.Event.ConcurrencyGroup == root.ConcurrencyGroup;
+                default: return candidate.ReservedCount > 0;
+            }
+        }
+
+        private void SweepCooldowns()
+        {
+            float now = Time.unscaledTime;
+            if (now < nextCooldownSweep) return;
+            nextCooldownSweep = now + 1f;
+            foreach (KeyValuePair<SoundEvent, float> entry in lastStarted)
+            if (entry.Key == null || now - entry.Value >= entry.Key.CooldownSeconds) expiredCooldowns.Add(entry.Key);
+            foreach (SoundEvent key in expiredCooldowns) lastStarted.Remove(key);
+            expiredCooldowns.Clear();
         }
 
         private void Reject(SoundEvent soundEvent, PlaybackOutcome outcome, Vector3 position, Transform attach)
@@ -259,13 +355,18 @@ namespace AudioMW
 
         public SoundHandle PlayTracked(SoundEvent soundEvent, Vector3 position, Transform attach, ParameterStore initialParameters = null)
         {
-            PlaybackInstance playback = StartPlayback(soundEvent, position, attach, initialParameters);
-            if (playback == null) return SoundHandle.None;
-            do { nextHandleId = nextHandleId == int.MaxValue ? 1 : nextHandleId + 1; } while (handles.ContainsKey(nextHandleId));
-            playback.HandleId = nextHandleId;
-            playback.Primary.HandleId = nextHandleId;
-            handles[nextHandleId] = playback;
-            return new SoundHandle(nextHandleId);
+            BeginOperation();
+            try
+            {
+                PlaybackInstance playback = StartPlayback(soundEvent, position, attach, initialParameters);
+                if (playback == null) return SoundHandle.None;
+                do { nextHandleId = nextHandleId == int.MaxValue ? 1 : nextHandleId + 1; } while (handles.ContainsKey(nextHandleId));
+                playback.HandleId = nextHandleId;
+                playback.Primary.HandleId = nextHandleId;
+                handles[nextHandleId] = playback;
+                return new SoundHandle(nextHandleId);
+            }
+            finally { EndOperation(); }
         }
 
         public bool IsHandlePlaying(int id)
@@ -294,10 +395,15 @@ namespace AudioMW
 
         public void StopHandle(int id)
         {
-            PlaybackInstance playback;
-            if (handles.TryGetValue(id, out playback)) playback.Stop();
-            handles.Remove(id);
-            CleanupInstances();
+            BeginOperation();
+            try
+            {
+                PlaybackInstance playback;
+                if (handles.TryGetValue(id, out playback)) playback.Stop();
+                handles.Remove(id);
+                CleanupInstances();
+            }
+            finally { EndOperation(); }
         }
 
         public int TrackedHandleCount
@@ -313,28 +419,42 @@ namespace AudioMW
 
         private void TickVirtualization()
         {
-            Transform listener = ResolveListener();
+            Transform listener = null;
+            if (virtualizationEnabled)
             foreach (PlaybackInstance playback in instances)
-                playback.Tick(pool, listener, virtualizationEnabled, Time.unscaledDeltaTime);
+            if (playback.NeedsListener) { listener = ResolveListener(); break; }
+            foreach (PlaybackInstance playback in instances)
+            playback.Tick(pool, listener, virtualizationEnabled, Time.unscaledDeltaTime);
             CleanupInstances();
         }
 
         private void CleanupInstances()
         {
-            for (int i = instances.Count - 1; i >= 0; i--)
+            BeginOperation();
+            try
             {
-                PlaybackInstance playback = instances[i];
-                if (playback.IsPlaying) continue;
-                playback.Stop();
-                if (playback.HandleId != 0) handles.Remove(playback.HandleId);
-                instances.RemoveAt(i);
+                for (int i = instances.Count - 1; i >= 0; i--)
+                {
+                    PlaybackInstance playback = instances[i];
+                    if (playback.IsPlaying) continue;
+                    playback.Stop();
+                    if (playback.HandleId != 0) handles.Remove(playback.HandleId);
+                    instances.RemoveAt(i);
+                    if (freeInstances.Count < pool.MaxVoices) freeInstances.Push(playback);
+                }
             }
+            finally { EndOperation(); }
         }
 
         public void ClearVirtualVoices()
         {
-            foreach (PlaybackInstance playback in instances) playback.ClearVirtual();
-            CleanupInstances();
+            BeginOperation();
+            try
+            {
+                foreach (PlaybackInstance playback in instances) playback.ClearVirtual();
+                CleanupInstances();
+            }
+            finally { EndOperation(); }
         }
 
         private Transform ResolveListener()
@@ -345,41 +465,74 @@ namespace AudioMW
             }
 
 #if UNITY_2023_1_OR_NEWER
+            AudioListener first = FindFirstObjectByType<AudioListener>();
+            if (first == null) return null;
+            if (first.isActiveAndEnabled) { cachedListener = first.transform; return cachedListener; }
             AudioListener[] listeners = FindObjectsByType<AudioListener>(FindObjectsSortMode.None);
 #else
+            AudioListener first = FindObjectOfType<AudioListener>();
+            if (first == null) return null;
+            if (first.isActiveAndEnabled) { cachedListener = first.transform; return cachedListener; }
             AudioListener[] listeners = FindObjectsOfType<AudioListener>();
 #endif
             cachedListener = null;
             foreach (AudioListener listener in listeners)
-                if (listener.isActiveAndEnabled) { cachedListener = listener.transform; break; }
+            if (listener.isActiveAndEnabled) { cachedListener = listener.transform; break; }
             return cachedListener;
         }
 
         public void RebuildPool(int maxVoices, int prewarm)
         {
-            StopAll();
-            pool.DestroyAll();
-            pool = new VoicePool(transform, maxVoices);
-            pool.Prewarm(prewarm);
+            BeginOperation();
+            try
+            {
+                StopAll();
+                pool.DestroyAll();
+                freeInstances.Clear();
+                requests.Clear();
+                pool = new VoicePool(transform, maxVoices);
+                pool.Prewarm(prewarm);
+            }
+            finally { EndOperation(); }
         }
 
         public void StopAll()
         {
-            foreach (PlaybackInstance playback in instances) playback.Stop();
-            instances.Clear();
-            handles.Clear();
-            lastStarted.Clear();
-            pool.StopAll();
+            BeginOperation();
+            try
+            {
+                foreach (PlaybackInstance playback in instances)
+                {
+                    playback.Stop();
+                    if (freeInstances.Count < pool.MaxVoices) freeInstances.Push(playback);
+                }
+                instances.Clear();
+                handles.Clear();
+                lastStarted.Clear();
+                pool.StopAll();
+            }
+            finally { EndOperation(); }
         }
 
         public void Shutdown()
         {
-            StopAll();
-            pool.DestroyAll();
-            music.Stop();
-            voiceOver.Stop();
-            mixing.Clear();
-            globalParameters.Clear();
+            bool wasStopping = stopping;
+            stopping = true;
+            BeginOperation();
+            try
+            {
+                StopAll();
+                pool.DestroyAll();
+                music.Stop();
+                voiceOver.Reset();
+                mixing.Clear();
+                globalParameters.Clear();
+            }
+            finally
+            {
+                try { EndOperation(); }
+                finally { stopping = wasStopping; }
+            }
         }
     }
 }

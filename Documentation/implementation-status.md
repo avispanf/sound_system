@@ -105,3 +105,23 @@ audio platforms. The main thread schedules clips and cleans completed groups.
 WebGL uses cuts because the managed DSP path is unavailable. Crossfade UI
 fields/progress/cancellation compile on both tested editors; no full visual
 or interaction sign-off is claimed for this UI extension.
+
+## Runtime profiling and lifecycle tranche
+
+The 0.5.0-preview.3 UPM package passed 182 EditMode and 140 PlayMode tests
+in both Unity 2022.3.62f3 and 6000.3.21f1 (322 per version). This includes
+callback reentry, target scene unload, runtime recreation, destroyed event roots,
+clip-reference clearing, cooldown pruning, shutdown duck reset and playback
+rejection during shutdown. The 2,000-request saturated composite burst stays
+at 32 physical voices and 16 logical instances.
+
+Bounded logical-instance and layer/plan buffer caches reduce observed warm
+managed-allocation deltas to zero in the measured trigger/stop scenarios with
+debugger disabled. Cold starts, changing content shape, logging, music and IO
+are not covered by that observation. CPU timings are editor observations, not
+a stable speedup or target-device budget. See runtime-profiling.md.
+
+Release notifications now run after operation collection mutations; a raw
+Voice can already be reused, so callbacks should retain SoundHandles when
+acting on playback ownership. The original pre-existing EditorSettings change
+remains separate. Cloud CI licensing and human listening remain open.

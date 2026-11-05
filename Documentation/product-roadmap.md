@@ -47,6 +47,15 @@ Tools/prepare_test_project.py before running the existing version matrix
 and other Unity 6 dependencies. Remote CI, credentials and image availability
 remain unverified; local checks used 2022.3.62f3 and 6000.3.21f1.
 
+## Runtime lifetime and profiling tranche, 2026-11-05
+
+Added reentrant release notification dispatch, runtime-wide handle ID lifetime,
+scene-target cleanup for 2D/3D, immediate duck reset at shutdown, cooldown
+history pruning, bounded playback/plan caches and profiler scopes. Warm trigger
+measurements and saturated composite bursts are now reproducible in tests.
+See runtime-profiling.md for scope and results. Player/device CPU, resident
+memory, streaming and large-library UI profiling remain open.
+
 ## Music transition tranche, 2026-11-05
 
 Implemented DSP-buffer Linear/EqualPower crossfades, route/default durations,

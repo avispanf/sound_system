@@ -10,19 +10,52 @@ namespace AudioMW
             public SoundEvent Event;
             public PlaybackParameters Parameters;
             public BlendLayer Blend;
-            public ParameterBinding[] Bindings;
+            public ParameterBinding[] Bindings = System.Array.Empty<ParameterBinding>();
+            public void SetBindings(List<ParameterBinding> source)
+            {
+                if (Bindings.Length != source.Count) Bindings = new ParameterBinding[source.Count];
+                source.CopyTo(Bindings);
+            }
+            public void CopyFrom(Layer source)
+            {
+                Event = source.Event; Parameters = source.Parameters; Blend = source.Blend;
+                if (Bindings.Length != source.Bindings.Length) Bindings = new ParameterBinding[source.Bindings.Length];
+                System.Array.Copy(source.Bindings, Bindings, Bindings.Length);
+            }
+            public void Clear()
+            {
+                Event = null; Parameters = PlaybackParameters.Invalid; Blend = null;
+                System.Array.Clear(Bindings, 0, Bindings.Length);
+            }
         }
 
         public readonly List<Layer> Layers = new List<Layer>();
         public PlaybackOutcome Failure { get; private set; }
+        private readonly Stack<Layer> freeLayers = new Stack<Layer>();
         private readonly HashSet<SoundEvent> path = new HashSet<SoundEvent>();
         private readonly List<ParameterBinding> bindings = new List<ParameterBinding>();
 
         public bool Build(SoundEvent root, System.Random random, ParameterStore local, ParameterStore global, int capacity)
         {
-            Layers.Clear();
+            Clear();
             Failure = root.ContainerMode == ContainerMode.Simple ? PlaybackOutcome.RejectedNoClips : PlaybackOutcome.RejectedNoValidLayers;
             return Visit(root, random, local, global, 1f, 1f, capacity) && Layers.Count > 0;
+        }
+
+        public void Clear()
+        {
+            foreach (Layer layer in Layers) { layer.Clear(); freeLayers.Push(layer); }
+            Layers.Clear();
+            path.Clear();
+            bindings.Clear();
+        }
+
+        private void AddLayer(SoundEvent item, PlaybackParameters parameters, BlendLayer blend)
+        {
+            Layer layer = freeLayers.Count > 0 ? freeLayers.Pop() : new Layer();
+            layer.Event = item; layer.Parameters = parameters; layer.Blend = blend;
+            layer.SetBindings(bindings);
+            Layers.Add(layer);
         }
 
         private bool Visit(SoundEvent item, System.Random random, ParameterStore local, ParameterStore global, float gain, float pitch, int capacity)
@@ -39,7 +72,7 @@ namespace AudioMW
                 {
                     parameters.Volume *= gain;
                     parameters.Pitch = Mathf.Clamp(parameters.Pitch * pitch, 0.01f, 3f);
-                    Layers.Add(new Layer { Event = item, Parameters = parameters, Bindings = bindings.ToArray() });
+                    AddLayer(item, parameters, null);
                 }
             }
             else
@@ -51,8 +84,8 @@ namespace AudioMW
                     foreach (BlendLayer blend in item.BlendLayers)
                     {
                         if (blend == null || !blend.IsValid) continue;
-                        Layers.Add(new Layer { Event = item, Blend = blend, Bindings = bindings.ToArray(), Parameters = new PlaybackParameters
-                        { Clip = blend.Clip, Volume = gain, Pitch = Mathf.Clamp(pitch, 0.01f, 3f), IsValid = true } });
+                        AddLayer(item, new PlaybackParameters
+                        { Clip = blend.Clip, Volume = gain, Pitch = Mathf.Clamp(pitch, 0.01f, 3f), IsValid = true }, blend);
                         if (Layers.Count > capacity) { Failure = PlaybackOutcome.RejectedNoVoice; valid = false; break; }
                     }
                 }

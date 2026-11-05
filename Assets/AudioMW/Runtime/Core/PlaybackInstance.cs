@@ -7,32 +7,49 @@ namespace AudioMW
     {
         private sealed class Slot
         {
-            public PlaybackPlan.Layer Layer;
+            public readonly PlaybackPlan.Layer Layer = new PlaybackPlan.Layer();
+            public VirtualVoice VirtualCache;
             public Voice Voice;
             public VirtualVoice Virtual;
         }
 
+        private readonly AudioRuntime runtime;
+        private bool stopping;
+        private readonly Stack<Slot> freeSlots = new Stack<Slot>();
         private readonly List<Slot> slots = new List<Slot>();
         private readonly ParameterStore parameters = new ParameterStore();
-        public readonly SoundEvent Event;
-        public readonly Transform Attach;
-        public readonly float Started = Time.unscaledTime;
+        public SoundEvent Event { get; private set; }
+        public Transform Attach { get; private set; }
+        public float Started { get; private set; }
         public Voice Primary { get; private set; }
         public int HandleId;
         private float occlusionVolume = 1f;
         private float occlusionCutoff = 22000f;
 
-        public PlaybackInstance(SoundEvent soundEvent, Transform attach, ParameterStore initial)
+        public PlaybackInstance(AudioRuntime runtime) { this.runtime = runtime; }
+
+        public void Initialize(SoundEvent soundEvent, Transform attach, ParameterStore initial)
         {
-            Event = soundEvent;
-            Attach = attach;
+            Event = soundEvent; Attach = attach; Started = Time.unscaledTime; HandleId = 0;
             parameters.CopyFrom(initial);
+        }
+
+        public bool NeedsListener
+        {
+            get
+            {
+                if (Event == null) return false;
+                foreach (Slot slot in slots)
+                    if (slot.Virtual != null || (slot.Voice != null && slot.Voice.IsActive && slot.Layer.Event.AllowVirtualization && slot.Voice.Source.spatialBlend > 0)) return true;
+                return false;
+            }
         }
 
         public bool IsPlaying
         {
             get
             {
+                if (Event == null) return false;
                 foreach (Slot slot in slots)
                     if ((slot.Voice != null && slot.Voice.IsActive) || slot.Virtual != null) return true;
                 return false;
@@ -64,7 +81,9 @@ namespace AudioMW
             foreach (PlaybackPlan.Layer layer in plan.Layers)
             {
                 Voice voice = pool.AcquireFree();
-                Slot slot = new Slot { Layer = layer, Voice = voice };
+                Slot slot = freeSlots.Count > 0 ? freeSlots.Pop() : new Slot();
+                slot.Layer.CopyFrom(layer);
+                slot.Voice = voice;
                 slots.Add(slot);
                 Configure(slot, position, 0f);
                 if (Primary == null) Primary = voice;
@@ -116,28 +135,46 @@ namespace AudioMW
 
         public void Stop()
         {
-            foreach (Slot slot in slots)
+            if (stopping) return;
+            stopping = true;
+            runtime.BeginOperation();
+            try
             {
-                if (slot.Voice != null)
+                foreach (Slot slot in slots)
                 {
-                    slot.Voice.Owner = null;
-                    slot.Voice.ClearFollowers();
-                    slot.Voice.Stop();
-                    slot.Voice = null;
+                    if (slot.Voice != null)
+                    {
+                        slot.Voice.Owner = null;
+                        slot.Voice.ClearFollowers();
+                        slot.Voice.Stop();
+                        slot.Voice = null;
+                    }
+                    if (slot.Virtual != null) slot.Virtual.Clear();
+                    slot.Virtual = null;
+                    slot.Layer.Clear();
+                    freeSlots.Push(slot);
                 }
-                slot.Virtual = null;
+                slots.Clear();
+                parameters.Clear();
+                Event = null; Attach = null; Primary = null;
+                occlusionVolume = 1f; occlusionCutoff = 22000f;
             }
-            slots.Clear();
+            finally
+            {
+                stopping = false;
+                runtime.EndOperation();
+            }
         }
 
         public void ClearVirtual()
         {
-            foreach (Slot slot in slots) slot.Virtual = null;
+            foreach (Slot slot in slots) { if (slot.Virtual != null) slot.Virtual.Clear(); slot.Virtual = null; }
             if (!IsPlaying) Stop();
         }
 
         public void Tick(VoicePool pool, Transform listener, bool virtualizationEnabled, float delta)
         {
+            if (Event == null) { Stop(); return; }
             foreach (Slot slot in slots)
             {
                 Voice voice = slot.Voice;
@@ -151,7 +188,8 @@ namespace AudioMW
                     slot.Layer.Event.AllowVirtualization && voice.Source.spatialBlend > 0f &&
                     VirtualizationPolicy.ShouldVirtualize(false, Vector3.Distance(voice.Source.transform.position, listener.position), voice.Source.maxDistance))
                 {
-                    slot.Virtual = new VirtualVoice();
+                    if (slot.VirtualCache == null) slot.VirtualCache = new VirtualVoice();
+                    slot.Virtual = slot.VirtualCache;
                     slot.Virtual.Configure(slot.Layer.Event, slot.Layer.Parameters, voice.Source.transform.position, Attach, voice.Source.maxDistance, voice.Source.time);
                     voice.Owner = null;
                     voice.ClearFollowers();
@@ -166,6 +204,7 @@ namespace AudioMW
                 slot.Virtual.Advance(delta * Mathf.Clamp(slot.Layer.Parameters.Pitch * pitchMultiplier, 0.01f, 3f));
                 if (slot.Virtual.IsExpired || slot.Virtual.TargetLost)
                 {
+                    slot.Virtual.Clear();
                     slot.Virtual = null;
                     continue;
                 }
@@ -173,6 +212,7 @@ namespace AudioMW
                 slot.Voice = pool.AcquireFree();
                 if (slot.Voice == null) continue;
                 Configure(slot, slot.Virtual.CurrentPosition, slot.Virtual.PlaybackOffset);
+                slot.Virtual.Clear();
                 slot.Virtual = null;
                 if (Primary == null) Primary = slot.Voice;
             }

@@ -28,6 +28,8 @@ namespace AudioMW
                 case PlaybackOutcome.RejectedNoClips:
                     return "event has no usable clips";
 
+                case PlaybackOutcome.RejectedRuntimeStopping:
+                    return "audio runtime is shutting down";
                 case PlaybackOutcome.RejectedContainerGraph:
                     return "container has a circular reference or exceeds 32 levels";
                 case PlaybackOutcome.RejectedCooldown:

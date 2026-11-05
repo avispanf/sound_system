@@ -14,6 +14,7 @@ namespace AudioMW
         private float duckValue;
         private float lastTrailingSilence;
         private bool justStarted;
+        private bool resetting;
 
         private SoundParameter duckParameter;
         private float duckFadeSeconds = 0.2f;
@@ -72,7 +73,7 @@ namespace AudioMW
 
         public bool Play(VoiceLine line, VoiceOverMode mode = VoiceOverMode.Queue)
         {
-            if (line == null || !line.IsValid)
+            if (resetting || source == null || line == null || !line.IsValid)
             {
                 return false;
             }
@@ -122,6 +123,20 @@ namespace AudioMW
             }
 
             silenceTimer = 0f;
+        }
+
+        internal void Reset()
+        {
+            resetting = true;
+            try
+            {
+                Stop();
+                duckValue = 0;
+                lastTrailingSilence = 0;
+                justStarted = false;
+                if (duckParameter != null && AudioRuntime.Exists) AudioRuntime.Instance.GlobalParameters.Set(duckParameter, 0);
+            }
+            finally { resetting = false; }
         }
 
         public void Tick()

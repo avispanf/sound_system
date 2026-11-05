@@ -288,11 +288,18 @@ namespace AudioMW
                 return false;
             }
 
+            if (currentEvent == null)
+            {
+                source.Stop();
+                Release();
+                return false;
+            }
+
             if (attachTarget != null)
             {
                 cachedTransform.position = attachTarget.position;
             }
-            else if (source.spatialBlend > 0f && currentEvent != null && HadAttachTarget())
+            else if (currentEvent != null && HadAttachTarget())
             {
                 source.Stop();
                 Release();
@@ -384,15 +391,16 @@ namespace AudioMW
 
             System.Action<Voice> handler = Released;
             Released = null;
-            if (notify && handler != null)
-            {
-                handler(this);
-            }
-
             currentEvent = null;
             attachTarget = null;
             source.clip = null;
             source.outputAudioMixerGroup = null;
+            currentParameters = PlaybackParameters.Invalid;
+            if (notify && handler != null)
+            {
+                if (AudioRuntime.Exists) AudioRuntime.Instance.NotifyReleased(this, handler);
+                else handler(this);
+            }
         }
     }
 }

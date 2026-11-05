@@ -69,7 +69,12 @@ namespace AudioMW
         public void Clear()
         {
             Event = null;
+            Parameters = PlaybackParameters.Invalid;
             Attach = null;
+            Position = Vector3.zero;
+            Loop = false;
+            AudibleRange = 0f;
+            HandleId = 0;
             elapsed = 0f;
         }
     }

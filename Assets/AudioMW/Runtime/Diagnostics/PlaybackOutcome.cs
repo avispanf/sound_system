@@ -9,6 +9,7 @@ namespace AudioMW
         RejectedNoValidLayers = 4,
         RejectedCooldown = 5,
         RejectedInstanceLimit = 6,
-        RejectedContainerGraph = 7
+        RejectedContainerGraph = 7,
+        RejectedRuntimeStopping = 8
     }
 }

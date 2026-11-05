@@ -7,6 +7,9 @@ The format follows Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
+- Runtime load and lifecycle regression scenarios with calibrated allocation
+  reporting and AudioMW.Play / AudioMW.Tick profiler markers.
+
 - DSP-buffer crossfades with Linear/EqualPower curves, authored default and
   per-route durations, live fade progress and pending-transition cancellation.
 
@@ -24,6 +27,9 @@ The format follows Keep a Changelog and the project uses semantic versioning.
 
 ### Changed
 
+- Reuse bounded playback-instance caches, plan buffers and admission scratch
+  collections; avoid allocating admission closures and unnecessary listener scans.
+
 - Browser uses resizable panes, a scrolling preview, explicit clip audition,
   native theme styling and package-relative stylesheet lookup.
 - Built-in emitter, scatterer, spline and occluder components retain handles.
@@ -31,6 +37,13 @@ The format follows Keep a Changelog and the project uses semantic versioning.
   its owned playback.
 
 ### Fixed
+
+- Release callbacks are dispatched after runtime mutations, allowing reentrant
+  playback and StopAll without collection corruption.
+- Attached 2D sounds stop when their target scene unloads; destroyed event roots
+  stop their complete instances. Handle IDs survive runtime recreation.
+- Stop clears clip snapshots; expired cooldown history is pruned. Shutdown
+  clears duck state immediately and rejects playback from release callbacks.
 
 - Replacing or cancelling a transition no longer leaves a scheduled cut on
   the current track; earlier fading tails survive rapid subsequent changes.

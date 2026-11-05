@@ -125,3 +125,18 @@ remaining crossfade time and a cancel action for pending transitions.
 Human listening, target-device output capture and device-change recovery remain
 release gates. The DSP implementation follows Unity's
 [OnAudioFilterRead example](https://docs.unity.com/en-us/engine/6000.3/script-reference/unityengine/monobehaviour/onaudiofilterread).
+
+## Release callbacks and runtime lifetime
+
+Release callbacks run after the surrounding audio operation finishes changing
+its collections; natural completion dispatches them after the runtime tick.
+They may call back into the public audio API. Shutdown rejects new playback
+until its cleanup and release callbacks complete. A pooled Voice may already
+have another assignment by the time a callback runs: capture a SoundHandle
+for ownership-sensitive actions.
+
+Attached audio ends when its target is destroyed for both 2D and 3D events.
+Destroying an event root stops its whole instance. Handles from an old runtime
+remain invalid after runtime recreation. Runtime caches clear asset references
+on release and cap retained instances to MaxVoices. See runtime-profiling.md
+for measurement scope and the remaining device-profiling work.

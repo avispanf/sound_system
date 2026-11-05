@@ -9,7 +9,7 @@ import tarfile
 
 
 SAMPLE = {"displayName": "Demo Scene", "description": "Interactive demo with synthesized placeholder audio.", "path": "Samples~/Demo"}
-DOCS = ("getting-started.md", "api-reference.md", "music.md", "optimisation.md", "authoring-and-runtime.md", "ui-design.md", "distribution.md")
+DOCS = ("getting-started.md", "api-reference.md", "music.md", "optimisation.md", "authoring-and-runtime.md", "ui-design.md", "distribution.md", "runtime-profiling.md")
 
 
 def collect(repository, version=None):
