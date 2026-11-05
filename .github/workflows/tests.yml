@@ -25,13 +25,19 @@ jobs:
         with:
           lfs: true
 
+      - name: Check package assembler
+        run: python3 -m unittest discover -s Tools/Tests -v
+
+      - name: Assemble UPM archive
+        run: python3 Tools/build_package.py --output .ci/audiomw.tgz
+
       - name: Prepare isolated package project
-        run: python3 Tools/prepare_test_project.py --destination .ci/TestProject --unity-version '${{ matrix.unityVersion }}'
+        run: python3 Tools/prepare_test_project.py --destination .ci/TestProject --unity-version '${{ matrix.unityVersion }}' --archive .ci/audiomw.tgz
 
       - uses: actions/cache@v4
         with:
           path: .ci/TestProject/Library
-          key: Library-${{ matrix.unityVersion }}-${{ hashFiles('Assets/AudioMW/**', 'Tools/prepare_test_project.py') }}
+          key: Library-${{ matrix.unityVersion }}-${{ hashFiles('Assets/AudioMW/**', 'Assets/AudioMW Demo/**', 'Tools/**') }}
           restore-keys: |
             Library-${{ matrix.unityVersion }}-
 

@@ -23,3 +23,8 @@ prove a cloud run or Linux image availability. Configuration follows the
 
 This fixture checks the source package under Assets. It is not an import test
 of the eventual UPM archive, Asset Store download or sample distribution.
+
+For distribution checks, pass `--archive /absolute/path/to/audiomw.tgz` to the
+fixture generator. This installs the actual tarball with Package Manager and
+enables the package tests through testables. See distribution.md for sample
+import validation. CI now uses this archive route as well.

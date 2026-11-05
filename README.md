@@ -107,3 +107,5 @@ for the commercial assumptions being tested.
 - [Editor UI specification](Documentation/ui-design.md)
 - [Project license and pricing model](Documentation/commercial-model.md)
 - [Implementation and verification status](Documentation/implementation-status.md)
+
+- [Build and install the UPM preview archive](Documentation/distribution.md)

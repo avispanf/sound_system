@@ -7,6 +7,9 @@ The format follows Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
+- Reproducible UPM archive assembly with demo sample, user documentation,
+  GUID dependency checks and tarball-based compatibility fixtures.
+
 - Weighted random and shuffle bag clip selection.
 - Nested Layered and Switch event containers with initial instance parameters,
   inherited gain/pitch/bindings and cycle/depth validation.
@@ -25,6 +28,8 @@ The format follows Keep a Changelog and the project uses semantic versioning.
   its owned playback.
 
 ### Fixed
+
+- Demo no longer references a URP package material or additional light component.
 
 - Composite handles remain valid after the first layer ends. Group stop,
   stealing, pool rebuild and StopAll include virtual layers.

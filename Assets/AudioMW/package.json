@@ -17,12 +17,5 @@
     "loudness",
     "lufs"
   ],
-  "dependencies": {},
-  "samples": [
-    {
-      "displayName": "Demo Scene",
-      "description": "Interactive scene demonstrating adaptive music layers, quantised stingers, spatial one shots and voice over ducking.",
-      "path": "Samples~/Demo"
-    }
-  ]
+  "dependencies": {}
 }

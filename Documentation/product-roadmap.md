@@ -34,7 +34,7 @@ separate user change.
 
 | Gate | Work | Acceptance evidence |
 |---|---|---|
-| R1 Package installation | Define the shipped Asset Store/UPM layout; fix the missing `Samples~/Demo` target; include documentation and licenses | Import the actual distribution into clean supported-version projects; open sample; no missing references or package compile errors |
+| R1 Package installation | Define the shipped Asset Store/UPM layout; assemble `Samples~/Demo` in the distribution archive; include documentation and licenses | Import the actual distribution into clean supported-version projects; open sample; no missing references or package compile errors |
 | R2 Compatibility | Use minimal version-specific CI fixtures; configure CI credentials separately; verify optional integrations | Green CI for both modes on declared versions; player smoke checks on advertised platforms; optional defines both off and on with their dependencies |
 | R3 Listening | Replace generated demo placeholders with redistribution-cleared audio | Human listening sign-off for intro/loop, music transitions, crossfades, VO release, interrupt/skip and scene changes; record devices and settings |
 | R4 Lifecycle and performance | Exercise pause/resume, scene unload, application focus, device/sample-rate changes and domain reload settings | Stable handles, released resources, no unwanted playback or stuck ducking; measured CPU, memory, voice counts and allocation behaviour on target devices |

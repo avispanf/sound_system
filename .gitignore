@@ -45,3 +45,5 @@ diag.txt
 spec_parts.txt
 
 /.ci/TestProject/
+
+__pycache__/

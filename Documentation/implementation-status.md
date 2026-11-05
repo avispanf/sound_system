@@ -1,8 +1,9 @@
 # AudioMW — implementation status
 
-2026-11-05. Working tree on main, based on 17f7cbc. Package remains 0.4.0;
-this development tranche is recorded under Unreleased. No release or commit
-was created.
+2026-11-05. The authoring/runtime tranche was committed and pushed as a4f39ae.
+Package source remains 0.4.0 with development recorded under Unreleased.
+The distribution check uses an assembled 0.5.0-preview.1 archive; no public
+release was created.
 
 ## Implemented
 
@@ -53,9 +54,10 @@ uncommitted and separate from the implementation.
 
 ## Next large tranches
 
-1. **Distribution and CI:** fix the missing Samples~/Demo layout, import the
-   actual shipped package in clean projects, inspect references, configure
-   secrets and execute remote CI. The workflow still targets 2022.3.62f1 and
+1. **Distribution and CI:** The UPM archive now contains Samples~/Demo and was
+   installed in clean 2022.3 and Unity 6 projects; Package Manager imported the
+   sample successfully with 16 components and 29 scene dependencies checked.
+   Configure secrets, run the archive CI and prepare Asset Store delivery. The workflow still targets 2022.3.62f1 and
    6000.0.58f1; those remote images/runs have not been verified. Local patch
    versions above are the evidence available today.
 2. **Music and listening:** real redistribution-cleared audio is forthcoming
@@ -69,5 +71,22 @@ uncommitted and separate from the implementation.
    project, final product name, support/upgrade terms, final license, Unity
    approval for a project-based Asset Store offer, store page and demo video.
 
+The first remote CI run after a4f39ae failed at license activation. Repository
+Actions secrets were inspected by name and the list was empty. No secret values
+were read or created. This is independent of the green local editor checks.
+
 There is no claim of complete FMOD/Wwise parity, zero allocations, a finished
-store artifact, full platform coverage, completed UI QA or human listening.
+Asset Store artifact, full platform coverage, completed UI QA or human listening.
+
+## Assembled package verification
+
+The 0.5.0-preview.1 development tarball was installed as LocalTarball in clean
+Unity 2022.3.62f3 and 6000.3.21f1 fixtures. Each passed 176 EditMode and 116
+PlayMode tests. Package Manager imported its sample; validation inspected
+16 scene components, 29 scene dependencies, camera/listener presence, missing
+scripts/references, shader errors and the Browser stylesheet.
+
+The builder passed four Python tests and a repeatability check. CI now assembles
+and installs the tarball before package tests. The prior Actions run stopped
+at licensing; no repository Actions secrets are configured. No cloud-green
+claim or Asset Store submission is made.
