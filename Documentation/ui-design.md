@@ -64,3 +64,19 @@ Reference discovery needs a useful navigation destination. A future
 transition envelope editor needs measured playback semantics before drawing
 curves. Add these after observing pilot workflows, rather than enlarging the
 Inspector with speculative controls.
+
+
+## Design 02 implementation
+
+The supplied CODEX-HANDOFF.md supersedes the older automatic-focused-Inspector
+idea: ordinary selection follows Unity; pinning is explicit. The Sound Event
+workflow is now implemented natively. See sound-event-workflow.md for selection,
+source preview, persistence, binding, summaries, creation, emitter assignment and
+captured diagnostic navigation. The HTML app stays a reference rather than a
+runtime/editor dependency. Native theme variables and controls support dark/light;
+Screenshots and real test results are separate from the prototype's historic QA.
+
+Full Diagnostics table redesign, the remaining Music interaction refinements,
+inline weighted source/weight editing, broader keyboard/accessibility review and
+large-library profiling remain follow-up work. Existing weighted selection,
+full blend curves and music scheduling have not been reduced to the prototype.

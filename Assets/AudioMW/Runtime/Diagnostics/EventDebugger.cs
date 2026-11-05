@@ -5,6 +5,8 @@ namespace AudioMW
 {
     public struct EventDebugRecord
     {
+        public SoundEvent Event;
+        public PlaybackRejectionInfo Rejection;
         public float Time;
         public string EventName;
         public PlaybackOutcome Outcome;
@@ -12,6 +14,7 @@ namespace AudioMW
         public Vector3 Position;
         public bool Attached;
 
+        public bool HasGainCapture;
         public float BaseVolume;
         public float ParameterMultiplier;
         public float BlendWeight;
@@ -24,6 +27,9 @@ namespace AudioMW
 
         public string DescribeOutcome()
         {
+            if (Rejection.HasInstanceLimit) return string.Format("Already playing {0} instances on this {1}. The limit is {2}.", Rejection.CurrentCount, Rejection.Scope, Rejection.Limit);
+            if (Rejection.HasCooldown) return string.Format("Cooldown has {0:0.###} s remaining at capture.", Rejection.RemainingSeconds);
+            if (Rejection.HasVoiceCapacity) return string.Format("Needs {0} physical voices; policy can provide {1} of {2}.", Rejection.RequestedVoices, Rejection.AvailableVoices, Rejection.VoiceCapacity);
             switch (Outcome)
             {
                 case PlaybackOutcome.RejectedNullEvent:
@@ -118,7 +124,7 @@ namespace AudioMW
             records.Clear();
         }
 
-        public void Record(SoundEvent soundEvent, PlaybackOutcome outcome, Voice voice, Vector3 position, bool attached)
+        public void Record(SoundEvent soundEvent, PlaybackOutcome outcome, Voice voice, Vector3 position, bool attached, PlaybackRejectionInfo rejection = default(PlaybackRejectionInfo))
         {
             if (!enabled)
             {
@@ -126,6 +132,8 @@ namespace AudioMW
             }
 
             EventDebugRecord record = new EventDebugRecord();
+            record.Event = soundEvent;
+            record.Rejection = rejection;
             record.Time = Time.realtimeSinceStartup;
             record.EventName = soundEvent != null ? soundEvent.name : "(null)";
             record.Outcome = outcome;
@@ -134,6 +142,7 @@ namespace AudioMW
 
             if (voice != null && voice.Source != null)
             {
+                record.HasGainCapture = true;
                 record.ClipName = voice.Source.clip != null ? voice.Source.clip.name : null;
                 record.BaseVolume = voice.BaseVolume;
                 record.ParameterMultiplier = voice.LastVolumeMultiplier;

@@ -5,12 +5,19 @@ using UnityEngine.UIElements;
 
 namespace AudioMW.Editor
 {
+    public sealed class SoundEventInspectorView : VisualElement
+    {
+        public Object Asset { get; private set; }
+        public SoundEventInspectorView(Object asset) { Asset = asset; }
+    }
+
     [CustomEditor(typeof(SoundEvent)), CanEditMultipleObjects]
     public sealed class SoundEventInspector : UnityEditor.Editor
     {
         public override VisualElement CreateInspectorGUI()
         {
-            VisualElement root = new VisualElement();
+            VisualElement root = new SoundEventInspectorView(target) { name = "audiomw-event-inspector" };
+            AudioWorkspace.Style(root);
             root.style.paddingTop = 4;
             root.style.paddingBottom = 8;
             Field(root, "containerMode", "Playback");
@@ -40,18 +47,22 @@ namespace AudioMW.Editor
             HelpBox diagnostics = new HelpBox("", HelpBoxMessageType.Warning);
             root.Add(diagnostics);
 
-            Foldout sound = Section(root, "Sound", true);
-            Field(sound, "volume", "Gain");
-            Field(sound, "pitch", "Pitch");
-            Foldout variation = Section(sound, "Variation", false);
+            VisualElement sound = new VisualElement();
+            sound.Add(new Label("Sound") { style = { unityFontStyleAndWeight = FontStyle.Bold, marginTop = 8, marginBottom = 4 } });
+            root.Add(sound);
+            DecibelGainField gain = new DecibelGainField("Gain") { name = "volume" };
+            gain.BindProperty(serializedObject.FindProperty("volume"));
+            sound.Add(gain);
+            Field(sound, "pitch", "Pitch ratio");
+            Foldout variation = Section(root, "Variation", false);
             Field(variation, "volumeVariationMode", "Gain variation");
             VisualElement decibelVariation = new VisualElement();
             Field(decibelVariation, "volumeRandomDbMin", "Min gain (dB)");
             Field(decibelVariation, "volumeRandomDbMax", "Max gain (dB)");
             variation.Add(decibelVariation);
             VisualElement legacyVariation = new VisualElement();
-            Field(legacyVariation, "volumeRandomMin", "Linear offset min");
-            Field(legacyVariation, "volumeRandomMax", "Linear offset max");
+            Field(legacyVariation, "volumeRandomMin", "Min offset");
+            Field(legacyVariation, "volumeRandomMax", "Max offset");
             legacyVariation.Add(new HelpBox("This event keeps its original additive offsets. Switching to Decibels uses a separate range and leaves these values intact.", HelpBoxMessageType.Info));
             variation.Add(legacyVariation);
             Field(variation, "pitchRandomMin", "Min pitch");
@@ -61,26 +72,43 @@ namespace AudioMW.Editor
             Field(leaf, "ignorePause", "Play while paused");
             Field(leaf, "mixerGroup", "Mixer output");
             sound.Add(leaf);
-
             Foldout spatial = Section(root, "Spatial audio", false);
-            Field(spatial, "attenuationPreset", "Attenuation preset");
+            Field(spatial, "attenuationPreset", "Preset", "An attenuation preset overrides the spatial settings below.");
             VisualElement spatialValues = new VisualElement();
             Field(spatialValues, "spatialBlend", "3D blend");
-            Field(spatialValues, "minDistance", "Near distance");
-            Field(spatialValues, "maxDistance", "Far distance");
+            Field(spatialValues, "minDistance", "Near (m)");
+            Field(spatialValues, "maxDistance", "Far (m)");
             Field(spatialValues, "rolloffMode", "Falloff");
             spatial.Add(spatialValues);
-            Field(spatial, "allowVirtualization", "Virtualize out of range");
+            Field(spatial, "allowVirtualization", "Virtualize", "Keep supported out-of-range 3D voices alive without a physical AudioSource.");
             Foldout limits = Section(root, "Playback limits", false);
             Field(limits, "maxInstances", "Event instances");
-            Field(limits, "maxInstancesPerEmitter", "Instances per emitter");
-            Field(limits, "cooldownSeconds", "Cooldown (seconds)");
+            Field(limits, "maxInstancesPerEmitter", "Per emitter", "Maximum simultaneous logical instances on one attached emitter. Zero means unlimited.");
+            Field(limits, "cooldownSeconds", "Cooldown (s)");
             Field(limits, "limitPolicy", "When full");
-            Field(limits, "priority", "Priority (0 is highest)");
-            Field(limits, "concurrencyGroup", "Shared limit group");
+            Field(limits, "priority", "Priority", "0 is highest priority; 256 is lowest.");
+            Field(limits, "concurrencyGroup", "Shared group", "A concurrency group shares an instance limit across its events.");
             limits.Add(new HelpBox("Zero means unlimited or no cooldown. Limits apply to the event you play, including its virtual layers. Position-only calls share one emitter bucket.", HelpBoxMessageType.Info));
             Foldout parameters = Section(root, "Parameter bindings", false);
             Field(parameters, "parameterBindings", "Bindings");
+
+            Foldout connect = new Foldout { text = "Use this sound in Unity", value = false, viewDataKey = "AudioMW.Connect" };
+            connect.style.marginTop = 8;
+            connect.Add(new HelpBox("Assign this event to a Sound Emitter on a scene object. Enter Play Mode to hear event gain, random selection, layers and spatial processing.", HelpBoxMessageType.Info));
+            ObjectField destination = new ObjectField("Scene object") { objectType = typeof(GameObject), allowSceneObjects = true, value = Selection.activeGameObject, name = "emitter-target" };
+            destination.AddToClassList(BaseField<Object>.alignedFieldUssClassName);
+            connect.Add(destination);
+            Button assign = new Button(() => SoundEventAuthoring.AssignEmitter((SoundEvent)target, destination.value as GameObject)) { text = "Assign event", name = "assign-emitter", tooltip = "Assign to the first Sound Emitter on this scene object, or add one. Supports Undo and prefab overrides." };
+            System.Action updateAssign = () =>
+            {
+                GameObject go = destination.value as GameObject;
+                assign.SetEnabled(targets.Length == 1 && go != null && go.scene.IsValid() && !EditorUtility.IsPersistent(go));
+            };
+            destination.RegisterValueChangedCallback(_ => updateAssign());
+            connect.Add(assign);
+            updateAssign();
+            if (targets.Length > 1) connect.Add(new HelpBox("Select one Sound Event before assigning an emitter.", HelpBoxMessageType.Info));
+            root.Add(connect);
 
             System.Action refresh = () =>
             {
@@ -109,16 +137,30 @@ namespace AudioMW.Editor
             return root;
         }
 
-        private void Field(VisualElement parent, string name, string label)
+        private void Field(VisualElement parent, string name, string label, string tooltip = null)
         {
-            PropertyField field = new PropertyField(serializedObject.FindProperty(name), label);
+            PropertyField field = new PropertyField(serializedObject.FindProperty(name), label) { name = name };
+            if (!string.IsNullOrEmpty(tooltip)) field.tooltip = tooltip;
             parent.Add(field);
         }
 
-        private static Foldout Section(VisualElement parent, string label, bool expanded)
+        private Foldout Section(VisualElement parent, string label, bool expanded)
         {
             Foldout foldout = new Foldout { text = label, value = expanded, viewDataKey = "AudioMW." + label };
+            foldout.name = "section-" + label;
             foldout.style.marginTop = 8;
+            Label summary = new Label { name = "summary", tooltip = "Summary of the current serialized settings." };
+            summary.AddToClassList("audiomw-foldout-summary");
+            Toggle toggle = foldout.Q<Toggle>();
+            toggle.Add(summary);
+            System.Action update = () =>
+            {
+                summary.text = SoundEventSummaries.Get(serializedObject, label);
+                summary.style.display = foldout.value ? DisplayStyle.None : DisplayStyle.Flex;
+            };
+            foldout.RegisterValueChangedCallback(evt => { if (evt.target == foldout) update(); });
+            foldout.TrackSerializedObjectValue(serializedObject, _ => update());
+            update();
             parent.Add(foldout);
             return foldout;
         }

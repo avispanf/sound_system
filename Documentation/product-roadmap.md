@@ -57,6 +57,14 @@ assembly activation compiles with package 1.21.21 on both local editors. Real
 catalog/bundle loading and OS/device suspension remain future work. Playback
 leases and scene bank scopes are covered by the subsequent tranche below. See loading-and-pause.md.
 
+## Design 02 Sound Event workflow, 2026-11-05
+
+Implemented the main supplied handoff: native source browsing and explicit pinning,
+serialized Browser state, always-visible Sound controls, real foldout summaries,
+creation presets, undoable emitter connection and captured diagnostic navigation.
+See sound-event-workflow.md. Music remains in its existing native window; further
+Diagnostics/Music refinement follows the completed Sound Event path.
+
 ## Decibel authoring and gain diagnostics, 2026-11-05
 
 Implemented dB faders for event/music/VO/child gain without changing stored linear

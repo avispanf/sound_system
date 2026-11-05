@@ -13,6 +13,10 @@ namespace AudioMW.Editor
         private ToolbarToggle rejectionsToggle;
         private Label summaryLabel;
         private Label detailLabel;
+        private Label gainLabel;
+        private Button openEvent;
+        private EventDebugRecord selectedRecord;
+        private bool hasSelectedRecord;
 
         private List<EventDebugRecord> visible = new List<EventDebugRecord>();
 
@@ -27,6 +31,9 @@ namespace AudioMW.Editor
 
         public void CreateGUI()
         {
+            rootVisualElement.Clear();
+            AudioWorkspace.Style(rootVisualElement);
+            rootVisualElement.Add(AudioWorkspace.Navigation("Diagnostics"));
             Toolbar toolbar = new Toolbar();
 
             searchField = new ToolbarSearchField();
@@ -70,6 +77,16 @@ namespace AudioMW.Editor
             detailLabel.style.minHeight = 52f;
             rootVisualElement.Add(detailLabel);
 
+            openEvent = new Button(() =>
+            {
+                bool limits = selectedRecord.Outcome == PlaybackOutcome.RejectedCooldown || selectedRecord.Outcome == PlaybackOutcome.RejectedInstanceLimit || selectedRecord.Outcome == PlaybackOutcome.RejectedNoVoice;
+                AudioWorkspace.OpenEvent(selectedRecord.Event, limits ? "Playback limits" : selectedRecord.Outcome == PlaybackOutcome.RejectedClipNotLoaded && selectedRecord.Event != null && selectedRecord.Event.ContainerMode == ContainerMode.Simple ? "Addressed clips" : null,
+                    selectedRecord.Outcome == PlaybackOutcome.RejectedCooldown ? "cooldownSeconds" :
+                    selectedRecord.Rejection.HasInstanceLimit ? (selectedRecord.Rejection.Scope == "emitter" ? "maxInstancesPerEmitter" : selectedRecord.Rejection.Scope == "event" ? "maxInstances" : "concurrencyGroup") : null);
+            }) { text = "Open event settings", name = "open-event-settings" };
+            openEvent.SetEnabled(false); rootVisualElement.Add(openEvent);
+            Foldout gains = new Foldout { text = "Gain details · Captured", value = false };
+            gainLabel = new Label { style = { whiteSpace = WhiteSpace.Normal } }; gains.Add(gainLabel); rootVisualElement.Add(gains);
             summaryLabel = new Label();
             summaryLabel.style.paddingLeft = 6f;
             summaryLabel.style.paddingBottom = 4f;
@@ -100,11 +117,9 @@ namespace AudioMW.Editor
                 "{0,8:F2}  {1,-28} {2}",
                 record.Time,
                 Truncate(record.EventName, 28),
-                record.Outcome == PlaybackOutcome.Played ? "played" : record.DescribeOutcome());
+                record.Outcome == PlaybackOutcome.Played ? (record.HasGainCapture && record.FinalVolume == 0 ? "Accepted · source volume 0" : "Accepted") : "Rejected · " + record.DescribeOutcome());
 
-            label.style.color = record.Outcome == PlaybackOutcome.Played
-                ? new StyleColor(new Color(0.75f, 0.85f, 0.75f))
-                : new StyleColor(new Color(1f, 0.7f, 0.55f));
+            label.tooltip = record.EventName + "\n" + record.DescribeOutcome();
         }
 
         private void OnSelectionChanged(IEnumerable<object> selection)
@@ -115,15 +130,12 @@ namespace AudioMW.Editor
                 {
                     EventDebugRecord record = (EventDebugRecord)item;
 
-                    detailLabel.text = string.Format(
-                        "{0}\nclip: {1}\noutcome: {2}\nvolume: {3}\npitch: {4:F2}\nposition: {5}  attached: {6}",
-                        record.EventName,
-                        string.IsNullOrEmpty(record.ClipName) ? "-" : record.ClipName,
-                        record.DescribeOutcome(),
-                        record.DescribeVolumeChain() + "\n" + record.DescribeVolumeDecibels(),
-                        record.FinalPitch,
-                        record.Position,
-                        record.Attached);
+                    selectedRecord = record; hasSelectedRecord = true;
+                    detailLabel.text = record.EventName + "\n" +
+                        (record.Outcome == PlaybackOutcome.Played ? "Accepted" + (record.HasGainCapture && record.FinalVolume == 0 ? " · Source volume is zero" : "") : "Rejected · " + record.DescribeOutcome()) +
+                        "\nCaptured at " + record.Time.ToString("0.00") + " s · " + (string.IsNullOrEmpty(record.ClipName) ? "No source clip captured" : record.ClipName);
+                    gainLabel.text = record.Outcome == PlaybackOutcome.Played && record.HasGainCapture ? record.DescribeVolumeChain() + "\n" + record.DescribeVolumeDecibels() : "No source-gain values captured for this record.";
+                    openEvent.SetEnabled(record.Event != null);
                 }
 
                 break;
@@ -155,6 +167,13 @@ namespace AudioMW.Editor
             {
                 listView.itemsSource = visible;
                 listView.Rebuild();
+                int selectedIndex = hasSelectedRecord ? visible.IndexOf(selectedRecord) : -1;
+                if (selectedIndex >= 0) listView.SetSelectionWithoutNotify(new[] { selectedIndex });
+                else
+                {
+                    hasSelectedRecord = false; detailLabel.text = "Select a captured outcome to inspect its reason.";
+                    gainLabel.text = "No record selected."; openEvent.SetEnabled(false);
+                }
             }
         }
 

@@ -7,6 +7,13 @@ The format follows Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
+- Design 02 Sound Event workflow: persistent source Browser, native focused
+  Inspector pin/follow, selected-source waveform/metrics, clear empty/loading states.
+- Always-visible gain/pitch, Reset, serialized foldout summaries, and explicit
+  undoable Sound Emitter assignment with prefab overrides.
+- Sounds/Music/Diagnostics navigation and captured rejection context with links to
+  the relevant event limits/cooldown settings.
+
 - Decibel faders/numeric entry for event, music, VO and child gains, preserving
   linear asset storage, multi-edit and Undo/Redo, with explicit silence display.
 - Relative dB volume variation for new events; old assets keep additive offsets.

@@ -20,10 +20,14 @@ namespace AudioMW.Editor
             fader.style.flexGrow = 1;
             fader.style.minWidth = 32;
             number = new TextField { name = "gain-number", isDelayed = true };
-            number.style.width = 64;
+            number.style.width = 56;
             number.style.flexShrink = 0;
             input.Add(fader);
             input.Add(number);
+            Button reset = new Button(() => value = 1f) { text = "Reset", name = "gain-reset", tooltip = "Reset gain to 0 dB." };
+            reset.style.width = 38;
+            reset.style.flexShrink = 0;
+            input.Add(reset);
             tooltip = "0 dB keeps the original level. Type -inf for silence. The fader spans -80 to 0 dB; lower levels can be typed.";
             fader.tooltip = number.tooltip = tooltip;
             fader.RegisterValueChangedCallback(evt =>

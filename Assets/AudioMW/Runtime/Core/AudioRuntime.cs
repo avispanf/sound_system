@@ -30,6 +30,7 @@ namespace AudioMW
         private static readonly ProfilerMarker PlayMarker = new ProfilerMarker("AudioMW.Play");
         private sealed class RequestContext
         {
+            public PlaybackRejectionInfo Rejection;
             public readonly PlaybackPlan Plan = new PlaybackPlan();
             public readonly List<PlaybackInstance> Victims = new List<PlaybackInstance>();
         }
@@ -249,7 +250,7 @@ namespace AudioMW
                     float last;
                     if (soundEvent.CooldownSeconds > 0f && lastStarted.TryGetValue(soundEvent, out last) && Time.unscaledTime - last < soundEvent.CooldownSeconds)
                     {
-                        Reject(soundEvent, PlaybackOutcome.RejectedCooldown, position, attach);
+                        Reject(soundEvent, PlaybackOutcome.RejectedCooldown, position, attach, new PlaybackRejectionInfo { HasCooldown = true, RemainingSeconds = soundEvent.CooldownSeconds - (Time.unscaledTime - last) });
                         return null;
                     }
                     PlaybackPlan plan = request.Plan;
@@ -258,15 +259,16 @@ namespace AudioMW
                         Reject(soundEvent, plan.Failure, position, attach);
                         return null;
                     }
+                    request.Rejection = default(PlaybackRejectionInfo);
                     List<PlaybackInstance> victims = request.Victims;
-                    bool admitted = SelectVictims(victims, soundEvent, attach, AdmissionScope.Event, soundEvent.MaxInstances, soundEvent.LimitPolicy) &&
-                    SelectVictims(victims, soundEvent, attach, AdmissionScope.Emitter, soundEvent.MaxInstancesPerEmitter, soundEvent.LimitPolicy);
+                    bool admitted = SelectVictims(victims, soundEvent, attach, AdmissionScope.Event, soundEvent.MaxInstances, soundEvent.LimitPolicy, request) &&
+                    SelectVictims(victims, soundEvent, attach, AdmissionScope.Emitter, soundEvent.MaxInstancesPerEmitter, soundEvent.LimitPolicy, request);
                     ConcurrencyGroup group = soundEvent.ConcurrencyGroup;
                     if (admitted && group != null)
-                    admitted = SelectVictims(victims, soundEvent, attach, AdmissionScope.Group, group.MaxInstances, group.Policy);
+                    admitted = SelectVictims(victims, soundEvent, attach, AdmissionScope.Group, group.MaxInstances, group.Policy, request);
                     if (!admitted)
                     {
-                        Reject(soundEvent, PlaybackOutcome.RejectedInstanceLimit, position, attach);
+                        Reject(soundEvent, PlaybackOutcome.RejectedInstanceLimit, position, attach, request.Rejection);
                         return null;
                     }
                     int available = pool.FreeCount;
@@ -276,7 +278,7 @@ namespace AudioMW
                         PlaybackInstance victim = ChooseVictim(victims, soundEvent, attach, AdmissionScope.Pool, soundEvent.LimitPolicy);
                         if (victim == null)
                         {
-                            Reject(soundEvent, PlaybackOutcome.RejectedNoVoice, position, attach);
+                            Reject(soundEvent, PlaybackOutcome.RejectedNoVoice, position, attach, new PlaybackRejectionInfo { HasVoiceCapacity = true, RequestedVoices = plan.Layers.Count, AvailableVoices = available, VoiceCapacity = pool.MaxVoices });
                             return null;
                         }
                         victims.Add(victim);
@@ -296,7 +298,7 @@ namespace AudioMW
             }
         }
 
-        private bool SelectVictims(List<PlaybackInstance> victims, SoundEvent root, Transform attach, AdmissionScope scope, int limit, VoiceLimitPolicy policy)
+        private bool SelectVictims(List<PlaybackInstance> victims, SoundEvent root, Transform attach, AdmissionScope scope, int limit, VoiceLimitPolicy policy, RequestContext request)
         {
             if (limit <= 0) return true;
             int count = 0;
@@ -304,7 +306,14 @@ namespace AudioMW
             while (count >= limit)
             {
                 PlaybackInstance victim = ChooseVictim(victims, root, attach, scope, policy);
-                if (victim == null) return false;
+                if (victim == null)
+                {
+                    int actual = 0;
+                    foreach (PlaybackInstance item in instances) if (Matches(item, root, attach, scope)) actual++;
+                    request.Rejection = new PlaybackRejectionInfo { HasInstanceLimit = true, CurrentCount = actual, Limit = limit,
+                        Scope = scope == AdmissionScope.Event ? "event" : scope == AdmissionScope.Emitter ? "emitter" : "concurrency group" };
+                    return false;
+                }
                 victims.Add(victim);
                 count--;
             }
@@ -348,10 +357,10 @@ namespace AudioMW
             expiredCooldowns.Clear();
         }
 
-        private void Reject(SoundEvent soundEvent, PlaybackOutcome outcome, Vector3 position, Transform attach)
+        private void Reject(SoundEvent soundEvent, PlaybackOutcome outcome, Vector3 position, Transform attach, PlaybackRejectionInfo rejection = default(PlaybackRejectionInfo))
         {
             rejectedRequests++;
-            debugger.Record(soundEvent, outcome, null, position, attach != null);
+            debugger.Record(soundEvent, outcome, null, position, attach != null, rejection);
         }
 
         public SoundHandle PlayTracked(SoundEvent soundEvent, Vector3 position, Transform attach, ParameterStore initialParameters = null)

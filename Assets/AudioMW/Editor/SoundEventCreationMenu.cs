@@ -38,14 +38,7 @@ namespace AudioMW.Editor
             string assetName = clips.Length == 1 ? clips[0].name : System.IO.Path.GetFileName(directory);
             string path = AssetDatabase.GenerateUniqueAssetPath(directory + "/SFX_" + assetName + ".asset");
 
-            SoundEvent soundEvent = SoundEvent.CreateRuntime();
-            soundEvent.Clips = SortByName(clips);
-
-            AssetDatabase.CreateAsset(soundEvent, path);
-            Undo.RegisterCreatedObjectUndo(soundEvent, "Create sound event");
-            AssetDatabase.SaveAssets();
-            Selection.activeObject = soundEvent;
-            EditorGUIUtility.PingObject(soundEvent);
+            SoundEventAuthoring.CreateAsset(SortByName(clips), SoundEventPreset.OneShot, path);
         }
 
         private static AudioClip[] SortByName(AudioClip[] clips)

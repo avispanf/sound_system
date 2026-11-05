@@ -187,3 +187,21 @@ used transient event copies and a temporary window; no authored demo asset chang
 Light theme, full IMGUI interaction, screen-reader usage and human listening are
 not covered by these checks. Real demo content, device/player validation, real
 Addressables catalogs and cloud CI license credentials remain open.
+
+
+## Design 02 Sound Event workflow
+
+Implementation is based on the supplied CODEX-HANDOFF.md/design-spec.md and the
+current source, not the HTML sample data. Preview 0.5.0-preview.7 is checked as an
+installed UPM tarball in Unity 2022.3.62f3 and 6000.3.21f1. Per editor: 237 EditMode
+and 172 PlayMode tests (409 total). Seventeen new Editor scenarios cover the workflow
+and native binding/Undo/prefab semantics; three new PlayMode cases capture actual
+runtime diagnostic context. The existing full regression/performance suites remain.
+
+Native checks use temporary QA assets from the generated demo WAVs. Source preview,
+stop-on-source-change, saved -12 dB after selection changes, pin independence,
+empty search and 620-point Browser / 300–360-point Inspector were checked. Dark and
+light themes were inspected; their native screenshots are separate deliverables.
+No production audio or human listening approval is claimed. Music screen refinement,
+a fuller Diagnostics table, inline weights, broad accessibility, target devices,
+real Addressables content and cloud CI credentials remain separate work.

@@ -18,7 +18,7 @@
 
 .audiomw-chip--active {
     background-color: var(--unity-colors-highlight-background);
-    color: var(--unity-colors-highlight-text);
+    color: var(--unity-colors-default-text);
 }
 
 .audiomw-list {
@@ -106,3 +106,19 @@
     color: var(--unity-colors-default-text);
     opacity: 0.75;
 }
+
+.audiomw-chip-row { flex-wrap: wrap; }
+.audiomw-preview .unity-button { margin-top: 4px; }
+.audiomw-title { white-space: normal; }
+.audiomw-group { opacity: 1; }
+.audiomw-foldout-summary {
+    flex-grow: 1;
+    flex-shrink: 1;
+    -unity-text-align: middle-right;
+    color: var(--unity-colors-default-text);
+    margin-right: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.audiomw-primary { background-color: var(--unity-colors-highlight-background); color: var(--unity-colors-default-text); }

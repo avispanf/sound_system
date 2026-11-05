@@ -13,3 +13,6 @@ Create Sound Event to author an event from selected clips.
 
 This archive is a development validation artifact. The commercial release,
 license text, Asset Store approval and final platform claims are still pending.
+
+For the native Sounds → Inspector → Sound Emitter workflow, see
+Documentation~/sound-event-workflow.md.

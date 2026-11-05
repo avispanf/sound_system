@@ -11,6 +11,7 @@ namespace AudioMW.Editor
         private static MethodInfo stopMethod;
         private static MethodInfo isPlayingMethod;
         private static bool resolved;
+        public static AudioClip CurrentClip { get; private set; }
 
         public static bool IsAvailable
         {
@@ -62,6 +63,7 @@ namespace AudioMW.Editor
             {
                 Stop();
 
+                CurrentClip = clip;
                 ParameterInfo[] parameters = playMethod.GetParameters();
 
                 if (parameters.Length == 3)
@@ -81,6 +83,7 @@ namespace AudioMW.Editor
 
         public static void Stop()
         {
+            CurrentClip = null;
             Resolve();
 
             if (stopMethod == null)

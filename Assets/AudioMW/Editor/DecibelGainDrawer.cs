@@ -21,8 +21,10 @@ namespace AudioMW.Editor
             bool previousMixed = EditorGUI.showMixedValue;
             EditorGUI.showMixedValue = property.hasMultipleDifferentValues;
             Rect input = EditorGUI.PrefixLabel(position, new GUIContent(label.text + " (dB)", label.tooltip));
-            Rect number = new Rect(input.xMax - 64, input.y, 64, input.height);
-            Rect fader = new Rect(input.x, input.y, Mathf.Max(0, input.width - 70), input.height);
+            Rect reset = new Rect(input.xMax - 38, input.y, 38, input.height);
+            Rect number = new Rect(reset.x - 58, input.y, 54, input.height);
+            Rect fader = new Rect(input.x, input.y, Mathf.Max(0, number.x - input.x - 4), input.height);
+            if (GUI.Button(reset, new GUIContent("Reset", "Reset gain to 0 dB."))) property.floatValue = 1f;
             float db = Mathf.Clamp(AudioGain.ToDecibels(property.floatValue), DecibelGainField.FaderMinimumDb, 0f);
             EditorGUI.BeginChangeCheck();
             float next = GUI.HorizontalSlider(fader, db, DecibelGainField.FaderMinimumDb, 0f);
