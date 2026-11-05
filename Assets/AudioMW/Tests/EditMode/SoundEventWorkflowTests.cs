@@ -14,6 +14,29 @@ namespace AudioMW.Tests
 {
     public sealed class SoundEventWorkflowTests
     {
+        [Test]
+        public void DiagnosticReasonsDistinguishAcceptedSilenceFromRejection()
+        {
+            Assert.AreEqual("Source volume is zero", EventDebuggerWindow.Reason(new EventDebugRecord { Outcome = PlaybackOutcome.Played, HasGainCapture = true, FinalVolume = 0 }));
+            Assert.AreEqual("Playback request accepted", EventDebuggerWindow.Reason(new EventDebugRecord { Outcome = PlaybackOutcome.Played }));
+            StringAssert.Contains("2", EventDebuggerWindow.Reason(new EventDebugRecord { Outcome = PlaybackOutcome.RejectedInstanceLimit, Rejection = new PlaybackRejectionInfo { HasInstanceLimit = true, CurrentCount = 2, Limit = 2, Scope = "emitter" } }));
+        }
+
+        [Test]
+        public void MusicOutsidePlayModeExplainsUnavailableRuntimeAndDisablesRequests()
+        {
+            MusicStatePreviewWindow window = ScriptableObject.CreateInstance<MusicStatePreviewWindow>();
+            try
+            {
+                window.CreateGUI();
+                Assert.IsNotNull(window.rootVisualElement.Q("workspace-navigation"));
+                bool explained = false;
+                window.rootVisualElement.Query<Label>().ForEach(label => { if (!string.IsNullOrEmpty(label.text) && label.text.Contains("Unavailable outside Play Mode")) explained = true; });
+                Assert.IsTrue(explained);
+            }
+            finally { Object.DestroyImmediate(window); }
+        }
+
         private string folder;
         private readonly List<Object> temporary = new List<Object>();
         private readonly List<AudioBrowserWindow> browsers = new List<AudioBrowserWindow>();

@@ -107,6 +107,10 @@ namespace AudioMW
             get { return pendingStartDspTime; }
         }
 
+        public MusicQuantization PendingQuantization { get; private set; }
+        public MusicFadeCurve PendingCurve { get; private set; }
+        public double PendingFadeSeconds { get { return pendingFadeSeconds; } }
+
         public MusicTrack PendingTrack
         {
             get { return pendingTrack; }
@@ -385,6 +389,8 @@ namespace AudioMW
             pendingTrack = next;
             pendingStartDspTime = boundary;
             pendingFadeSeconds = duration;
+            PendingQuantization = quantization;
+            PendingCurve = curve;
 
             SetFadeOut(channels, introSource, boundary, duration, curve, false);
             BuildChannels(next, pendingChannels);

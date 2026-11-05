@@ -36,6 +36,9 @@ namespace AudioMW.Tests
             Player.Play(original);
             Player.TransitionTo(Track(), MusicQuantization.Beat);
             double boundary = Player.PendingStartDspTime;
+            Assert.AreEqual(MusicQuantization.Beat, Player.PendingQuantization);
+            Assert.AreEqual(MusicFadeCurve.Linear, Player.PendingCurve);
+            Assert.AreEqual(0, Player.PendingFadeSeconds);
             Assert.IsTrue(Player.CancelTransition());
             yield return AudioTestUtil.WaitUntil(() => AudioSettings.dspTime > boundary + 0.1, "cancelled boundary to pass");
             Assert.AreSame(original, Player.CurrentTrack);

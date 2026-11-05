@@ -5,6 +5,8 @@ The format follows Keep a Changelog and the project uses semantic versioning.
 
 ## [Unreleased]
 
+- Design 02 follow-up: native Diagnostics columns and persistent filters; Music workspace with profile route summaries and captured pending transition timing.
+
 ### Added
 
 - Design 02 Sound Event workflow: persistent source Browser, native focused

@@ -122,3 +122,9 @@
 }
 
 .audiomw-primary { background-color: var(--unity-colors-highlight-background); color: var(--unity-colors-default-text); }
+
+.audiomw-diagnostic-row { flex-direction: row; align-items: center; padding-left: 6px; padding-right: 6px; min-height: 24px; }
+.audiomw-diagnostic-row .unity-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 8px; }
+.audiomw-diagnostic-event { flex-basis: 140px; flex-grow: 1; flex-shrink: 1; min-width: 60px; }
+.audiomw-diagnostic-outcome { width: 65px; flex-shrink: 0; }
+.audiomw-diagnostic-reason { flex-basis: 240px; flex-grow: 2; flex-shrink: 1; min-width: 80px; }

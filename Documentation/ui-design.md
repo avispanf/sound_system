@@ -80,3 +80,18 @@ Full Diagnostics table redesign, the remaining Music interaction refinements,
 inline weighted source/weight editing, broader keyboard/accessibility review and
 large-library profiling remain follow-up work. Existing weighted selection,
 full blend curves and music scheduling have not been reduced to the prototype.
+
+### Design 02 — Music and Diagnostics follow-up (2026-11-05)
+
+Music uses the shared workspace navigation and the scene runtime explicitly.
+Current/Pending distinguish Edit Mode unavailability from a stopped runtime.
+Destination buttons show the matching profile route or defaults; a scheduled
+transition displays captured quantization, effective fade seconds and curve from
+MusicPlayer, so editing a profile cannot rewrite the displayed pending settings.
+Cancel is enabled only before the pending DSP boundary. Repeated destinations
+retain the existing runtime no-reschedule contract.
+
+Diagnostics uses native Event / Outcome / Reason columns with full row tooltips,
+persistent search/rejection filters, explanatory empty states, and the existing
+captured reason, gain disclosure and action to event settings. Accepted requests
+without gain capture do not claim audibility or zero volume.

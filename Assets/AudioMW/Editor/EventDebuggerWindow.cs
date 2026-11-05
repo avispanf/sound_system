@@ -8,6 +8,9 @@ namespace AudioMW.Editor
 {
     public sealed class EventDebuggerWindow : EditorWindow
     {
+        [SerializeField] private string search = "";
+        [SerializeField] private bool rejectionsOnly;
+        private Label emptyLabel;
         private ListView listView;
         private ToolbarSearchField searchField;
         private ToolbarToggle rejectionsToggle;
@@ -24,7 +27,7 @@ namespace AudioMW.Editor
         public static void Open()
         {
             EventDebuggerWindow window = GetWindow<EventDebuggerWindow>();
-            window.titleContent = new GUIContent("Event Debugger");
+            window.titleContent = new GUIContent("Diagnostics");
             window.minSize = new Vector2(360f, 260f);
             window.Show();
         }
@@ -36,14 +39,14 @@ namespace AudioMW.Editor
             rootVisualElement.Add(AudioWorkspace.Navigation("Diagnostics"));
             Toolbar toolbar = new Toolbar();
 
-            searchField = new ToolbarSearchField();
+            searchField = new ToolbarSearchField { value = search };
             searchField.style.flexGrow = 1f;
-            searchField.RegisterValueChangedCallback(evt => RebuildList());
+            searchField.RegisterValueChangedCallback(evt => { search = evt.newValue; RebuildList(); });
             toolbar.Add(searchField);
 
-            rejectionsToggle = new ToolbarToggle();
+            rejectionsToggle = new ToolbarToggle { value = rejectionsOnly };
             rejectionsToggle.text = "Rejections only";
-            rejectionsToggle.RegisterValueChangedCallback(evt => RebuildList());
+            rejectionsToggle.RegisterValueChangedCallback(evt => { rejectionsOnly = evt.newValue; RebuildList(); });
             toolbar.Add(rejectionsToggle);
 
             ToolbarButton clearButton = new ToolbarButton(() =>
@@ -61,14 +64,17 @@ namespace AudioMW.Editor
             rootVisualElement.Add(toolbar);
 
             listView = new ListView();
-            listView.fixedItemHeight = 20f;
+            listView.fixedItemHeight = 28f;
             listView.selectionType = SelectionType.Single;
             listView.style.flexGrow = 1f;
-            listView.makeItem = () => new Label();
+            rootVisualElement.Add(MakeRow(true));
+            listView.makeItem = () => MakeRow(false);
             listView.bindItem = BindItem;
             listView.itemsSource = visible;
             listView.selectionChanged += OnSelectionChanged;
             rootVisualElement.Add(listView);
+            emptyLabel = new Label { name = "diagnostics-empty", style = { whiteSpace = WhiteSpace.Normal, paddingLeft = 6, paddingBottom = 8 } };
+            rootVisualElement.Add(emptyLabel);
 
             detailLabel = new Label();
             detailLabel.style.whiteSpace = WhiteSpace.Normal;
@@ -111,15 +117,32 @@ namespace AudioMW.Editor
             }
 
             EventDebugRecord record = visible[index];
-            Label label = (Label)element;
+            element.Q<Label>("event").text = string.IsNullOrEmpty(record.EventName) ? "(unnamed)" : record.EventName;
+            element.Q<Label>("outcome").text = record.Outcome == PlaybackOutcome.Played ? "Accepted" : "Rejected";
+            element.Q<Label>("reason").text = Reason(record);
+            element.tooltip = record.EventName + "\n" + Reason(record) + "\nCaptured at " + record.Time.ToString("0.00") + " s";
+        }
 
-            label.text = string.Format(
-                "{0,8:F2}  {1,-28} {2}",
-                record.Time,
-                Truncate(record.EventName, 28),
-                record.Outcome == PlaybackOutcome.Played ? (record.HasGainCapture && record.FinalVolume == 0 ? "Accepted · source volume 0" : "Accepted") : "Rejected · " + record.DescribeOutcome());
+        public static string Reason(EventDebugRecord record)
+        {
+            return record.Outcome != PlaybackOutcome.Played ? record.DescribeOutcome() :
+                record.HasGainCapture && record.FinalVolume == 0 ? "Source volume is zero" : "Playback request accepted";
+        }
 
-            label.tooltip = record.EventName + "\n" + record.DescribeOutcome();
+        private static VisualElement MakeRow(bool header)
+        {
+            VisualElement row = new VisualElement();
+            row.AddToClassList("audiomw-diagnostic-row");
+            string[] names = { "event", "outcome", "reason" };
+            string[] titles = { "Event", "Outcome", "Reason" };
+            for (int i = 0; i < names.Length; i++)
+            {
+                Label cell = new Label(header ? titles[i] : "") { name = names[i] };
+                cell.AddToClassList("audiomw-diagnostic-" + names[i]);
+                row.Add(cell);
+            }
+            if (header) row.AddToClassList("audiomw-title");
+            return row;
         }
 
         private void OnSelectionChanged(IEnumerable<object> selection)
@@ -147,7 +170,7 @@ namespace AudioMW.Editor
             if (!AudioRuntime.Exists)
             {
                 visible = new List<EventDebugRecord>();
-                summaryLabel.text = "runtime not started";
+                summaryLabel.text = "Runtime not started · Enter Play Mode to capture scene playback.";
             }
             else
             {
@@ -163,6 +186,11 @@ namespace AudioMW.Editor
                     debugger.Count - debugger.CountWithOutcome(PlaybackOutcome.Played));
             }
 
+            if (emptyLabel != null)
+            {
+                emptyLabel.text = !AudioRuntime.Exists ? "Enter Play Mode and trigger a Sound Event in the scene." : visible.Count == 0 ? "No matching records. Trigger an event or clear the search and rejection filter." : "";
+                emptyLabel.style.display = visible.Count == 0 ? DisplayStyle.Flex : DisplayStyle.None;
+            }
             if (listView != null)
             {
                 listView.itemsSource = visible;
@@ -177,14 +205,5 @@ namespace AudioMW.Editor
             }
         }
 
-        private static string Truncate(string value, int length)
-        {
-            if (string.IsNullOrEmpty(value))
-            {
-                return "(unnamed)";
-            }
-
-            return value.Length <= length ? value : value.Substring(0, length - 1) + "~";
-        }
     }
 }
