@@ -234,3 +234,16 @@ multi-edit fallback and actual field writes. Native Unity 2022.3 at 360 pt verif
 keyboard numeric input, Tab to the next weight and Undo. This is a focused keyboard
 check, not full accessibility approval. The preview also includes stable README
 metadata to prevent an immutable-package missing-meta import error.
+
+## Music profile refresh and diagnostic loading context
+
+Music reconciles added/removed/replaced states and reads current state names on
+request, avoiding stale destination callbacks after profile edits. Runtime actions
+are disabled immediately on window creation outside Play Mode. Sounds and
+Diagnostics support Cmd/Ctrl+F within the focused window; shortcuts use native EditorWindow contexts and can be rebound in Unity Shortcut Manager. Empty Diagnostics hides the stock empty
+table and presents the Play Mode capture instruction.
+
+For a selected unloaded-clip rejection, Diagnostics shows containing Sound Bank
+readiness as Live now, explicitly separate from the captured rejection. The view
+does not load banks or infer historical load state. Bank discovery occurs on
+selection/project changes, not on every editor refresh.

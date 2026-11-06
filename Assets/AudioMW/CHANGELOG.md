@@ -5,6 +5,8 @@ The format follows Keep a Changelog and the project uses semantic versioning.
 
 ## [Unreleased]
 
+- Refresh Music state buttons after live profile edits; add Cmd/Ctrl+F in Sounds and Diagnostics, clearer empty states and explicitly live Sound Bank readiness for unloaded-clip rejections.
+
 - Source-labelled Weighted Random fields in the Inspector with native multi-edit fallback; README metadata included in UPM archives.
 
 - Compact Layered/Switch child authoring with direct dB gain and contextual State fields; existing serialized arrays and values retained.

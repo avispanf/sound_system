@@ -9,6 +9,7 @@ namespace AudioMW.Editor
     {
         [SerializeField] private MusicStateProfile profile;
         private VisualElement stateButtons;
+        private MusicState[] displayedStates = new MusicState[0];
         private Label status;
         private HelpBox help;
         private IVisualElementScheduledItem refresh;
@@ -36,7 +37,7 @@ namespace AudioMW.Editor
             root.style.paddingLeft = root.style.paddingRight = 12;
             root.style.paddingTop = root.style.paddingBottom = 12;
             ObjectField field = new ObjectField("State profile") { objectType = typeof(MusicStateProfile), value = profile, allowSceneObjects = false };
-            field.RegisterValueChangedCallback(evt => { profile = evt.newValue as MusicStateProfile; Rebuild(); });
+            field.RegisterValueChangedCallback(evt => { profile = evt.newValue as MusicStateProfile; Rebuild(); RefreshView(); });
             root.Add(field);
             Button settings = new Button(() => { if (profile != null) Selection.activeObject = profile; }) { text = "Edit profile in Inspector" };
             root.Add(settings);
@@ -47,30 +48,40 @@ namespace AudioMW.Editor
             status.style.marginTop = status.style.marginBottom = 12;
             root.Add(status);
             root.Add(new Label("Request state · Profile rules") { style = { unityFontStyleAndWeight = FontStyle.Bold } });
-            stateButtons = new ScrollView();
+            stateButtons = new ScrollView { name = "music-states" };
             stateButtons.style.flexGrow = 1;
             root.Add(stateButtons);
-            Button stop = new Button(AudioSystem.StopMusic) { text = "Stop music" };
-            Button cancel = new Button(() => { if (EditorApplication.isPlaying && AudioRuntime.Exists) AudioSystem.Music.CancelTransition(); }) { text = "Cancel pending transition", tooltip = "Cancel a transition before its scheduled boundary. A crossfade that has already started continues." };
+            Button stop = new Button(() => { if (EditorApplication.isPlaying && AudioRuntime.Exists) AudioSystem.StopMusic(); }) { text = "Stop music", name = "stop-scene-music" };
+            stop.SetEnabled(false);
+            Button cancel = new Button(() => { if (EditorApplication.isPlaying && AudioRuntime.Exists) AudioSystem.Music.CancelTransition(); }) { text = "Cancel pending transition", name = "cancel-pending-music", tooltip = "Cancel a transition before its scheduled boundary. A crossfade that has already started continues." };
+            cancel.SetEnabled(false);
             root.Add(cancel);
             root.Add(stop);
-            refresh = root.schedule.Execute(() => { stop.SetEnabled(EditorApplication.isPlaying && AudioRuntime.Exists); cancel.SetEnabled(EditorApplication.isPlaying && AudioRuntime.Exists && AudioSystem.Music.IsTransitionPending && AudioSettings.dspTime < AudioSystem.Music.PendingStartDspTime); settings.SetEnabled(profile != null); UpdateStatus(); }).Every(100);
-            Rebuild();
+            refresh = root.schedule.Execute(() => { stop.SetEnabled(EditorApplication.isPlaying && AudioRuntime.Exists); cancel.SetEnabled(EditorApplication.isPlaying && AudioRuntime.Exists && AudioSystem.Music.IsTransitionPending && AudioSettings.dspTime < AudioSystem.Music.PendingStartDspTime); settings.SetEnabled(profile != null); RefreshView(); }).Every(100);
+            Rebuild(); RefreshView();
         }
 
         private void Rebuild()
         {
             if (stateButtons == null) return;
             stateButtons.Clear();
+            displayedStates = profile != null ? (MusicState[])profile.States.Clone() : new MusicState[0];
             if (profile != null)
                 foreach (MusicState state in profile.States)
                 {
                     if (state == null) continue;
-                    string name = state.Name;
-                    Button request = new Button(() => { if (EditorApplication.isPlaying && profile != null) profile.Request(AudioSystem.Music, name); }) { text = name, name = "request-state", userData = state };
+                    Button request = new Button(() => { if (EditorApplication.isPlaying && profile != null) profile.Request(AudioSystem.Music, state.Name); }) { text = state.Name, name = "request-state", userData = state };
                     request.style.whiteSpace = WhiteSpace.Normal;
                     stateButtons.Add(request);
                 }
+        }
+
+        public void RefreshView()
+        {
+            MusicState[] states = profile != null ? profile.States : new MusicState[0];
+            bool changed = states.Length != displayedStates.Length;
+            if (!changed) for (int i = 0; i < states.Length; i++) if (!ReferenceEquals(states[i], displayedStates[i])) { changed = true; break; }
+            if (changed) Rebuild();
             UpdateStatus();
         }
 

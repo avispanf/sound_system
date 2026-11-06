@@ -17,6 +17,8 @@ namespace AudioMW.Editor
         private Label summaryLabel;
         private Label detailLabel;
         private Label gainLabel;
+        private Label bankLabel;
+        private List<SoundBank> selectedBanks = new List<SoundBank>();
         private Button openEvent;
         private EventDebugRecord selectedRecord;
         private bool hasSelectedRecord;
@@ -38,9 +40,14 @@ namespace AudioMW.Editor
             AudioWorkspace.Style(rootVisualElement);
             rootVisualElement.Add(AudioWorkspace.Navigation("Diagnostics"));
             Toolbar toolbar = new Toolbar();
+            toolbar.style.flexWrap = Wrap.Wrap;
+            toolbar.style.height = StyleKeyword.Auto;
 
             searchField = new ToolbarSearchField { value = search };
             searchField.style.flexGrow = 1f;
+            searchField.style.flexShrink = 1f;
+            searchField.style.flexBasis = 180;
+            searchField.style.minWidth = 140;
             searchField.RegisterValueChangedCallback(evt => { search = evt.newValue; RebuildList(); });
             toolbar.Add(searchField);
 
@@ -83,6 +90,8 @@ namespace AudioMW.Editor
             detailLabel.style.minHeight = 52f;
             rootVisualElement.Add(detailLabel);
 
+            bankLabel = new Label { name = "live-bank-state", style = { whiteSpace = WhiteSpace.Normal, paddingLeft = 6, paddingBottom = 6 } };
+            rootVisualElement.Add(bankLabel);
             openEvent = new Button(() =>
             {
                 bool limits = selectedRecord.Outcome == PlaybackOutcome.RejectedCooldown || selectedRecord.Outcome == PlaybackOutcome.RejectedInstanceLimit || selectedRecord.Outcome == PlaybackOutcome.RejectedNoVoice;
@@ -93,7 +102,7 @@ namespace AudioMW.Editor
             openEvent.SetEnabled(false); rootVisualElement.Add(openEvent);
             Foldout gains = new Foldout { text = "Gain details · Captured", value = false };
             gainLabel = new Label { style = { whiteSpace = WhiteSpace.Normal } }; gains.Add(gainLabel); rootVisualElement.Add(gains);
-            summaryLabel = new Label();
+            summaryLabel = new Label { style = { whiteSpace = WhiteSpace.Normal } };
             summaryLabel.style.paddingLeft = 6f;
             summaryLabel.style.paddingBottom = 4f;
             rootVisualElement.Add(summaryLabel);
@@ -106,7 +115,35 @@ namespace AudioMW.Editor
             if (Application.isPlaying)
             {
                 RebuildList();
+                UpdateBankState();
             }
+        }
+
+        private void OnProjectChange()
+        {
+            if (!hasSelectedRecord || selectedRecord.Outcome != PlaybackOutcome.RejectedClipNotLoaded) return;
+            selectedBanks = selectedRecord.Event != null ? AudioSourceCatalog.BanksFor(selectedRecord.Event) : new List<SoundBank>();
+            UpdateBankState();
+        }
+
+        public static string DescribeBankState(SoundBank bank)
+        {
+            if (bank == null) return "Bank no longer exists";
+            if (bank.IsFullyLoaded()) return bank.name + " · Ready";
+            if (bank.PendingStreamCount > 0) return bank.name + " · " + bank.PendingStreamCount + " streamed requests pending";
+            return bank.name + (bank.IsLoaded ? " · Audio data not fully ready" : " · Not loaded");
+        }
+
+        private void UpdateBankState()
+        {
+            if (bankLabel == null) return;
+            bool show = hasSelectedRecord && selectedRecord.Outcome == PlaybackOutcome.RejectedClipNotLoaded;
+            bankLabel.style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
+            if (!show) return;
+            bankLabel.text = "Sound Banks · Live now (not captured at rejection)";
+            if (selectedRecord.Event == null) bankLabel.text += "\nThe event asset is unavailable.";
+            else if (selectedBanks.Count == 0) bankLabel.text += "\nNo containing Sound Bank found. Include this event in a bank and load it before playback.";
+            else foreach (SoundBank bank in selectedBanks) bankLabel.text += "\n" + DescribeBankState(bank);
         }
 
         private void BindItem(VisualElement element, int index)
@@ -154,6 +191,8 @@ namespace AudioMW.Editor
                     EventDebugRecord record = (EventDebugRecord)item;
 
                     selectedRecord = record; hasSelectedRecord = true;
+                    selectedBanks = record.Outcome == PlaybackOutcome.RejectedClipNotLoaded && record.Event != null ? AudioSourceCatalog.BanksFor(record.Event) : new List<SoundBank>();
+                    UpdateBankState();
                     detailLabel.text = record.EventName + "\n" +
                         (record.Outcome == PlaybackOutcome.Played ? "Accepted" + (record.HasGainCapture && record.FinalVolume == 0 ? " · Source volume is zero" : "") : "Rejected · " + record.DescribeOutcome()) +
                         "\nCaptured at " + record.Time.ToString("0.00") + " s · " + (string.IsNullOrEmpty(record.ClipName) ? "No source clip captured" : record.ClipName);
@@ -190,6 +229,8 @@ namespace AudioMW.Editor
             {
                 emptyLabel.text = !AudioRuntime.Exists ? "Enter Play Mode and trigger a Sound Event in the scene." : visible.Count == 0 ? "No matching records. Trigger an event or clear the search and rejection filter." : "";
                 emptyLabel.style.display = visible.Count == 0 ? DisplayStyle.Flex : DisplayStyle.None;
+                emptyLabel.style.flexGrow = visible.Count == 0 ? 1 : 0;
+                if (listView != null) listView.style.display = visible.Count == 0 ? DisplayStyle.None : DisplayStyle.Flex;
             }
             if (listView != null)
             {
@@ -199,7 +240,7 @@ namespace AudioMW.Editor
                 if (selectedIndex >= 0) listView.SetSelectionWithoutNotify(new[] { selectedIndex });
                 else
                 {
-                    hasSelectedRecord = false; detailLabel.text = "Select a captured outcome to inspect its reason.";
+                    hasSelectedRecord = false; selectedBanks.Clear(); UpdateBankState(); detailLabel.text = "Select a captured outcome to inspect its reason.";
                     gainLabel.text = "No record selected."; openEvent.SetEnabled(false);
                 }
             }

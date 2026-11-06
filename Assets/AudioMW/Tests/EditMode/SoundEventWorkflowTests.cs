@@ -135,6 +135,59 @@ namespace AudioMW.Tests
             window.Close();
         }
 
+        [UnityTest] public IEnumerator MusicRefreshTracksAddedRemovedRenamedAndReplacedStates()
+        {
+            MusicStatePreviewWindow window = ScriptableObject.CreateInstance<MusicStatePreviewWindow>();
+            MusicStateProfile profile = ScriptableObject.CreateInstance<MusicStateProfile>(); temporary.Add(profile);
+            try
+            {
+                window.Show(); window.CreateGUI();
+                yield return null; yield return null;
+                profile.States = new[] { new MusicState { Name = "Calm" } };
+                window.rootVisualElement.Q<ObjectField>().value = profile;
+                VisualElement states = window.rootVisualElement.Q("music-states");
+                Assert.AreEqual(1, states.Query<Button>("request-state").ToList().Count);
+                Button first = states.Q<Button>("request-state");
+                profile.States[0].Name = "Explore"; window.RefreshView();
+                StringAssert.StartsWith("Explore", first.text);
+                profile.States = new[] { profile.States[0], new MusicState { Name = "Combat" } }; window.RefreshView();
+                Assert.AreEqual(2, states.Query<Button>("request-state").ToList().Count);
+                profile.States = new[] { new MusicState { Name = "Replacement" } }; window.RefreshView();
+                Assert.AreEqual(1, states.Query<Button>("request-state").ToList().Count);
+                StringAssert.StartsWith("Replacement", states.Q<Button>("request-state").text);
+                profile.States = new MusicState[0]; window.RefreshView();
+                Assert.AreEqual(0, states.Query<Button>("request-state").ToList().Count);
+                Assert.IsFalse(window.rootVisualElement.Q<Button>("stop-scene-music").enabledSelf);
+                Assert.IsFalse(window.rootVisualElement.Q<Button>("cancel-pending-music").enabledSelf);
+            }
+            finally { window.Close(); }
+        }
+
+        [Test] public void DiagnosticsEmptyViewShowsAnActionInsteadOfAnEmptyTable()
+        {
+            EventDebuggerWindow window = ScriptableObject.CreateInstance<EventDebuggerWindow>();
+            try
+            {
+                window.CreateGUI();
+                Assert.AreEqual(DisplayStyle.None, window.rootVisualElement.Q<ListView>().style.display.value);
+                StringAssert.Contains("Play Mode", window.rootVisualElement.Q<Label>("diagnostics-empty").text);
+                Assert.IsFalse(window.rootVisualElement.Q<Button>("open-event-settings").enabledSelf);
+            }
+            finally { Object.DestroyImmediate(window); }
+        }
+
+        [Test] public void DiagnosticBankStatusReadsLiveReadinessWithoutStartingLoads()
+        {
+            SoundBank bank = SoundBank.CreateRuntime(); temporary.Add(bank); bank.name = "Steps";
+            Assert.AreEqual("Steps · Not loaded", EventDebuggerWindow.DescribeBankState(bank));
+            Assert.IsFalse(bank.IsLoaded);
+            bank.Load();
+            Assert.AreEqual("Steps · Ready", EventDebuggerWindow.DescribeBankState(bank));
+            bank.Unload();
+            Assert.AreEqual("Steps · Not loaded", EventDebuggerWindow.DescribeBankState(bank));
+            Assert.AreEqual("Bank no longer exists", EventDebuggerWindow.DescribeBankState(null));
+        }
+
         private string folder;
         private readonly List<Object> temporary = new List<Object>();
         private readonly List<AudioBrowserWindow> browsers = new List<AudioBrowserWindow>();

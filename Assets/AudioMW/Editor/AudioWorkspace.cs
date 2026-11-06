@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.UIElements;
+using UnityEditor.ShortcutManagement;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -22,6 +23,21 @@ namespace AudioMW.Editor
             string path = System.IO.Path.GetDirectoryName(AssetDatabase.GUIDToAssetPath(scripts[0])).Replace('\\', '/') + "/UI/AudioMWStyles.uss";
             StyleSheet sheet = AssetDatabase.LoadAssetAtPath<StyleSheet>(path);
             if (sheet != null && !root.styleSheets.Contains(sheet)) root.styleSheets.Add(sheet);
+        }
+
+        [Shortcut("AudioMW/Find in Sounds", typeof(AudioBrowserWindow), KeyCode.F, ShortcutModifiers.Action)]
+        private static void FindSounds(ShortcutArguments args) { FocusSearch(args.context as EditorWindow); }
+
+        [Shortcut("AudioMW/Find in Diagnostics", typeof(EventDebuggerWindow), KeyCode.F, ShortcutModifiers.Action)]
+        private static void FindDiagnostics(ShortcutArguments args) { FocusSearch(args.context as EditorWindow); }
+
+        private static void FocusSearch(EditorWindow window)
+        {
+            ToolbarSearchField search = window != null ? window.rootVisualElement.Q<ToolbarSearchField>() : null;
+            if (search == null) return;
+            TextField input = search.Q<TextField>();
+            if (input != null) { input.Focus(); input.SelectAll(); }
+            else search.Focus();
         }
 
         public static Toolbar Navigation(string current)
