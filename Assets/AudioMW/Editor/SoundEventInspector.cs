@@ -38,7 +38,9 @@ namespace AudioMW.Editor
             VisualElement children = new VisualElement();
             VisualElement switchField = new VisualElement();
             Field(switchField, "switchParameter", "State parameter");
-            switchField.Add(new HelpBox("The rounded parameter value selects matching states when the event starts. Pass local parameters to PlayTracked for independent emitters.", HelpBoxMessageType.Info));
+            switchField.Add(new HelpBox("The rounded parameter selects states when playback starts. All matching child rows play together. Pass local parameters to PlayTracked for independent emitters.", HelpBoxMessageType.Info));
+            HelpBox switchSummary = new HelpBox("", HelpBoxMessageType.Info) { name = "switch-default-summary" };
+            switchField.Add(switchSummary);
             children.Add(switchField);
             Field(children, "children", "Child events");
             children.Add(new HelpBox("Parent gain, pitch and parameter bindings affect every child. Each child owns its loop, spatial settings and mixer route.", HelpBoxMessageType.Info));
@@ -124,6 +126,7 @@ namespace AudioMW.Editor
                 bool parent = value == ContainerMode.Layered || value == ContainerMode.Switch;
                 Show(children, mixed || parent);
                 Show(switchField, mixed || value == ContainerMode.Switch);
+                switchSummary.text = targets.Length == 1 ? SoundEventValidation.DescribeSwitch((SoundEvent)target) : "Multiple events selected. Default state selection is evaluated separately for each event.";
                 Show(leaf, mixed || !parent);
                 Show(spatial, mixed || !parent);
                 spatialValues.SetEnabled(serializedObject.FindProperty("attenuationPreset").objectReferenceValue == null);

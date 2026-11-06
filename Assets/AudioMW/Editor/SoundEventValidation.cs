@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace AudioMW.Editor
 {
@@ -6,19 +7,19 @@ namespace AudioMW.Editor
     {
         public static string Describe(SoundEvent soundEvent)
         {
-            return Visit(soundEvent, new HashSet<SoundEvent>());
+            return Visit(soundEvent, new HashSet<SoundEvent>(), "");
         }
 
-        private static string Visit(SoundEvent item, HashSet<SoundEvent> path)
+        private static string Visit(SoundEvent item, HashSet<SoundEvent> path, string location)
         {
-            if (item == null) return "Assign a sound event to every child row.";
-            if (path.Count >= 32) return "Container nesting exceeds 32 levels. Simplify the event hierarchy.";
-            if (!path.Add(item)) return "Circular child reference: " + item.name + ". Remove the reference to allow playback.";
+            if (item == null) return At(location, "Assign a sound event to this child row.");
+            if (path.Count >= 32) return At(location, "Container nesting exceeds 32 levels. Simplify the event hierarchy.");
+            if (!path.Add(item)) return At(location, "Circular child reference: " + item.name + ". Remove the reference to allow playback.");
             string error = "";
             if (item.VolumeVariationMode == VolumeVariationMode.Decibels && item.VolumeRandomDbMin > item.VolumeRandomDbMax)
             {
                 path.Remove(item);
-                return "Minimum gain variation exceeds maximum. Swap the dB offsets to make the range clear.";
+                return At(location, "Minimum gain variation exceeds maximum. Swap the dB offsets to make the range clear.");
             }
             if (item.ContainerMode == ContainerMode.Simple)
             {
@@ -46,14 +47,33 @@ namespace AudioMW.Editor
             {
                 if (item.ContainerMode == ContainerMode.Switch && item.SwitchParameter == null) error = "Assign a state parameter to select child events.";
                 else if (item.Children.Length == 0) error = "Add child events to build this container.";
-                else foreach (SoundEventChild child in item.Children)
+                else for (int i = 0; i < item.Children.Length; i++)
                 {
-                    error = Visit(child != null ? child.Event : null, path);
-                    if (!string.IsNullOrEmpty(error)) break;
+                    SoundEventChild child = item.Children[i];
+                    string row = "Child " + (i + 1) + (child != null && !string.IsNullOrEmpty(child.Label) ? " (" + child.Label + ")" : "");
+                    string childLocation = string.IsNullOrEmpty(location) ? row : location + " / " + row;
+                    error = Visit(child != null ? child.Event : null, path, childLocation);
+                    if (!string.IsNullOrEmpty(error)) { path.Remove(item); return error; }
                 }
             }
             path.Remove(item);
-            return error;
+            return string.IsNullOrEmpty(error) ? "" : At(location, error);
+        }
+
+        private static string At(string location, string message)
+        {
+            return string.IsNullOrEmpty(location) ? message : location + ": " + message;
+        }
+
+        public static string DescribeSwitch(SoundEvent item)
+        {
+            if (item == null || item.SwitchParameter == null) return "Assign a state parameter to see the default selection.";
+            int state = Mathf.RoundToInt(item.SwitchParameter.DefaultValue);
+            int matches = 0;
+            foreach (SoundEventChild child in item.Children)
+                if (child != null && child.Event != null && child.State == state) matches++;
+            return "Default state " + state + " · " + matches + " matching child events. " +
+                (matches == 0 ? "No child starts at this default value; set the parameter before playback or add a matching child." : "All matching children start together. Local or global parameter values at playback can select a different state.");
         }
     }
 }

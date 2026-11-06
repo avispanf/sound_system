@@ -188,6 +188,45 @@ namespace AudioMW.Tests
             Assert.AreEqual("Bank no longer exists", EventDebuggerWindow.DescribeBankState(null));
         }
 
+        [Test] public void NestedValidationIdentifiesTheExactLabelledChildPath()
+        {
+            SoundEvent empty = Event("Empty", Clip("Temporary")); empty.Clips = new AudioClip[0];
+            SoundEvent inner = Event("Inner", Clip("Unused")); inner.ContainerMode = ContainerMode.Layered;
+            inner.Children = new[] { SoundEventChild.Create(Event("Good", Clip("A"))), SoundEventChild.Create(empty) }; inner.Children[1].Label = "Tail";
+            SoundEvent root = Event("Root", Clip("Unused")); root.ContainerMode = ContainerMode.Layered; root.Children = new[] { SoundEventChild.Create(inner) };
+            string message = SoundEventValidation.Describe(root);
+            StringAssert.StartsWith("Child 1 / Child 2 (Tail):", message);
+            StringAssert.Contains("Add audio clips", message);
+        }
+
+        [Test] public void ValidationDistinguishesSharedChildrenFromActualCycles()
+        {
+            SoundEvent child = Event("Shared", Clip("A")); SoundEvent root = Event("Root", Clip("Unused")); root.ContainerMode = ContainerMode.Layered;
+            root.Children = new[] { SoundEventChild.Create(child), SoundEventChild.Create(child) };
+            Assert.AreEqual("", SoundEventValidation.Describe(root));
+            root.Children[1].Event = root;
+            StringAssert.Contains("Child 2: Circular child reference", SoundEventValidation.Describe(root));
+        }
+
+        [Test] public void SwitchSummaryCountsEveryMatchingPlayableRowWithoutChangingParameters()
+        {
+            SoundEvent leaf = Event("Leaf", Clip("A")); SoundEvent item = Event("Switch", Clip("Unused")); item.ContainerMode = ContainerMode.Switch;
+            SoundParameter parameter = SoundParameter.CreateRuntime(0, 4, 1.6f); temporary.Add(parameter); item.SwitchParameter = parameter;
+            item.Children = new[] { SoundEventChild.Create(leaf, 2), SoundEventChild.Create(leaf, 2), SoundEventChild.Create(null, 2), SoundEventChild.Create(leaf, 1) };
+            string summary = SoundEventValidation.DescribeSwitch(item);
+            StringAssert.Contains("Default state 2", summary); StringAssert.Contains("2 matching", summary); StringAssert.Contains("All matching children", summary);
+            Assert.AreEqual(1.6f, parameter.DefaultValue);
+        }
+
+        [Test] public void SwitchSummaryExplainsUnmatchedDefaultsAndMissingParameter()
+        {
+            SoundEvent item = Event("Switch", Clip("Unused")); item.ContainerMode = ContainerMode.Switch;
+            StringAssert.Contains("Assign a state parameter", SoundEventValidation.DescribeSwitch(item));
+            SoundParameter parameter = SoundParameter.CreateRuntime(0, 3, 0); temporary.Add(parameter); item.SwitchParameter = parameter;
+            item.Children = new[] { SoundEventChild.Create(Event("Leaf", Clip("A")), 3) };
+            StringAssert.Contains("No child starts", SoundEventValidation.DescribeSwitch(item));
+        }
+
         private string folder;
         private readonly List<Object> temporary = new List<Object>();
         private readonly List<AudioBrowserWindow> browsers = new List<AudioBrowserWindow>();

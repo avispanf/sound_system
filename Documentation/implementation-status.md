@@ -247,3 +247,13 @@ For a selected unloaded-clip rejection, Diagnostics shows containing Sound Bank
 readiness as Live now, explicitly separate from the captured rejection. The view
 does not load banks or infer historical load state. Bank discovery occurs on
 selection/project changes, not on every editor refresh.
+
+## Container authoring explanations
+
+Nested validation identifies child row numbers and optional labels along the full
+path to the issue. Reused children remain valid; only an actual path cycle is
+reported as circular. Switch Inspector summaries use the clamped, rounded default
+parameter value and count non-null matching child events. All matching rows are
+requested together, matching PlaybackPlan. The summary describes defaults only;
+local/global runtime overrides can select a different state. No validation pass
+changes events, weights, parameter defaults or runtime playback behaviour.
