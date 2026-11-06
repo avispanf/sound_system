@@ -5,6 +5,8 @@ The format follows Keep a Changelog and the project uses semantic versioning.
 
 ## [Unreleased]
 
+- Source-labelled Weighted Random fields in the Inspector with native multi-edit fallback; README metadata included in UPM archives.
+
 - Compact Layered/Switch child authoring with direct dB gain and contextual State fields; existing serialized arrays and values retained.
 
 - Design 02 follow-up: native Diagnostics columns and persistent filters; Music workspace with profile route summaries and captured pending transition timing.

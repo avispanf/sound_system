@@ -29,6 +29,7 @@ def collect(repository, version=None):
                 files[prefix + path.relative_to(root).as_posix()] = path.read_bytes()
     files["package.json"] = (json.dumps(manifest, indent=2) + "\n").encode()
     files["README.md"] = (repository / "Tools" / "PackageREADME.md").read_bytes()
+    files["README.md.meta"] = b"fileFormatVersion: 2\nguid: d6265d75a3f940b8bc431753a421f223\n"
     for name in DOCS:
         files["Documentation~/" + name] = (repository / "Documentation" / name).read_bytes()
     guids = {}

@@ -36,6 +36,8 @@ class PackageTests(unittest.TestCase):
         self.assertEqual(first.read_bytes(), second.read_bytes())
         with tarfile.open(first) as archive:
             manifest = json.load(archive.extractfile("package/package.json"))
+            metadata = archive.extractfile("package/README.md.meta").read()
+            self.assertRegex(metadata, rb"guid: [a-f0-9]{32}")
             self.assertIn("package/" + manifest["samples"][0]["path"] + "/Demo.unity", archive.getnames())
 
     def test_missing_dependency_rejects_archive(self):

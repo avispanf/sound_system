@@ -87,6 +87,54 @@ namespace AudioMW.Tests
             window.Close();
         }
 
+        [Test] public void InlineWeightExpansionPreservesImplicitDefaultsAndUndo()
+        {
+            SoundEvent item = Event("Weights", Clip("A"), Clip("B"), Clip("C"));
+            item.ClipWeights = new[] { 0.5f }; SerializedObject serialized = new SerializedObject(item);
+            Undo.IncrementCurrentGroup(); ClipWeightEditor.SetWeight(serialized, 2, 4); Undo.FlushUndoRecordObjects();
+            CollectionAssert.AreEqual(new[] { 0.5f, 1, 4 }, item.ClipWeights);
+            Undo.PerformUndo(); CollectionAssert.AreEqual(new[] { 0.5f }, item.ClipWeights);
+            Undo.PerformRedo(); CollectionAssert.AreEqual(new[] { 0.5f, 1, 4 }, item.ClipWeights);
+        }
+
+        [Test] public void InlineWeightsIncludeAddressSlotsAndDoNotRewriteLegacyValuesOnDisplay()
+        {
+            SoundEvent item = Event("Weights", Clip("Direct"));
+            item.ClipReferences = new[] { ClipReference.Addressed("audio/step") };
+            item.ClipWeights = new[] { -2f, 3f, 9f };
+            ClipWeightEditor pane = new ClipWeightEditor(new SerializedObject(item));
+            StringAssert.Contains("audio/step", pane.Q<FloatField>("weight-1").label);
+            CollectionAssert.AreEqual(new[] { -2f, 3f, 9f }, item.ClipWeights);
+            ClipWeightEditor.SetWeight(new SerializedObject(item), 1, float.PositiveInfinity);
+            CollectionAssert.AreEqual(new[] { -2f, 0f, 9f }, item.ClipWeights);
+        }
+
+        [Test] public void InlineWeightsKeepNativeMultiEditAndRejectInvalidSlots()
+        {
+            SoundEvent a = Event("A", Clip("A")); SoundEvent b = Event("B", Clip("B"), Clip("C"));
+            SerializedObject mixed = new SerializedObject(new Object[] { a, b });
+            ClipWeightEditor pane = new ClipWeightEditor(mixed);
+            Assert.IsNotNull(pane.Q<PropertyField>()); Assert.IsNull(pane.Q<FloatField>());
+            ClipWeightEditor.SetWeight(mixed, 0, 7);
+            ClipWeightEditor.SetWeight(new SerializedObject(a), 4, 7);
+            Assert.AreEqual(0, a.ClipWeights.Length); Assert.AreEqual(0, b.ClipWeights.Length);
+        }
+
+        [UnityTest] public IEnumerator InlineWeightFieldWritesTheCorrectSourceSlot()
+        {
+            SoundEvent item = Event("Weights", Clip("A"), Clip("B"));
+            SerializedObject serialized = new SerializedObject(item);
+            ClipWeightEditor pane = new ClipWeightEditor(serialized);
+            EditorWindow window = ScriptableObject.CreateInstance<EditorWindow>(); temporary.Add(window); window.Show();
+            window.rootVisualElement.Add(pane);
+            yield return null; yield return null;
+            FloatField field = pane.Q<FloatField>("weight-1");
+            Assert.IsTrue(field.enabledInHierarchy);
+            field.value = 0;
+            CollectionAssert.AreEqual(new[] { 1f, 0f }, item.ClipWeights);
+            window.Close();
+        }
+
         private string folder;
         private readonly List<Object> temporary = new List<Object>();
         private readonly List<AudioBrowserWindow> browsers = new List<AudioBrowserWindow>();

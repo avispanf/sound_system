@@ -218,3 +218,19 @@ Both UI Toolkit and IMGUI paths use the existing serialized fields. The native
 array still owns add/remove/reorder, so event/state/gain travel together. Inline
 Simple clip weights, broad keyboard/accessibility and device/listening checks
 remain open.
+
+## Weighted Simple authoring
+
+Preview.10 adds source-labelled weight fields for one selected SoundEvent.
+Audio clips precede clip references, matching the existing runtime slot contract.
+Reordering sources still requires reviewing weights. Missing entries remain 1;
+editing a later slot materializes intervening defaults without duplicating the
+previous weight. Viewing does not normalize legacy values or remove trailing
+entries. Multi-edit retains the native serialized array. Runtime code is unchanged.
+
+245 EditMode tests pass on Unity 2022.3.62f3 and 6000.3.21f1. The added cases cover
+expansion, defaults, Undo/Redo, addressed positions, legacy values, invalid slots,
+multi-edit fallback and actual field writes. Native Unity 2022.3 at 360 pt verified
+keyboard numeric input, Tab to the next weight and Undo. This is a focused keyboard
+check, not full accessibility approval. The preview also includes stable README
+metadata to prevent an immutable-package missing-meta import error.

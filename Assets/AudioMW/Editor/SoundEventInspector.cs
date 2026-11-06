@@ -28,8 +28,7 @@ namespace AudioMW.Editor
             references.Add(new HelpBox("Assign addresses here and include this event in a Sound Bank. Load the bank before playback. Weights follow Audio clips first, then Clip references.", HelpBoxMessageType.Info));
             Field(simple, "selectionMode", "Selection");
             VisualElement weighted = new VisualElement();
-            Field(weighted, "clipWeights", "Clip weights");
-            weighted.Add(new HelpBox("Weights follow the clip order. Missing weights use 1; zero disables a clip.", HelpBoxMessageType.Info));
+            weighted.Add(new ClipWeightEditor(serializedObject));
             simple.Add(weighted);
             root.Add(simple);
             VisualElement blend = new VisualElement();
