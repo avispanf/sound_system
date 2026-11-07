@@ -166,6 +166,23 @@ Addressables according to actual customer tasks. Keep integrations optional.
 Provide a previewable migration path from simple Unity AudioSource setups.
 Do not promise automatic conversion of arbitrary FMOD or Wwise projects.
 
+## Agent-assisted implementation requirement, 2026-11-07
+
+Add an optional MCP-based workflow for Claude Code, Codex, Cursor and subsequently
+verified clients: provide audio files, answer a short project brief, review a
+concrete integration plan, approve it in Unity, then apply and validate. The same
+planner/review must work without an agent. Onboarding covers genre, audience,
+platforms/devices, budgets, mix intent, content roles and existing routing/hooks.
+Every authored change needs approval; monitoring proposes rather than auto-fixes.
+
+Begin with the project brief, deterministic plan and approval UI on Relay Field,
+then validated mixer/event/gameplay integration, then the MCP bridge, then measured
+mix advice. Platform-aware budgets are useful; universal platform-based master
+levels or automatic genre EQ are not product guarantees. See
+[agent-assisted-authoring.md](agent-assisted-authoring.md) for approval ownership,
+UX, audio-measurement boundaries, implementation batches and acceptance criteria.
+This is planned work, not an implemented feature or current Store claim.
+
 ## Commercial hypothesis
 
 Start validation around EUR 199 before VAT per project for a finished first

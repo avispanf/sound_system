@@ -95,3 +95,15 @@ Diagnostics uses native Event / Outcome / Reason columns with full row tooltips,
 persistent search/rejection filters, explanatory empty states, and the existing
 captured reason, gain disclosure and action to event settings. Accepted requests
 without gain capture do not claim audibility or zero volume.
+
+## Planned assisted-implementation review
+
+A dedicated onboarding/review window owns project setup; Browser stays read-only.
+Ask a short brief only for information not already detected. Show the proposed
+result first, exact changes on demand, and one-sentence Why explanations with
+measured evidence available separately. Use native controls and explicit
+Apply selected / Reject / Why actions. Approval belongs to this Unity UI even if
+the external agent client enables automatic tool approval. No change is applied
+from merely opening the review or closing a question. Keep plan state, conflicts
+and partial results legible. See [agent-assisted-authoring.md](agent-assisted-authoring.md).
+This section specifies future UI; no implementation is claimed.
