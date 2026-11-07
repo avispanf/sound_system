@@ -35,6 +35,11 @@ public sealed class AudioMWPlayground : MonoBehaviour
     private SoundHandle retiringAmbience;
     private float ambienceBlend;
     private float vertical;
+    private Vector3 planarVelocity;
+    public bool FreezeForVoice;
+    public float LastInteractionTime { get; private set; } = -10;
+    public bool IsGrounded => character != null && character.isGrounded;
+    public float MovementSpeed => character == null ? 0 : new Vector2(character.velocity.x, character.velocity.z).magnitude;
     private float airborneSeconds;
     private float stride;
     private float stressUntil;
@@ -86,13 +91,16 @@ public sealed class AudioMWPlayground : MonoBehaviour
         if (Time.unscaledTime >= stressUntil) foreach (SoundHandle handle in stress) handle.Stop();
         if (paused) return;
         Vector3 direction = new Vector3((keys.dKey.isPressed ? 1 : 0) - (keys.aKey.isPressed ? 1 : 0), 0, (keys.wKey.isPressed ? 1 : 0) - (keys.sKey.isPressed ? 1 : 0)).normalized;
+        if (FreezeForVoice) direction = Vector3.zero;
         bool grounded = character.isGrounded;
         if (grounded && vertical < 0) vertical = -2;
-        if (grounded && keys.spaceKey.wasPressedThisFrame) vertical = 6;
-        vertical += Physics.gravity.y * Time.deltaTime;
+        if (grounded && !FreezeForVoice && keys.spaceKey.wasPressedThisFrame) vertical = Mathf.Sqrt(2 * -Physics.gravity.y * 1.1f);
+        vertical = Mathf.Max(-25, vertical + Physics.gravity.y * Time.deltaTime);
         float speed = keys.leftShiftKey.isPressed ? 6 : 3.5f;
-        character.Move((direction * speed + Vector3.up * vertical) * Time.deltaTime);
-        if (direction.sqrMagnitude > 0) transform.rotation = Quaternion.LookRotation(direction);
+        planarVelocity = Vector3.MoveTowards(planarVelocity, direction * speed, (grounded ? 24 : 6) * Time.deltaTime);
+        if (FreezeForVoice) planarVelocity = Vector3.zero;
+        character.Move((planarVelocity + Vector3.up * vertical) * Time.deltaTime);
+        if (direction.sqrMagnitude > 0) transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), 1-Mathf.Exp(-14*Time.deltaTime));
         bool nowGrounded = character.isGrounded;
         if (nowGrounded)
         {
@@ -106,9 +114,9 @@ public sealed class AudioMWPlayground : MonoBehaviour
             PlaygroundSurface ground = hit.collider.GetComponent<PlaygroundSurface>();
             if (ground != null) { local.Set(Surface, ground.State); surfaceName = ground.Label; }
         }
-        if (nowGrounded && direction.sqrMagnitude > 0)
+        if (nowGrounded && MovementSpeed > .15f)
         {
-            stride += direction.magnitude * speed * Time.deltaTime;
+            stride += MovementSpeed * Time.deltaTime;
             if (stride >= 1.5f) { stride = 0; AudioSystem.PlayTrackedAttached(Footsteps, transform, local); }
         }
         else stride = 0;
@@ -166,6 +174,7 @@ public sealed class AudioMWPlayground : MonoBehaviour
             if (current < distance) { distance = current; nearest = item; }
         }
         if (nearest == null) { Tell("Move close to a gold relay, then press E."); return; }
+        LastInteractionTime = Time.unscaledTime;
         nearest.Collect(); collected++; AudioSystem.PlayTrackedAtPosition(Pickup, nearest.transform.position);
         AudioSystem.PlayStinger(Stinger, MusicQuantization.Beat, 0.2f);
         Tell(collected == Pickups.Length ? "All relays collected. Reach the blue exit in the red zone." : "Relay collected: " + collected + " / " + Pickups.Length);

@@ -50,13 +50,21 @@ changed demo scene; don't reapply its old installation plan.
 
 ## Verification and boundaries
 
-Nine PlayMode tests pass in Unity 6000.3.21f1: five inherited gameplay/mix tests and
-four BAD SHIFT checks (real clip selection, source/filter switching, listener
-measurement, actual music/VO animation timing). Collection tests move the character
+199 PlayMode tests pass in Unity 6000.3.21f1, including twelve demo tests: five inherited gameplay/mix tests and
+seven BAD SHIFT checks (real clip selection, source/filter switching, listener
+measurement, actual music/VO animation timing, collision, live character reactions and walkable routes). Collection tests move the character
 programmatically; they are not proof of complete human navigation/listening QA.
 
 Native visual review catches model placement and HUD issues. Echo/reverb components
 and playback are tested; the perceptual difference and tails still need listening.
 No live acoustic measurements or audio-quality approval is claimed. The visual
 scene is an implementation inspired by the concept, not a reproduction of its art.
-Animation is deliberately simple, and furniture is mostly decorative.
+Animation is deliberately simple, and furniture now has static collision. See GUIDE-AUDIT.md for the complete current checklist.
+
+## Physics and animation update
+
+After base authoring, run ImproveBadShift.Run, then BuildAudioPlayground.BuildPlayer.
+This applies physical furniture, adjusted circulation, NPC colliders, player/staff
+animation controllers, floor joints and the exit frame. Movement now accelerates,
+brakes and uses actual controller velocity for footsteps. The manager nods/blinks,
+staff idle between demonstrations, and VO freezes staff/player motion.
