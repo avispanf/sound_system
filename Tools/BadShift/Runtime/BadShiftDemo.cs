@@ -91,7 +91,7 @@ public sealed class BadShiftDemo : MonoBehaviour
         if (!speaking && !AudioListener.pause && combat)
         {
             dancePhase += Time.deltaTime * 7;
-            Dancer.localRotation = Quaternion.Euler(0, Mathf.Sin(dancePhase) * 25, Mathf.Sin(dancePhase * 2) * 12);
+            Dancer.localRotation = dancerRest * Quaternion.Euler(0, Mathf.Sin(dancePhase) * 25, Mathf.Sin(dancePhase * 2) * 12);
             Dancer.localPosition = danceBase + Vector3.up * Mathf.Abs(Mathf.Sin(dancePhase)) * 0.15f;
         }
         if (!combat && !speaking) { Dancer.localPosition = danceBase; Dancer.localRotation = dancerRest; }
@@ -114,7 +114,20 @@ public sealed class BadShiftDemo : MonoBehaviour
     }
     private void OnGUI()
     {
-        GUILayout.BeginArea(new Rect(20,Screen.height-(details ? 370 : 210),470,details ? 350 : 190), GUI.skin.box);
+        Color ink = new Color(.15f,.18f,.2f);
+        GUIStyle title = new GUIStyle(GUI.skin.label) { fontSize = 38, fontStyle = FontStyle.Bold };
+        title.normal.textColor = ink;
+        GUI.Label(new Rect(28,18,500,55), "BAD SHIFT", title);
+        GUIStyle subtitle = new GUIStyle(GUI.skin.label) { fontSize = 13, fontStyle = FontStyle.Bold };
+        subtitle.normal.textColor = ink;
+        GUI.Label(new Rect(31,68,500,24), "A U D I O   P L A Y G R O U N D", subtitle);
+        Color oldColor = GUI.color;
+        GUI.color = new Color(.96f,.89f,.79f,.96f);
+        GUI.DrawTexture(new Rect(20,Screen.height-(details ? 370 : 180),470,details ? 350 : 160), Texture2D.whiteTexture);
+        GUI.color = oldColor;
+        Color oldText = GUI.skin.label.normal.textColor;
+        GUI.skin.label.normal.textColor = ink;
+        GUILayout.BeginArea(new Rect(20,Screen.height-(details ? 370 : 180)+10,470,details ? 330 : 140));
         GUILayout.Label("BAD SHIFT  /  AUDIO PLAYGROUND");
         GUILayout.Label("Ingredients " + Game.Collected + "/5" + (Game.IsComplete ? "  SHIFT COMPLETE" : "  ·  E collect / blue exit"));
         int station = Station();
@@ -130,6 +143,7 @@ public sealed class BadShiftDemo : MonoBehaviour
         GUILayout.Label("Tab diagnostics · R reset · P pause · audio placeholders");
         if (details) { GUILayout.Label("WASD / Shift / Space · V VO · M music · L voice limits"); GUILayout.Label("Footsteps: stone / grass / metal. Q changes only the nearby station."); GUILayout.Label("Fridge: fixed 3D source, distance from player AudioListener."); GUILayout.Label("Stockroom: Unity AudioEchoFilter / AudioReverbFilter on one source."); GUILayout.Label(Game.LastDiagnostic); }
         GUILayout.EndArea();
+        GUI.skin.label.normal.textColor = oldText;
         if (AudioSystem.VoiceOver.IsSpeaking) GUI.Box(new Rect(20,20,Screen.width-40,45), AudioSystem.VoiceOver.CurrentLine.Subtitle);
     }
     private void OnDestroy() { fridgeHandle.Stop(); if (microwaveMaterial != null) Destroy(microwaveMaterial); }

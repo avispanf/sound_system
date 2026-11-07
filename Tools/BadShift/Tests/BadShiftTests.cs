@@ -11,6 +11,22 @@ public sealed class BadShiftTests
     private BadShiftDemo demo;
     [UnitySetUp] public IEnumerator Load() { yield return SceneManager.LoadSceneAsync("RelayField"); yield return null;demo=Object.FindFirstObjectByType<BadShiftDemo>();Assert.IsNotNull(demo); }
     [UnityTearDown] public IEnumerator Stop(){AudioSystem.Shutdown();yield return null;}
+    [UnityTest] public IEnumerator ClayMotionPreservesPhysicalBodyAndFixedCamera()
+    {
+        yield return new WaitForSeconds(.2f);
+        Assert.IsNotNull(demo.GetComponent<BadShiftClayMotion>());
+        Vector3 camera = demo.Game.View.transform.position;
+        CharacterController c = demo.Game.GetComponent<CharacterController>();
+        float height = c.height; float radius = c.radius;
+        Vector3 visual = demo.PlayerAnimator.transform.localScale;
+        yield return new WaitForSeconds(.15f);
+        Assert.Greater(Vector3.Distance(visual, demo.PlayerAnimator.transform.localScale), .00001f);
+        Assert.AreEqual(height, c.height); Assert.AreEqual(radius, c.radius);
+        c.enabled = false; demo.Game.transform.position += Vector3.right * 2; c.enabled = true;
+        yield return null;
+        Assert.AreEqual(camera, demo.Game.View.transform.position);
+        Assert.Less(Vector3.Distance(demo.Game.Listener.position, demo.Game.transform.position), 2);
+    }
     [UnityTest] public IEnumerator ShuffleBagShowsActualDistinctSelections()
     {
         var clips=new System.Collections.Generic.HashSet<string>();
@@ -40,7 +56,7 @@ public sealed class BadShiftTests
     {
         yield return new WaitForSeconds(.2f);
         var reachable=new System.Collections.Generic.HashSet<Vector2Int>();var queue=new System.Collections.Generic.Queue<Vector2Int>();
-        Vector2Int start=new Vector2Int(0,-8);queue.Enqueue(start);reachable.Add(start);int mask=~(1<<2);
+        Vector2Int start=new Vector2Int(0,-8);queue.Enqueue(start);reachable.Add(start);int mask=~(1<<2);float top=demo.Game.GetComponent<CharacterController>().height-.35f;
         Vector2Int[] directions={Vector2Int.up,Vector2Int.down,Vector2Int.left,Vector2Int.right};
         while(queue.Count>0)
         {
@@ -49,8 +65,8 @@ public sealed class BadShiftTests
             {
                 Vector2Int next=current+direction;if(next.x < -11 || next.x > 11 || next.y < -9 || next.y > 9 || reachable.Contains(next))continue;
                 Vector3 b=new Vector3(next.x,.05f,next.y);
-                if(Physics.CheckCapsule(b+Vector3.up*.35f,b+Vector3.up*1.45f,.3f,mask,QueryTriggerInteraction.Ignore))continue;
-                if(Physics.CapsuleCast(a+Vector3.up*.35f,a+Vector3.up*1.45f,.3f,(b-a).normalized,1,mask,QueryTriggerInteraction.Ignore))continue;
+                if(Physics.CheckCapsule(b+Vector3.up*.35f,b+Vector3.up*top,.3f,mask,QueryTriggerInteraction.Ignore))continue;
+                if(Physics.CapsuleCast(a+Vector3.up*.35f,a+Vector3.up*top,.3f,(b-a).normalized,1,mask,QueryTriggerInteraction.Ignore))continue;
                 reachable.Add(next);queue.Enqueue(next);
             }
         }
@@ -62,6 +78,7 @@ public sealed class BadShiftTests
         yield return new WaitForSeconds(.2f);
         MeshCollider[] colliders=demo.Fridge.GetComponentsInChildren<MeshCollider>();Assert.IsNotEmpty(colliders);
         Bounds bounds=colliders[0].bounds;foreach(var c in colliders)bounds.Encapsulate(c.bounds);
+        Assert.Greater(bounds.size.y, 3f, "Refrigerator must remain upright after model rotation");
         CharacterController controller=demo.Game.GetComponent<CharacterController>();demo.Game.enabled=false;controller.enabled=false;
         demo.Game.transform.position=new Vector3(bounds.center.x,.05f,bounds.min.z-2);controller.enabled=true;Physics.SyncTransforms();
         for(int i=0;i<30;i++){controller.Move(Vector3.forward*.2f+Vector3.down*.02f);yield return null;}

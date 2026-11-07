@@ -50,8 +50,8 @@ changed demo scene; don't reapply its old installation plan.
 
 ## Verification and boundaries
 
-199 PlayMode tests pass in Unity 6000.3.21f1, including twelve demo tests: five inherited gameplay/mix tests and
-seven BAD SHIFT checks (real clip selection, source/filter switching, listener
+200 PlayMode tests pass in Unity 6000.3.21f1, including thirteen demo tests: five inherited gameplay/mix tests and
+eight BAD SHIFT checks (real clip selection, source/filter switching, listener
 measurement, actual music/VO animation timing, collision, live character reactions and walkable routes). Collection tests move the character
 programmatically; they are not proof of complete human navigation/listening QA.
 
@@ -68,3 +68,8 @@ This applies physical furniture, adjusted circulation, NPC colliders, player/sta
 animation controllers, floor joints and the exit frame. Movement now accelerates,
 brakes and uses actual controller velocity for footsteps. The manager nods/blinks,
 staff idle between demonstrations, and VO freezes staff/player motion.
+
+## Reference diorama and clay animation
+
+The current prepared scene includes the reference art pass. See REFERENCE-ART.md
+for visual changes, animation behavior and one-time authoring order.

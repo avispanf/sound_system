@@ -25,6 +25,7 @@ public sealed class AudioMWPlayground : MonoBehaviour
     public MusicStateProfile Music;
     public AudioClip Stinger;
     public Camera View;
+    public bool DioramaCamera;
     public Transform Listener;
     public PlaygroundPickup[] Pickups;
     private CharacterController character;
@@ -142,6 +143,13 @@ public sealed class AudioMWPlayground : MonoBehaviour
     private void LateUpdate()
     {
         if (View == null) return;
+        if (DioramaCamera)
+        {
+            View.transform.position = new Vector3(-10, 23, -36);
+            View.transform.LookAt(new Vector3(0, 1, 0));
+            if (Listener != null) Listener.rotation = View.transform.rotation;
+            return;
+        }
         Vector3 target = transform.position + new Vector3(0, 14, -12);
         View.transform.position = Vector3.Lerp(View.transform.position, target, 1 - Mathf.Exp(-5 * Time.unscaledDeltaTime));
         View.transform.LookAt(transform.position + Vector3.up * 0.5f);
