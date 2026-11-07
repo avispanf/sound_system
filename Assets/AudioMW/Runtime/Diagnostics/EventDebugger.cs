@@ -9,6 +9,7 @@ namespace AudioMW
         public PlaybackRejectionInfo Rejection;
         public float Time;
         public string EventName;
+        public string ProblemEventName;
         public PlaybackOutcome Outcome;
         public string ClipName;
         public Vector3 Position;
@@ -30,6 +31,15 @@ namespace AudioMW
             if (Rejection.HasInstanceLimit) return string.Format("Already playing {0} instances on this {1}. The limit is {2}.", Rejection.CurrentCount, Rejection.Scope, Rejection.Limit);
             if (Rejection.HasCooldown) return string.Format("Cooldown has {0:0.###} s remaining at capture.", Rejection.RemainingSeconds);
             if (Rejection.HasVoiceCapacity) return string.Format("Needs {0} physical voices; policy can provide {1} of {2}.", Rejection.RequestedVoices, Rejection.AvailableVoices, Rejection.VoiceCapacity);
+            string content = string.IsNullOrEmpty(ProblemEventName) ? "" : ProblemEventName + ": ";
+            switch (Rejection.ContentIssue)
+            {
+                case PlaybackContentIssue.NoUsableSource: return content + "Playback has no usable clips or layers at capture. Check clips, weights and child content.";
+                case PlaybackContentIssue.MissingSwitchParameter: return content + "No switch parameter was assigned at capture.";
+                case PlaybackContentIssue.NoSwitchMatch: return content + string.Format("Switch value {0:0.###} selected state {1}; no non-null child matched at capture.", Rejection.SwitchValue, Rejection.SwitchState);
+                case PlaybackContentIssue.CircularReference: return content + "Circular child reference at capture.";
+                case PlaybackContentIssue.NestingLimit: return content + "Container nesting exceeded 32 levels at capture.";
+            }
             switch (Outcome)
             {
                 case PlaybackOutcome.RejectedNullEvent:
@@ -134,6 +144,7 @@ namespace AudioMW
             EventDebugRecord record = new EventDebugRecord();
             record.Event = soundEvent;
             record.Rejection = rejection;
+            record.ProblemEventName = rejection.ProblemEvent != null ? rejection.ProblemEvent.name : null;
             record.Time = Time.realtimeSinceStartup;
             record.EventName = soundEvent != null ? soundEvent.name : "(null)";
             record.Outcome = outcome;

@@ -227,6 +227,49 @@ namespace AudioMW.Tests
             StringAssert.Contains("No child starts", SoundEventValidation.DescribeSwitch(item));
         }
 
+        [UnityTest] public IEnumerator ParentInspectorRefreshesWhenOnlyItsChildAssetChanges()
+        {
+            SoundEvent child = Event("Child", Clip("A")); SoundEvent parent = Event("Parent", Clip("Unused"));
+            parent.ContainerMode = ContainerMode.Layered; parent.Children = new[] { SoundEventChild.Create(child) };
+            UnityEditor.Editor editor = UnityEditor.Editor.CreateEditor(parent); temporary.Add(editor);
+            EditorWindow window = ScriptableObject.CreateInstance<EditorWindow>(); temporary.Add(window); window.Show();
+            VisualElement root = editor.CreateInspectorGUI(); window.rootVisualElement.Add(root); root.Bind(editor.serializedObject);
+            yield return null; yield return null;
+            int dirty = EditorUtility.GetDirtyCount(parent);
+            SerializedObject nested = new SerializedObject(child); nested.FindProperty("clips").arraySize = 0; nested.ApplyModifiedProperties();
+            HelpBox message = root.Q<HelpBox>("event-authoring-diagnostics");
+            double until = EditorApplication.timeSinceStartup + 3;
+            while (string.IsNullOrEmpty(message.text) && EditorApplication.timeSinceStartup < until) yield return null;
+            StringAssert.Contains("Child 1", message.text); StringAssert.Contains("Add audio clips", message.text);
+            Assert.AreEqual(dirty, EditorUtility.GetDirtyCount(parent)); window.Close();
+        }
+
+        [UnityTest] public IEnumerator SwitchInspectorRefreshesWhenOnlyTheParameterDefaultChanges()
+        {
+            SoundEvent child = Event("Child", Clip("A")); SoundEvent parent = Event("Parent", Clip("Unused"));
+            SoundParameter parameter = SoundParameter.CreateRuntime(0, 4, 0); temporary.Add(parameter);
+            parent.ContainerMode = ContainerMode.Switch; parent.SwitchParameter = parameter; parent.Children = new[] { SoundEventChild.Create(child, 2) };
+            UnityEditor.Editor editor = UnityEditor.Editor.CreateEditor(parent); temporary.Add(editor);
+            EditorWindow window = ScriptableObject.CreateInstance<EditorWindow>(); temporary.Add(window); window.Show();
+            VisualElement root = editor.CreateInspectorGUI(); window.rootVisualElement.Add(root); root.Bind(editor.serializedObject);
+            yield return null; yield return null;
+            int dirty = EditorUtility.GetDirtyCount(parent);
+            SerializedObject nested = new SerializedObject(parameter); nested.FindProperty("defaultValue").floatValue = 1.6f; nested.ApplyModifiedProperties();
+            HelpBox message = root.Q<HelpBox>("switch-default-summary"); double until = EditorApplication.timeSinceStartup + 3;
+            while (!message.text.Contains("Default state 2") && EditorApplication.timeSinceStartup < until) yield return null;
+            StringAssert.Contains("Default state 2", message.text); StringAssert.Contains("1 matching", message.text);
+            Assert.AreEqual(dirty, EditorUtility.GetDirtyCount(parent)); window.Close();
+        }
+
+        [Test] public void DiagnosticSettingsRouteToTheActualProblemAssetWithRootFallback()
+        {
+            SoundEvent root = Event("Root", Clip("A")); SoundEvent child = Event("Child", Clip("B"));
+            EventDebugRecord record = new EventDebugRecord { Event = root, Rejection = new PlaybackRejectionInfo { ProblemEvent = child } };
+            Assert.AreSame(child, EventDebuggerWindow.SettingsEvent(record));
+            record.Rejection = default(PlaybackRejectionInfo); Assert.AreSame(root, EventDebuggerWindow.SettingsEvent(record));
+            record.Event = null; Assert.IsNull(EventDebuggerWindow.SettingsEvent(record));
+        }
+
         private string folder;
         private readonly List<Object> temporary = new List<Object>();
         private readonly List<AudioBrowserWindow> browsers = new List<AudioBrowserWindow>();

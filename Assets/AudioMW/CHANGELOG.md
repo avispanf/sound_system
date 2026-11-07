@@ -5,6 +5,8 @@ The format follows Keep a Changelog and the project uses semantic versioning.
 
 ## [Unreleased]
 
+- Capture nested container failure assets and actual Switch values in runtime diagnostics; route settings to the failing asset and refresh Inspector warnings when dependencies change.
+
 - Identify nested validation issues by child path and show default Switch state matches without changing runtime selection.
 
 - Refresh Music state buttons after live profile edits; add Cmd/Ctrl+F in Sounds and Diagnostics, clearer empty states and explicitly live Sound Bank readiness for unloaded-clip rejections.

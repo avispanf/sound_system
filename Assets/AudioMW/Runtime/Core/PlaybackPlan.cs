@@ -31,6 +31,7 @@ namespace AudioMW
 
         public readonly List<Layer> Layers = new List<Layer>();
         public PlaybackOutcome Failure { get; private set; }
+        public PlaybackRejectionInfo FailureInfo { get; private set; }
         private readonly Stack<Layer> freeLayers = new Stack<Layer>();
         private readonly HashSet<SoundEvent> path = new HashSet<SoundEvent>();
         private readonly List<ParameterBinding> bindings = new List<ParameterBinding>();
@@ -46,6 +47,7 @@ namespace AudioMW
         {
             foreach (Layer layer in Layers) { layer.Clear(); freeLayers.Push(layer); }
             Layers.Clear();
+            FailureInfo = default(PlaybackRejectionInfo);
             path.Clear();
             bindings.Clear();
         }
@@ -61,7 +63,8 @@ namespace AudioMW
         private bool Visit(SoundEvent item, System.Random random, ParameterStore local, ParameterStore global, float gain, float pitch, int capacity)
         {
             if (item == null) return true;
-            if (path.Count >= 32 || !path.Add(item)) { Failure = PlaybackOutcome.RejectedContainerGraph; return false; }
+            if (path.Count >= 32) { Failure = PlaybackOutcome.RejectedContainerGraph; ContentFailure(item, PlaybackContentIssue.NestingLimit); return false; }
+            if (!path.Add(item)) { Failure = PlaybackOutcome.RejectedContainerGraph; ContentFailure(item, PlaybackContentIssue.CircularReference); return false; }
             int bindingStart = bindings.Count;
             if (item.ParameterBindings != null) bindings.AddRange(item.ParameterBindings);
             bool valid = true;
@@ -70,6 +73,7 @@ namespace AudioMW
                 if (item.HasUnresolvedReferences)
                 {
                     Failure = PlaybackOutcome.RejectedClipNotLoaded;
+                    ContentFailure(item, PlaybackContentIssue.None);
                     bindings.RemoveRange(bindingStart, bindings.Count - bindingStart);
                     path.Remove(item);
                     return false;
@@ -81,6 +85,7 @@ namespace AudioMW
                     parameters.Pitch = Mathf.Clamp(parameters.Pitch * pitch, 0.01f, 3f);
                     AddLayer(item, parameters, null);
                 }
+                else ContentFailure(item, PlaybackContentIssue.NoUsableSource);
             }
             else
             {
@@ -88,6 +93,7 @@ namespace AudioMW
                 pitch *= item.ResolvePitch(random);
                 if (item.ContainerMode == ContainerMode.Blend)
                 {
+                    int before = Layers.Count;
                     foreach (BlendLayer blend in item.BlendLayers)
                     {
                         if (blend == null || !blend.IsValid) continue;
@@ -95,13 +101,15 @@ namespace AudioMW
                         { Clip = blend.Clip, Volume = gain, Pitch = Mathf.Clamp(pitch, 0.01f, 3f), IsValid = true }, blend);
                         if (Layers.Count > capacity) { Failure = PlaybackOutcome.RejectedNoVoice; valid = false; break; }
                     }
+                    if (Layers.Count == before) ContentFailure(item, PlaybackContentIssue.NoUsableSource);
                 }
                 else
                 {
+                    int matching = 0;
                     float raw = 0f;
                     if (item.ContainerMode == ContainerMode.Switch)
                     {
-                        if (item.SwitchParameter == null) valid = false;
+                        if (item.SwitchParameter == null) { valid = false; ContentFailure(item, PlaybackContentIssue.MissingSwitchParameter); }
                         else if (local == null || !local.TryGet(item.SwitchParameter, out raw)) raw = global.Get(item.SwitchParameter);
                     }
                     foreach (SoundEventChild child in item.Children)
@@ -109,14 +117,24 @@ namespace AudioMW
                         if (!valid) break;
                         if (child == null || child.Event == null) continue;
                         if (item.ContainerMode == ContainerMode.Switch && child.State != Mathf.RoundToInt(raw)) continue;
+                        matching++;
                         valid = Visit(child.Event, random, local, global, gain * child.Gain, pitch, capacity);
+                    }
+                    if (valid && matching == 0)
+                    {
+                        if (item.ContainerMode == ContainerMode.Switch) FailureInfo = new PlaybackRejectionInfo { ProblemEvent = item, ContentIssue = PlaybackContentIssue.NoSwitchMatch, SwitchValue = raw, SwitchState = Mathf.RoundToInt(raw) };
+                        else ContentFailure(item, PlaybackContentIssue.NoUsableSource);
                     }
                 }
             }
             bindings.RemoveRange(bindingStart, bindings.Count - bindingStart);
             path.Remove(item);
-            if (Layers.Count > capacity) { Failure = PlaybackOutcome.RejectedNoVoice; return false; }
+            if (Layers.Count > capacity) { Failure = PlaybackOutcome.RejectedNoVoice; ContentFailure(item, PlaybackContentIssue.None); return false; }
             return valid;
+        }
+        private void ContentFailure(SoundEvent item, PlaybackContentIssue issue)
+        {
+            FailureInfo = new PlaybackRejectionInfo { ProblemEvent = item, ContentIssue = issue };
         }
     }
 }

@@ -256,7 +256,7 @@ namespace AudioMW
                     PlaybackPlan plan = request.Plan;
                     if (!plan.Build(soundEvent, rng, initialParameters, globalParameters, pool.MaxVoices))
                     {
-                        Reject(soundEvent, plan.Failure, position, attach);
+                        Reject(soundEvent, plan.Failure, position, attach, plan.FailureInfo);
                         return null;
                     }
                     request.Rejection = default(PlaybackRejectionInfo);

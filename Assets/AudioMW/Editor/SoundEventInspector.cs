@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
@@ -45,7 +46,7 @@ namespace AudioMW.Editor
             Field(children, "children", "Child events");
             children.Add(new HelpBox("Parent gain, pitch and parameter bindings affect every child. Each child owns its loop, spatial settings and mixer route.", HelpBoxMessageType.Info));
             root.Add(children);
-            HelpBox diagnostics = new HelpBox("", HelpBoxMessageType.Warning);
+            HelpBox diagnostics = new HelpBox("", HelpBoxMessageType.Warning) { name = "event-authoring-diagnostics" };
             root.Add(diagnostics);
 
             VisualElement sound = new VisualElement();
@@ -136,7 +137,52 @@ namespace AudioMW.Editor
             };
             root.TrackSerializedObjectValue(serializedObject, _ => refresh());
             refresh();
+            DependencyTracker dependencies = new DependencyTracker();
+            root.schedule.Execute(() =>
+            {
+                if (this == null || target == null || !dependencies.Changed(targets)) return;
+                refresh();
+                root.Query<Foldout>().ForEach(section =>
+                {
+                    if (section.name == null || !section.name.StartsWith("section-")) return;
+                    Label summary = section.Q<Label>("summary");
+                    if (summary != null) summary.text = SoundEventSummaries.Get(serializedObject, section.text);
+                });
+            }).Every(200);
             return root;
+        }
+
+        private sealed class DependencyTracker
+        {
+            private Dictionary<Object, int> previous = new Dictionary<Object, int>();
+            private Dictionary<Object, int> current = new Dictionary<Object, int>();
+
+            public bool Changed(Object[] assets)
+            {
+                current.Clear();
+                foreach (Object asset in assets) Visit(asset as SoundEvent, 0);
+                bool changed = current.Count != previous.Count;
+                if (!changed) foreach (KeyValuePair<Object, int> entry in current)
+                {
+                    int count;
+                    if (!previous.TryGetValue(entry.Key, out count) || count != entry.Value) { changed = true; break; }
+                }
+                Dictionary<Object, int> swap = previous; previous = current; current = swap;
+                return changed;
+            }
+
+            private void Add(Object asset)
+            {
+                if (asset != null) current[asset] = EditorUtility.GetDirtyCount(asset);
+            }
+
+            private void Visit(SoundEvent item, int depth)
+            {
+                if (item == null || depth >= 32 || current.ContainsKey(item)) return;
+                Add(item); Add(item.SwitchParameter); Add(item.BlendParameter); Add(item.AttenuationPreset);
+                if (item.ContainerMode != ContainerMode.Layered && item.ContainerMode != ContainerMode.Switch) return;
+                foreach (SoundEventChild child in item.Children) if (child != null) Visit(child.Event, depth + 1);
+            }
         }
 
         private void Field(VisualElement parent, string name, string label, string tooltip = null)

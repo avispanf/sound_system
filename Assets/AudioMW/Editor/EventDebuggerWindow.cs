@@ -95,7 +95,8 @@ namespace AudioMW.Editor
             openEvent = new Button(() =>
             {
                 bool limits = selectedRecord.Outcome == PlaybackOutcome.RejectedCooldown || selectedRecord.Outcome == PlaybackOutcome.RejectedInstanceLimit || selectedRecord.Outcome == PlaybackOutcome.RejectedNoVoice;
-                AudioWorkspace.OpenEvent(selectedRecord.Event, limits ? "Playback limits" : selectedRecord.Outcome == PlaybackOutcome.RejectedClipNotLoaded && selectedRecord.Event != null && selectedRecord.Event.ContainerMode == ContainerMode.Simple ? "Addressed clips" : null,
+                SoundEvent settingsEvent = SettingsEvent(selectedRecord);
+                AudioWorkspace.OpenEvent(settingsEvent, limits ? "Playback limits" : selectedRecord.Outcome == PlaybackOutcome.RejectedClipNotLoaded && settingsEvent != null && settingsEvent.ContainerMode == ContainerMode.Simple ? "Addressed clips" : null,
                     selectedRecord.Outcome == PlaybackOutcome.RejectedCooldown ? "cooldownSeconds" :
                     selectedRecord.Rejection.HasInstanceLimit ? (selectedRecord.Rejection.Scope == "emitter" ? "maxInstancesPerEmitter" : selectedRecord.Rejection.Scope == "event" ? "maxInstances" : "concurrencyGroup") : null);
             }) { text = "Open event settings", name = "open-event-settings" };
@@ -122,8 +123,13 @@ namespace AudioMW.Editor
         private void OnProjectChange()
         {
             if (!hasSelectedRecord || selectedRecord.Outcome != PlaybackOutcome.RejectedClipNotLoaded) return;
-            selectedBanks = selectedRecord.Event != null ? AudioSourceCatalog.BanksFor(selectedRecord.Event) : new List<SoundBank>();
+            selectedBanks = SettingsEvent(selectedRecord) != null ? AudioSourceCatalog.BanksFor(SettingsEvent(selectedRecord)) : new List<SoundBank>();
             UpdateBankState();
+        }
+
+        public static SoundEvent SettingsEvent(EventDebugRecord record)
+        {
+            return record.Rejection.ProblemEvent != null ? record.Rejection.ProblemEvent : record.Event;
         }
 
         public static string DescribeBankState(SoundBank bank)
@@ -141,7 +147,7 @@ namespace AudioMW.Editor
             bankLabel.style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
             if (!show) return;
             bankLabel.text = "Sound Banks · Live now (not captured at rejection)";
-            if (selectedRecord.Event == null) bankLabel.text += "\nThe event asset is unavailable.";
+            if (SettingsEvent(selectedRecord) == null) bankLabel.text += "\nThe event asset is unavailable.";
             else if (selectedBanks.Count == 0) bankLabel.text += "\nNo containing Sound Bank found. Include this event in a bank and load it before playback.";
             else foreach (SoundBank bank in selectedBanks) bankLabel.text += "\n" + DescribeBankState(bank);
         }
@@ -191,13 +197,13 @@ namespace AudioMW.Editor
                     EventDebugRecord record = (EventDebugRecord)item;
 
                     selectedRecord = record; hasSelectedRecord = true;
-                    selectedBanks = record.Outcome == PlaybackOutcome.RejectedClipNotLoaded && record.Event != null ? AudioSourceCatalog.BanksFor(record.Event) : new List<SoundBank>();
+                    selectedBanks = record.Outcome == PlaybackOutcome.RejectedClipNotLoaded && SettingsEvent(record) != null ? AudioSourceCatalog.BanksFor(SettingsEvent(record)) : new List<SoundBank>();
                     UpdateBankState();
                     detailLabel.text = record.EventName + "\n" +
                         (record.Outcome == PlaybackOutcome.Played ? "Accepted" + (record.HasGainCapture && record.FinalVolume == 0 ? " · Source volume is zero" : "") : "Rejected · " + record.DescribeOutcome()) +
                         "\nCaptured at " + record.Time.ToString("0.00") + " s · " + (string.IsNullOrEmpty(record.ClipName) ? "No source clip captured" : record.ClipName);
                     gainLabel.text = record.Outcome == PlaybackOutcome.Played && record.HasGainCapture ? record.DescribeVolumeChain() + "\n" + record.DescribeVolumeDecibels() : "No source-gain values captured for this record.";
-                    openEvent.SetEnabled(record.Event != null);
+                    openEvent.SetEnabled(SettingsEvent(record) != null);
                 }
 
                 break;

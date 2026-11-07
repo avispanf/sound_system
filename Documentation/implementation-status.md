@@ -257,3 +257,21 @@ parameter value and count non-null matching child events. All matching rows are
 requested together, matching PlaybackPlan. The summary describes defaults only;
 local/global runtime overrides can select a different state. No validation pass
 changes events, weights, parameter defaults or runtime playback behaviour.
+
+## Container diagnostics and dependency-aware Inspector
+
+The runtime keeps the called root event in each record and separately captures
+the event that caused an unresolved source, missing Switch parameter, unmatched
+Switch state, unusable source, cycle or nesting-limit rejection. NoSwitchMatch
+captures the actual resolved local/global float and rounded state. Problem names
+are captured separately from mutable asset names. Diagnostics opens the problem
+asset and discovers containing banks for that asset; root fallback is retained
+when no problem asset is available. Ready bank labels remain explicitly live.
+
+Inspector dependency tracking observes dirty counts of nested events, Switch/Blend
+parameters and attenuation presets on the native panel schedule. Unchanged graphs
+do not rerun validation. External child/parameter changes refresh authoring warnings
+and summaries without marking or rewriting the parent. Runtime selection, branch
+acceptance, voice limits and gain behaviour are unchanged. Rejection metadata is
+reset between pooled requests; ignored empty branches do not turn an accepted
+request into a rejection or leak stale reasons into capacity failures.

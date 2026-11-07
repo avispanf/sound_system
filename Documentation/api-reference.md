@@ -171,3 +171,14 @@ runtime gain and VolumeDb reports it. AudioGain converts amplitude ratios.
 EventDebugRecord includes OcclusionMultiplier, UnclampedVolume, FinalVolumeDb,
 WasVolumeLimited and DescribeVolumeDecibels alongside the linear chain. See
 [gain-authoring.md](gain-authoring.md) for silence, clamps and compatibility.
+
+### Captured container failure context
+
+`EventDebugRecord.Event` remains the requested root. `Rejection.ProblemEvent`
+identifies a failing nested event when available, and `ProblemEventName` retains
+its name at capture. `Rejection.ContentIssue` distinguishes missing Switch
+parameters, unmatched states, unusable sources, cycles and nesting limits.
+`SwitchValue` and `SwitchState` are meaningful only for
+`PlaybackContentIssue.NoSwitchMatch`; they contain the actual parameter value and
+rounded state at request time, not a later Inspector/default value. Existing
+`PlaybackOutcome` values and accepted-but-silent semantics remain unchanged.

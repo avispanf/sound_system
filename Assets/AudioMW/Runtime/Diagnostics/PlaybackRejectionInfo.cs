@@ -1,7 +1,13 @@
 namespace AudioMW
 {
+    public enum PlaybackContentIssue { None, NoUsableSource, MissingSwitchParameter, NoSwitchMatch, CircularReference, NestingLimit }
+
     public struct PlaybackRejectionInfo
     {
+        public SoundEvent ProblemEvent;
+        public PlaybackContentIssue ContentIssue;
+        public float SwitchValue;
+        public int SwitchState;
         public bool HasInstanceLimit;
         public string Scope;
         public int CurrentCount;
