@@ -1,0 +1,5 @@
+{
+  "name": "AudioMW.Playground",
+  "references": ["AudioMW.Runtime", "Unity.InputSystem"],
+  "autoReferenced": true
+}

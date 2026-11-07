@@ -12,12 +12,21 @@ content and broader platform validation remain open.
 | Sample import and references | Successful before each Player build | Delivered preview.13 tarball, generated isolated projects |
 | Desktop Player build and run | 14 checks per Player, exit 0, DSP advances | macOS, Mono, Low stripping, both editors |
 | Assembly separation | Only AudioMW.Runtime.dll in the Mono Player | No AudioMW Editor or test DLLs |
-| Validation tooling | 12 Python tests | Packaging, portable fixtures, report completeness, stale-result handling, assembly leaks |
+| Validation tooling | 14 Python tests | Packaging, portable fixtures, report completeness, stale-result handling, assembly leaks |
 
 The Player smoke checks cover serialized clips/graphs, real AudioSource playback,
 Simple/Layered/Switch, captured local Switch state, handle stop, quantized music,
 repeat-destination scheduling, cancellation and shutdown. Output gain is muted.
 These checks do not establish sound quality or musical timing by ear.
+
+## Manual gameplay fixture
+
+Relay Field now provides a separate Unity 6 URP game for hands-on integration and
+listening. Its library audit reports 20 assets with zero errors and warnings;
+four PlayMode gameplay tests pass in Unity 6000.3.21f1. The test fixture uses the
+existing preview.14 archive and leaves the middleware runtime unchanged.
+See [manual-integration.md](manual-integration.md) for reproduction and boundaries.
+The user listening pass remains open.
 
 ## Open release gates
 

@@ -310,3 +310,24 @@ by path, GUID and 64-bit local file ID. They are snapshots and require rescannin
 after edits. A zero-issue result is not a build, redistribution-rights or listening
 approval; missing-script assets that cannot be identified as AudioMW types require
 the separate distribution/build checks.
+
+## Unity 6 hands-on integration playground
+
+Relay Field adds an isolated original collection game on the Unity 6 URP template.
+The delivered preview.14 archive drives surface Switch footsteps, landing,
+positional impacts, pickup stingers, adaptive music states/layers, ambience fades,
+VO queue/ducking and scene-bank ownership. Its source and repeatable setup live
+under Tools/ManualPlayground and Tools/prepare_playground.py, outside the package.
+
+Four scene integration tests pass in Unity 6000.3.21f1, the generated library audit
+has 20 assets and no issues, and the macOS Mono Player builds without errors.
+Native keyboard testing completed all five relays and the exit, then restarted;
+VO duck returned to zero and the third loop request showed the real two-instance
+limit. The F8 runtime snapshot records completed=true. The Player contains only
+AudioMW.Runtime and AudioMW.Playground from this project, not editor/test DLLs.
+
+A high-frame-rate landing spam defect in the new game adapter was found and fixed
+with an explicit airborne interval and zero CharacterController minMoveDistance.
+A regression test verifies one landing after a fall and no subsequent idle spam.
+No middleware runtime change was needed. Existing synthesized clips remain
+placeholders; user listening and redistributable content remain release gates.
