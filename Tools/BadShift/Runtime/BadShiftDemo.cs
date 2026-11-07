@@ -9,6 +9,8 @@ public sealed class BadShiftDemo : MonoBehaviour
     public SoundEvent MicrowaveBag;
     public SoundEvent FridgeSound;
     public Transform Microwave;
+    public Transform MicrowaveVisual;
+    public float MicrowaveResponseUntil => responseUntil;
     public Transform Fridge;
     public Transform Boss;
     public Transform Room;
@@ -43,7 +45,7 @@ public sealed class BadShiftDemo : MonoBehaviour
     {
         danceBase = Dancer.localPosition; dancerRest = Dancer.localRotation; bossRest = Boss.localRotation;
         fridgeHandle = AudioSystem.PlayTrackedAtPosition(FridgeSound, Fridge.position);
-        microwaveMaterial = Microwave.GetComponent<Renderer>().material; microwaveColor = microwaveMaterial.color;
+        microwaveMaterial = (MicrowaveVisual != null ? MicrowaveVisual : Microwave).GetComponent<Renderer>().material; microwaveColor = microwaveMaterial.color;
         var found = new System.Collections.Generic.List<Transform>();
         foreach (Transform child in Boss.GetComponentsInChildren<Transform>()) if (child.name == "Sphere") found.Add(child);
         eyes = found.ToArray(); eyeScales = new Vector3[eyes.Length]; for (int i=0;i<eyes.Length;i++) eyeScales[i]=eyes[i].localScale;
@@ -57,7 +59,7 @@ public sealed class BadShiftDemo : MonoBehaviour
     public void PlayRoom() { RoomSource.Play(); }
     public void PlayMicrowave()
     {
-        responseUntil = Time.unscaledTime + .65f;
+        responseUntil = Time.time + .65f;
         AudioSystem.PlayTrackedAtPosition(bag ? MicrowaveBag : MicrowaveRandom, Microwave.position);
         if (AudioSystem.Debugger.TryGetLast(out EventDebugRecord record)) answer = record.Outcome == PlaybackOutcome.Played ? record.ClipName : record.DescribeOutcome();
     }
@@ -95,7 +97,7 @@ public sealed class BadShiftDemo : MonoBehaviour
             Dancer.localPosition = danceBase + Vector3.up * Mathf.Abs(Mathf.Sin(dancePhase)) * 0.15f;
         }
         if (!combat && !speaking) { Dancer.localPosition = danceBase; Dancer.localRotation = dancerRest; }
-        string desiredPlayer = !Game.IsGrounded ? "Jump" : Time.unscaledTime < Mathf.Max(responseUntil, Game.LastInteractionTime + .65f) ? "Interact" : Game.MovementSpeed > 4.2f ? "Run" : Game.MovementSpeed > .15f ? "Walk" : "Idle";
+        string desiredPlayer = !Game.IsGrounded ? "Jump" : Time.time < Mathf.Max(responseUntil, Game.LastInteractionTime + .65f) ? "Interact" : Game.MovementSpeed > 4.2f ? "Run" : Game.MovementSpeed > .15f ? "Walk" : "Idle";
         if (PlayerAnimator != null)
         {
             PlayerAnimator.speed = speaking ? 0 : 1;
@@ -107,7 +109,7 @@ public sealed class BadShiftDemo : MonoBehaviour
             DanceAnimator.speed = speaking ? 0 : 1;
             if (staffPose != desiredStaff) { DanceAnimator.CrossFadeInFixedTime(desiredStaff, .15f); staffPose = desiredStaff; }
         }
-        microwaveMaterial.color = Time.unscaledTime < responseUntil ? Color.Lerp(microwaveColor, Color.white, .45f) : microwaveColor;
+        microwaveMaterial.color = Time.time < responseUntil ? Color.Lerp(microwaveColor, Color.white, .45f) : microwaveColor;
         Game.AuditionMixGain = Station() == 4 ? 0 : Station() == 3 ? .15f : 1;
         RaveLight.color = combat ? Color.Lerp(new Color(1,.3f,.5f), new Color(.6f,.4f,1), .5f + .5f * Mathf.Sin(dancePhase)) : new Color(1,.85f,.65f);
         RaveLight.intensity = combat ? 4 : 1;

@@ -27,6 +27,34 @@ public sealed class BadShiftTests
         Assert.AreEqual(camera, demo.Game.View.transform.position);
         Assert.Less(Vector3.Distance(demo.Game.Listener.position, demo.Game.transform.position), 2);
     }
+    [UnityTest] public IEnumerator ApplianceJigglesWithoutMovingItsPhysicalBodyAndPauses()
+    {
+        Assert.IsNotNull(demo.MicrowaveVisual);
+        Bounds physical = demo.Microwave.GetComponent<Collider>().bounds;
+        Quaternion rest = demo.MicrowaveVisual.localRotation;
+        demo.PlayMicrowave(); yield return new WaitForSeconds(.1f);
+        Assert.Greater(Quaternion.Angle(rest, demo.MicrowaveVisual.localRotation), .1f);
+        Assert.AreEqual(physical, demo.Microwave.GetComponent<Collider>().bounds);
+        AudioSystem.SetPaused(true); Time.timeScale = 0;
+        Quaternion held = demo.MicrowaveVisual.localRotation;
+        yield return new WaitForSecondsRealtime(.15f);
+        Assert.AreEqual(held, demo.MicrowaveVisual.localRotation);
+        Time.timeScale = 1; AudioSystem.SetPaused(false);
+        yield return new WaitForSeconds(.7f);
+        Assert.Less(Quaternion.Angle(rest, demo.MicrowaveVisual.localRotation), .001f);
+    }
+    [UnityTest] public IEnumerator VoiceHoldsClayStaffWhileManagerRemainsExpressive()
+    {
+        demo.Game.Speak(); yield return null; yield return null;
+        Assert.IsTrue(AudioSystem.VoiceOver.IsSpeaking);
+        Vector3 player = demo.PlayerAnimator.transform.localScale;
+        Vector3 staff = demo.DanceAnimator.transform.localScale;
+        Quaternion manager = demo.Boss.localRotation;
+        yield return new WaitForSeconds(.12f);
+        Assert.AreEqual(player, demo.PlayerAnimator.transform.localScale);
+        Assert.AreEqual(staff, demo.DanceAnimator.transform.localScale);
+        Assert.Greater(Quaternion.Angle(manager, demo.Boss.localRotation), .1f);
+    }
     [UnityTest] public IEnumerator ShuffleBagShowsActualDistinctSelections()
     {
         var clips=new System.Collections.Generic.HashSet<string>();

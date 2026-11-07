@@ -182,7 +182,7 @@ public sealed class AudioMWPlayground : MonoBehaviour
             if (current < distance) { distance = current; nearest = item; }
         }
         if (nearest == null) { Tell("Move close to a gold relay, then press E."); return; }
-        LastInteractionTime = Time.unscaledTime;
+        LastInteractionTime = Time.time;
         nearest.Collect(); collected++; AudioSystem.PlayTrackedAtPosition(Pickup, nearest.transform.position);
         AudioSystem.PlayStinger(Stinger, MusicQuantization.Beat, 0.2f);
         Tell(collected == Pickups.Length ? "All relays collected. Reach the blue exit in the red zone." : "Relay collected: " + collected + " / " + Pickups.Length);
