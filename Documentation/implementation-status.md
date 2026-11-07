@@ -294,3 +294,19 @@ Package/Python checks run as a separate license-free CI job and produce the one
 UPM archive consumed by Unity jobs. Fixture tarball paths are portable across
 workspace mounts. Cloud Unity execution still requires credentials. Windows,
 Linux, mobile/device and real Addressables catalog validation remain open.
+
+## Read-only library audit
+
+Library Audit scans a selected Assets folder for Sound Events, parameters, Sound
+Banks, Music tracks/profiles and VO lines, including subassets. It separates hard
+reference/profile/range errors from authoring warnings, retains the existing
+container validation semantics, and considers banks outside the selected scope
+when checking addressed-event membership. It never loads banks, previews clips,
+normalizes weights or rewrites assets.
+
+The native window exposes search, errors-only filtering, selection in Inspector,
+explicit focused settings and full-snapshot JSON export. Reports identify assets
+by path, GUID and 64-bit local file ID. They are snapshots and require rescanning
+after edits. A zero-issue result is not a build, redistribution-rights or listening
+approval; missing-script assets that cannot be identified as AudioMW types require
+the separate distribution/build checks.

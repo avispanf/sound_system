@@ -110,3 +110,22 @@ pin independence, empty search, dark/light themes, Sounds at 620 points and
 Inspector at 300/360 points. Test assets use the package's generated demo WAVs;
 they are not production footsteps or human listening approval. Automated test
 results, actual native screenshots and remaining checks are recorded separately.
+
+## Check a library before packaging
+
+Open Window > AudioMW > Library Audit, or choose Library audit from Tools in the
+workspace. Pick a Project folder and click Scan library. Select a row to see its
+cause and select the asset in Inspector; Open asset settings opens a focused
+Inspector. Warnings are review items, not automatic proof that playback is blocked.
+Errors only and search narrow the displayed list. Export JSON always saves the
+whole snapshot, with stable GUID/local file IDs and field paths for technical
+review. Rescan after editing. Banks under Assets outside the selected folder are
+considered for addressed-source membership. This tool does not load those banks
+or certify audio quality, rights, platform behaviour or Store readiness.
+
+For an automated content gate, run the editor on an isolated project with
+`-batchmode -executeMethod AudioMW.Editor.AudioLibraryAudit.RunBatch` and optionally
+`--audiomw-audit-scope Assets/MyAudio --audiomw-audit-report /absolute/report.json`.
+Exit 0 means no hard audit errors, 1 means reported content errors, and 2 means
+the scan/export could not complete. Warnings do not fail the gate. This command
+does not certify assets outside the chosen scope or the missing release gates.

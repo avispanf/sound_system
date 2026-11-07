@@ -5,6 +5,8 @@ The format follows Keep a Changelog and the project uses semantic versioning.
 
 ## [Unreleased]
 
+- Add read-only Library Audit for event/music/parameter/bank/VO content with native Inspector navigation, severity filters and GUID/local-ID JSON snapshots.
+
 - Capture nested container failure assets and actual Switch values in runtime diagnostics; route settings to the failing asset and refresh Inspector warnings when dependencies change.
 
 - Identify nested validation issues by child path and show default Switch state matches without changing runtime selection.
