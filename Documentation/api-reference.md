@@ -182,3 +182,15 @@ parameters, unmatched states, unusable sources, cycles and nesting limits.
 `PlaybackContentIssue.NoSwitchMatch`; they contain the actual parameter value and
 rounded state at request time, not a later Inspector/default value. Existing
 `PlaybackOutcome` values and accepted-but-silent semantics remain unchanged.
+
+## Reviewed mix ownership
+
+`AudioMixProfile` references a `MixerRoutingProfile`, a global default-zero 0–1
+`VoiceDuck` parameter and separate attack/release times. `AudioMixScope` acquires
+this configuration at Start and disposes its lease when destroyed. Code integrations
+can use `AudioRuntime.Instance.AcquireMixProfile(profile)` and dispose the returned
+`IDisposable`; shared callers must use the same profile. `ActiveMixProfile` reports
+the current owner. Conflicting profile/duck-parameter routing is rejected.
+`VoiceOverDirector.DuckAttackSeconds` and `DuckReleaseSeconds` expose independent
+linear envelope durations; the legacy `DuckFadeSeconds` setter still sets both.
+See [mix-setup.md](mix-setup.md) for the explicit Editor approval/install workflow.

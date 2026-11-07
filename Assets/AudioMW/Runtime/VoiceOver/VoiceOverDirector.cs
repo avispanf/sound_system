@@ -36,7 +36,8 @@ namespace AudioMW
         private bool resetting;
 
         private SoundParameter duckParameter;
-        private float duckFadeSeconds = 0.2f;
+        private float duckAttackSeconds = 0.2f;
+        private float duckReleaseSeconds = 0.2f;
 
         public event Action<VoiceLine> LineStarted;
         public event Action<VoiceLine> LineFinished;
@@ -86,9 +87,12 @@ namespace AudioMW
 
         public float DuckFadeSeconds
         {
-            get { return duckFadeSeconds; }
-            set { duckFadeSeconds = Mathf.Max(0f, value); }
+            get { return duckReleaseSeconds; }
+            set { duckAttackSeconds = duckReleaseSeconds = Mathf.Max(0f, value); }
         }
+
+        public float DuckAttackSeconds { get => duckAttackSeconds; set => duckAttackSeconds = Mathf.Max(0, value); }
+        public float DuckReleaseSeconds { get => duckReleaseSeconds; set => duckReleaseSeconds = Mathf.Max(0, value); }
 
         public bool Play(VoiceLine line, VoiceOverMode mode = VoiceOverMode.Queue)
         {
@@ -266,9 +270,10 @@ namespace AudioMW
         {
             float target = currentLine != null ? 1f : 0f;
 
-            if (duckFadeSeconds > 0f)
+            float seconds = target > duckValue ? duckAttackSeconds : duckReleaseSeconds;
+            if (seconds > 0f)
             {
-                duckValue = Mathf.MoveTowards(duckValue, target, delta / duckFadeSeconds);
+                duckValue = Mathf.MoveTowards(duckValue, target, delta / seconds);
             }
             else
             {

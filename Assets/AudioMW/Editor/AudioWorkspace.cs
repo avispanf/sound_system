@@ -53,6 +53,7 @@ namespace AudioMW.Editor
             ToolbarButton create = new ToolbarButton(SoundEventSetupWindow.Open) { text = "+ Create event", tooltip = "Create a Sound Event from clips selected in the Project window." };
             create.AddToClassList("audiomw-primary"); bar.Add(create);
             ToolbarMenu tools = new ToolbarMenu { text = "Tools" };
+            tools.menu.AppendAction("Mix setup", _ => AudioMixSetupWindow.Open());
             tools.menu.AppendAction("Project setup", _ => AudioProjectSetupWindow.Open());
             tools.menu.AppendAction("Library audit", _ => AudioLibraryAuditWindow.Open());
             tools.menu.AppendAction("Loudness audit", _ => LoudnessAuditWindow.Open());

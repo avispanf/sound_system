@@ -38,6 +38,25 @@ separately from automated tests. See [project-setup.md](project-setup.md).
 This stage saves a reviewed profile; it does not generate a mixer or connect an
 AI client, and it does not close the listening/content release gates.
 
+## Reviewed mixer installation
+
+The preview.16 installed-UPM archive passes 285/285 EditMode and 187/187 PlayMode
+checks in Unity 2022.3.62f3 and 6000.3.21f1. New cases cover approval/rejection,
+read-only planning, changed inputs, persistent routes/scope, idempotent receipts,
+rollback after saved routes, source-binding removal, real mixer envelopes, shared
+leases, conflicting ownership, shutdown generations and per-mixer write caches.
+The template was authored natively in Unity 2022.3 and imported in Unity 6.
+
+Relay Field has 14 reviewed routes, dedicated duck buses and five gameplay
+integration tests. Its new macOS Mono development Player builds with zero errors.
+Native Player snapshots record both duck gains at -6 dB during VO and 0 dB after
+release. Unity 6 dark-theme Mix Setup was checked at 420/640-point widths, including
+Why, Reject and already-applied/no-op status. Light theme, broad accessibility and
+human listening remain unverified. See [mix-setup.md](mix-setup.md).
+
+This block does not add an MCP server, arbitrary existing-mixer graph editing,
+processing plug-ins, live spectral monitoring or loudness compliance certification.
+
 ## Open release gates
 
 - IL2CPP with High stripping: Mac modules are installed for both local editors,

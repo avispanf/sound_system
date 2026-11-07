@@ -56,6 +56,18 @@ public sealed class RelayFieldIntegrationTests
         character.enabled = false; game.transform.position = game.Exit.position + Vector3.up * 0.1f; character.enabled = true;
         yield return null; Assert.IsTrue(game.IsComplete);
     }
+    [UnityTest] public IEnumerator InstalledMixRoutesAudioAndDucksWithoutSourceDuplication()
+    {
+        AudioMixProfile mix = AudioRuntime.Instance.ActiveMixProfile; Assert.IsNotNull(mix);
+        Assert.AreEqual("AmbienceDuck", game.Ambience.MixerGroup.name); Assert.AreEqual("VO", game.Lines[0].MixerGroup.name);
+        Assert.IsFalse(game.Ambience.ParameterBindings.Any(binding => binding.Parameter == game.VoiceDuck && binding.Target == ParameterTarget.Volume));
+        game.Speak(); yield return new WaitForSecondsRealtime(0.3f);
+        Assert.AreEqual(1, AudioSystem.GetParameter(game.VoiceDuck), 0.01f);
+        Assert.IsTrue(mix.Routing.Mixer.GetFloat("AudioMW_MusicDuckDb", out float db)); Assert.AreEqual(-6, db, 0.05f);
+        AudioSystem.StopVoiceOver(); yield return new WaitForSecondsRealtime(mix.ReleaseSeconds + 0.1f);
+        Assert.AreEqual(0, AudioSystem.GetParameter(game.VoiceDuck), 0.01f);
+        mix.Routing.Mixer.GetFloat("AudioMW_AmbienceDuckDb", out db); Assert.AreEqual(0, db, 0.05f);
+    }
     [UnityTest] public IEnumerator MusicRequestsAndSceneReloadKeepBankOwnershipBounded()
     {
         Assert.AreEqual(1,game.Bank.ScopeCount);

@@ -36,6 +36,7 @@ namespace AudioMW.Editor
             rootVisualElement.Clear(); AudioWorkspace.Style(rootVisualElement);
             ScrollView scroll = new ScrollView(); scroll.style.flexGrow = 1; rootVisualElement.Add(scroll);
             Label title = new Label("Project Setup"); title.style.unityFontStyleAndWeight = FontStyle.Bold; scroll.Add(title);
+            scroll.Add(new Button(AudioMixSetupWindow.Open) { text = "Configure routing and ducking", tooltip = "Prepare a separate executable mix plan using a saved setup profile." });
             scroll.Add(Wrap("Describe the game, inspect existing audio, then approve a saved setup plan. Routing, importers and gains stay unchanged in this first stage."));
             ObjectField existing = new ObjectField("Load setup") { objectType = typeof(AudioProjectSetup), allowSceneObjects = false };
             existing.RegisterValueChangedCallback(evt =>

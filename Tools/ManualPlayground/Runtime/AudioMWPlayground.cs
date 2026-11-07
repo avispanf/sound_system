@@ -60,8 +60,11 @@ public sealed class AudioMWPlayground : MonoBehaviour
     {
         character = GetComponent<CharacterController>();
         bankLease = AudioSystem.AcquireBank(Bank);
-        AudioSystem.VoiceOver.DuckParameter = VoiceDuck;
-        AudioSystem.VoiceOver.DuckFadeSeconds = 0.3f;
+        if (AudioRuntime.Instance.ActiveMixProfile == null)
+        {
+            AudioSystem.VoiceOver.DuckParameter = VoiceDuck;
+            AudioSystem.VoiceOver.DuckFadeSeconds = 0.3f;
+        }
         AudioSystem.VoiceOver.SubtitleChanged += Subtitle;
         ChangeAmbience(false);
         Music.Request(AudioSystem.Music, "Explore");
@@ -115,7 +118,7 @@ public sealed class AudioMWPlayground : MonoBehaviour
         if (ambienceBlend >= 1) retiringAmbience.Stop();
         intensity = Mathf.MoveTowards(intensity, danger ? 1 : 0, Time.deltaTime * 0.6f);
         AudioSystem.SetParameter(Intensity, intensity);
-        AudioSystem.Music.SetVolume(musicMuted ? 0 : 0.75f * Mathf.Lerp(1, 0.25f, AudioSystem.GetParameter(VoiceDuck)));
+        AudioSystem.Music.SetVolume(musicMuted ? 0 : 0.75f * (AudioRuntime.Instance.ActiveMixProfile != null ? 1 : Mathf.Lerp(1, 0.25f, AudioSystem.GetParameter(VoiceDuck))));
         if (keys.fKey.wasPressedThisFrame) Fire();
         if (keys.eKey.wasPressedThisFrame) Interact();
         if (keys.vKey.wasPressedThisFrame) Speak();
@@ -203,6 +206,8 @@ public sealed class AudioMWPlayground : MonoBehaviour
             MusicPlayer player = AudioSystem.Music;
             GUILayout.Label("Music: " + (player.CurrentTrack != null ? player.CurrentTrack.name : "Stopped") + (musicMuted ? " · MUTED" : ""));
             GUILayout.Label(player.IsTransitionPending ? "Pending: " + player.PendingTrack.name + " · " + Math.Max(0, player.PendingStartDspTime - AudioSettings.dspTime).ToString("0.0") + " s · " + player.PendingQuantization : player.IsCrossfading ? "Crossfade in progress" : "No pending transition");
+            AudioMixProfile mix = AudioRuntime.Instance.ActiveMixProfile;
+            if (mix != null) { mix.Routing.Mixer.GetFloat("AudioMW_MusicDuckDb", out float db); GUILayout.Label("Mixer duck: " + db.ToString("0.0") + " dB · profile " + mix.name); }
             GUILayout.Label("Intensity " + intensity.ToString("0.00") + " · Duck " + AudioSystem.GetParameter(VoiceDuck).ToString("0.00") + " · Voices " + AudioSystem.ActiveVoiceCount);
         }
         if (help)
@@ -226,6 +231,9 @@ public sealed class AudioMWPlayground : MonoBehaviour
         public bool completed;
         public string surface;
         public string lastLimitReason;
+        public bool mixActive;
+        public float musicDuckDb;
+        public float ambienceDuckDb;
         public string note = "Runtime snapshot, not listening approval. Add subjective findings using the manual checklist.";
     }
     private void SaveSession()
@@ -237,7 +245,10 @@ public sealed class AudioMWPlayground : MonoBehaviour
 #endif
         Directory.CreateDirectory(folder);
         string path = Path.GetFullPath(Path.Combine(folder, "audiomw-playground-session.json"));
-        File.WriteAllText(path, JsonUtility.ToJson(new Session { unity = Application.unityVersion, relays = collected, completed = complete, surface = surfaceName, lastLimitReason = lastDiagnostic }, true));
+        AudioMixProfile mix = AudioRuntime.Instance.ActiveMixProfile;
+        float musicDb = 0, ambienceDb = 0;
+        if (mix != null) { mix.Routing.Mixer.GetFloat("AudioMW_MusicDuckDb", out musicDb); mix.Routing.Mixer.GetFloat("AudioMW_AmbienceDuckDb", out ambienceDb); }
+        File.WriteAllText(path, JsonUtility.ToJson(new Session { unity = Application.unityVersion, relays = collected, completed = complete, surface = surfaceName, lastLimitReason = lastDiagnostic, mixActive = mix != null, musicDuckDb = musicDb, ambienceDuckDb = ambienceDb }, true));
         Debug.Log("AudioMW manual test report: " + path); Tell("Report saved: " + path);
     }
     private void OnDestroy()

@@ -21,6 +21,9 @@ namespace AudioMW
         private VoiceOverDirector voiceOver;
         private readonly EventDebugger debugger = new EventDebugger();
         private readonly MixerDirector mixing = new MixerDirector();
+        private AudioMixSession mixSession;
+        public AudioMixProfile ActiveMixProfile => mixSession != null ? mixSession.Profile : null;
+        public System.IDisposable AcquireMixProfile(AudioMixProfile profile) => mixSession.Acquire(profile);
         private readonly List<PlaybackInstance> instances = new List<PlaybackInstance>();
         private readonly Dictionary<int, PlaybackInstance> handles = new Dictionary<int, PlaybackInstance>();
         private readonly Dictionary<SoundEvent, float> lastStarted = new Dictionary<SoundEvent, float>();
@@ -185,6 +188,7 @@ namespace AudioMW
             pool = new VoicePool(transform, AudioRuntimeSettings.MaxVoices);
             music = new MusicPlayer(transform);
             voiceOver = new VoiceOverDirector(transform);
+            mixSession = new AudioMixSession(this);
         }
 
         private void LateUpdate()
@@ -535,6 +539,7 @@ namespace AudioMW
                 pool.DestroyAll();
                 music.Stop();
                 voiceOver.Reset();
+                mixSession.Clear();
                 mixing.Clear();
                 globalParameters.Clear();
                 SoundBank.UnloadAll();

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.0-preview.16 — Reviewed mixer installation
+
+- Added an explicit Mix Setup review/apply flow for native mixer creation, asset routes and VO ducking.
+- Added mix profiles, scene scopes and shared runtime ownership with separate VO attack/release.
+- Added installation receipts, stale-plan checks and rollback backups; preserved category/master faders.
+- Fixed mixer write caching across different mixers with identical exposed parameter names.
+- Integrated the reviewed mixer into Relay Field without duplicate source/game-code ducking.
+
+
 All notable changes to this package are documented here.
 The format follows Keep a Changelog and the project uses semantic versioning.
 

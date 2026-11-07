@@ -77,3 +77,9 @@ Why and save at 620-point width; narrow 380-point layout is checked separately.
 Light-theme, broader accessibility, large-library responsiveness and MCP clients
 remain separate gates. Clip metadata/library diagnostics do not establish
 loudness compliance, rendered frequency balance or sound quality by ear.
+
+## Next executable review
+
+The Configure routing and ducking action opens Mix Setup. It is a separate explicit
+approval, described in [mix-setup.md](mix-setup.md); saving this brief alone still
+does not change audio routes or settings.

@@ -7,7 +7,7 @@ namespace AudioMW
     public sealed class MixerDirector
     {
         private readonly List<MixerRoutingProfile> profiles = new List<MixerRoutingProfile>();
-        private readonly Dictionary<string, float> lastWritten = new Dictionary<string, float>();
+        private readonly Dictionary<UnityEngine.Audio.AudioMixer, Dictionary<string, float>> lastWritten = new Dictionary<UnityEngine.Audio.AudioMixer, Dictionary<string, float>>();
 
         private int writesThisFrame;
         private int totalWrites;
@@ -38,6 +38,17 @@ namespace AudioMW
         public void RemoveProfile(MixerRoutingProfile profile)
         {
             profiles.Remove(profile);
+            if (profile != null && profile.Mixer != null) lastWritten.Remove(profile.Mixer);
+        }
+
+        internal bool ConflictsWith(MixerRoutingProfile requested)
+        {
+            foreach (MixerRoutingProfile current in profiles)
+                if (current != null && current.Mixer == requested.Mixer)
+                    foreach (MixerParameterBinding existing in current.Bindings)
+                        foreach (MixerParameterBinding binding in requested.Bindings)
+                            if (existing != null && existing.IsValid && binding != null && binding.IsValid && existing.ExposedName == binding.ExposedName) return true;
+            return false;
         }
 
         public void Clear()
@@ -65,6 +76,11 @@ namespace AudioMW
                 return;
             }
 
+            Dictionary<string, float> values;
+            if (!lastWritten.TryGetValue(profile.Mixer, out values))
+            {
+                values = new Dictionary<string, float>(); lastWritten.Add(profile.Mixer, values);
+            }
             MixerParameterBinding[] bindings = profile.Bindings;
 
             for (int i = 0; i < bindings.Length; i++)
@@ -83,14 +99,14 @@ namespace AudioMW
                 float target = binding.Evaluate(raw);
                 float previous;
 
-                if (lastWritten.TryGetValue(binding.ExposedName, out previous) && Mathf.Approximately(previous, target))
+                if (values.TryGetValue(binding.ExposedName, out previous) && Mathf.Approximately(previous, target))
                 {
                     continue;
                 }
 
                 if (profile.Mixer.SetFloat(binding.ExposedName, target))
                 {
-                    lastWritten[binding.ExposedName] = target;
+                    values[binding.ExposedName] = target;
                     writesThisFrame++;
                     totalWrites++;
                 }

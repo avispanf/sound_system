@@ -2,8 +2,9 @@
 
 Status: product requirement, updated 2026-11-07. The first Editor-only brief,
 metadata/library analysis and reviewed-profile workflow is implemented; see
-[project-setup.md](project-setup.md). The remaining work below is planned. No
-AudioMW MCP server, mixer generator or live spectral adviser is implemented. The existing middleware remains
+[project-setup.md](project-setup.md). Reviewed native mixer-template installation,
+asset routing and VO ducking are implemented in [mix-setup.md](mix-setup.md).
+The remaining work below is planned. No AudioMW MCP server or live spectral adviser is implemented. The existing middleware remains
 usable without an agent, cloud account or subscription.
 
 ## Customer workflow

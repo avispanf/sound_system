@@ -32,9 +32,11 @@ WASD moves, Shift runs, Space jumps. Camera follows without mouse capture.
 | F8 | Save a runtime snapshot; Editor: TestReports folder in this project; full path in Console/HUD |
 
 The AudioListener is at the player's ears, not on the distant overview camera.
-Music ducking uses the game's adapter to MusicPlayer.SetVolume; ambience uses real
-AudioMW parameter bindings. This is explicit integration code, not a new hidden
-middleware feature. Scenes and all audio assets remain editable in Inspector.
+The prepared mix uses RelayMix.profile.asset and an AudioMixScope on the player.
+Music and ambience pass through dedicated mixer duck subgroups, driven by VO with
+separate attack/release. The game bypasses its old music duck adapter when a mix
+profile is active; the old ambience duck Volume bindings were explicitly removed.
+Scenes and all audio assets remain editable in Inspector.
 
 ## Audio content
 
@@ -71,3 +73,13 @@ reads existing audio and shows inventory, library diagnostics and Why explanatio
 Reject writes nothing; Approve and save plan writes only the setup profile. No
 routing, mixer effects, importers, gains or gameplay hooks are changed in this
 stage. Edit an answer after analysis to verify that approval becomes unavailable.
+
+## Mix Setup review
+
+Open Window > AudioMW > Mix Setup for explicit route/duck review. The prepared
+RelayMix installation has a receipt. An unchanged repeat is a no-op; editing its
+tracked scene or assets blocks reapplication and preserves those edits. For a new
+experiment choose a new installation name and review existing-route replacement.
+Do not add a second scope to the same target. See the packaged mix-setup.md for
+ownership, rollback boundaries and compatible mixer paths. F8 snapshots now include
+mixActive and both duck gains; these are measurements, not listening approval.
