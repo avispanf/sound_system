@@ -28,6 +28,16 @@ existing preview.14 archive and leaves the middleware runtime unchanged.
 See [manual-integration.md](manual-integration.md) for reproduction and boundaries.
 The user listening pass remains open.
 
+## Assisted-authoring first stage
+
+Project Setup now captures and reviews a brief without changing audio settings.
+The installed preview.15 Editor code passes 275/275 EditMode tests on both local
+editor versions. Relay Field's four gameplay integration tests also pass with
+that package. Native Unity 6 dark-theme review/save/reject/Why checks are recorded
+separately from automated tests. See [project-setup.md](project-setup.md).
+This stage saves a reviewed profile; it does not generate a mixer or connect an
+AI client, and it does not close the listening/content release gates.
+
 ## Open release gates
 
 - IL2CPP with High stripping: Mac modules are installed for both local editors,

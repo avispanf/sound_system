@@ -96,7 +96,7 @@ persistent search/rejection filters, explanatory empty states, and the existing
 captured reason, gain disclosure and action to event settings. Accepted requests
 without gain capture do not claim audibility or zero volume.
 
-## Planned assisted-implementation review
+## Assisted-implementation review
 
 A dedicated onboarding/review window owns project setup; Browser stays read-only.
 Ask a short brief only for information not already detected. Show the proposed
@@ -106,4 +106,6 @@ Apply selected / Reject / Why actions. Approval belongs to this Unity UI even if
 the external agent client enables automatic tool approval. No change is applied
 from merely opening the review or closing a question. Keep plan state, conflicts
 and partial results legible. See [agent-assisted-authoring.md](agent-assisted-authoring.md).
-This section specifies future UI; no implementation is claimed.
+The first Project Setup UI now implements draft questions, read-only inventory,
+Why explanations, rejection and explicit reviewed-profile saving. It does not
+apply the broader routing/gain proposals. See [project-setup.md](project-setup.md).

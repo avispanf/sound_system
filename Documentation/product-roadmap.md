@@ -181,7 +181,9 @@ mix advice. Platform-aware budgets are useful; universal platform-based master
 levels or automatic genre EQ are not product guarantees. See
 [agent-assisted-authoring.md](agent-assisted-authoring.md) for approval ownership,
 UX, audio-measurement boundaries, implementation batches and acceptance criteria.
-This is planned work, not an implemented feature or current Store claim.
+The first Editor-only brief/analysis/reviewed-profile stage is now implemented;
+see [project-setup.md](project-setup.md). Mixer/event generation, MCP clients and
+rendered-mix advice remain planned and are not current Store claims.
 
 ## Commercial hypothesis
 

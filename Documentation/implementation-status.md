@@ -331,3 +331,18 @@ with an explicit airborne interval and zero CharacterController minMoveDistance.
 A regression test verifies one landing after a fall and no subsequent idle spam.
 No middleware runtime change was needed. Existing synthesized clips remain
 placeholders; user listening and redistributable content remain release gates.
+
+## Project Setup and approval workflow
+
+The Editor-only Project Setup window captures a brief, inventories existing audio
+and records a concrete profile-save plan with advisory routing/ducking/budget
+recommendations. Analysis/rejection leave authored assets unchanged. Approval
+checks project/input/destination revisions and saves only AudioProjectSetup, with
+Unity Undo and idempotent revisions. The Browser remains read-only. No MCP bridge,
+mixer generation, importer edits or master/spectral monitor is claimed.
+
+Twelve new tests join the existing 263 EditMode cases. The installed preview.15
+code passes 275/275 in Unity 2022.3.62f3 and 6000.3.21f1 with graphics enabled.
+Relay Field fixture checks confirm unchanged existing game files and profile
+persistence. Native Unity 6 dark-theme actions cover analysis, rejection, Why,
+edit invalidation and saving. See project-setup.md for scope and open QA gates.

@@ -1,8 +1,9 @@
 # Agent-assisted audio implementation
 
-Status: proposed product requirement, 2026-11-07. This document defines future
-work; no AudioMW MCP server, project onboarding wizard, mixer generator or live
-spectral adviser is implemented by this change. The existing middleware remains
+Status: product requirement, updated 2026-11-07. The first Editor-only brief,
+metadata/library analysis and reviewed-profile workflow is implemented; see
+[project-setup.md](project-setup.md). The remaining work below is planned. No
+AudioMW MCP server, mixer generator or live spectral adviser is implemented. The existing middleware remains
 usable without an agent, cloud account or subscription.
 
 ## Customer workflow

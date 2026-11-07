@@ -5,6 +5,8 @@ The format follows Keep a Changelog and the project uses semantic versioning.
 
 ## [Unreleased]
 
+- Add Editor-only Project Setup with a project brief, read-only audio inventory, captured library diagnostics, short recommendation explanations and explicit reviewed-profile saving. Rejecting or editing a draft writes no authored assets; stale inputs and destination conflicts block approval. Mixer generation, gains and MCP integration remain separate work.
+
 - Add read-only Library Audit for event/music/parameter/bank/VO content with native Inspector navigation, severity filters and GUID/local-ID JSON snapshots.
 
 - Capture nested container failure assets and actual Switch values in runtime diagnostics; route settings to the failing asset and refresh Inspector warnings when dependencies change.

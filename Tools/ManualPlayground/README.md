@@ -62,3 +62,12 @@ generated Data assets: normal editing/testing does not require rebuilding.
 
 This project is a manual test fixture, not an Asset Store release or listening
 approval. Windows/mobile/IL2CPP and real Addressables are separate gates.
+
+## Project Setup review
+
+Open Window > AudioMW > Project Setup. Load Assets/RelayFieldSetup.asset if the
+prepared fixture includes it, or fill a brief and select Assets/Playground. Analyse
+reads existing audio and shows inventory, library diagnostics and Why explanations.
+Reject writes nothing; Approve and save plan writes only the setup profile. No
+routing, mixer effects, importers, gains or gameplay hooks are changed in this
+stage. Edit an answer after analysis to verify that approval becomes unavailable.
