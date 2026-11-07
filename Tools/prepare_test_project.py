@@ -1,8 +1,16 @@
 import argparse
 import json
+import os
 from pathlib import Path
 import re
 import shutil
+
+
+def archive_dependency(destination, archive):
+    try:
+        return "file:" + Path(os.path.relpath(archive, destination / "Packages")).as_posix()
+    except ValueError:
+        return "file:" + archive.as_posix()
 
 
 def prepare(destination, unity_version, archive=None, addressables_version=None):
@@ -32,11 +40,15 @@ def prepare(destination, unity_version, archive=None, addressables_version=None)
         dependencies["com.unity.modules." + module] = "1.0.0"
     manifest = {"dependencies": dependencies}
     if archive is not None:
-        dependencies["com.avispanf.audiomw"] = "file:" + archive.as_posix()
+        dependencies["com.avispanf.audiomw"] = archive_dependency(destination, archive)
         manifest["testables"] = ["com.avispanf.audiomw"]
         validation = destination / "Assets" / "Editor" / "AudioMWDistributionValidation"
         validation.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(repository / "Tools" / "PackageValidation" / "ValidateDistribution.cs", validation)
+        for name in ("ValidateDistribution.cs", "BuildPlayerSmoke.cs"):
+            shutil.copy2(repository / "Tools" / "PackageValidation" / name, validation)
+        runtime_validation = destination / "Assets" / "AudioMWPlayerValidation"
+        runtime_validation.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(repository / "Tools" / "PackageValidation" / "AudioMWPlayerSmoke.cs", runtime_validation)
     optional = destination / "Assets" / "Editor" / "AudioMWAddressablesValidation"
     if optional.exists():
         shutil.rmtree(optional)

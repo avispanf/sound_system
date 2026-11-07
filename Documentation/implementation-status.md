@@ -275,3 +275,22 @@ and summaries without marking or rewriting the parent. Runtime selection, branch
 acceptance, voice limits and gain behaviour are unchanged. Rejection metadata is
 reset between pooled requests; ignored empty branches do not turn an accepted
 request into a rejection or leak stale reasons into capacity failures.
+
+## Desktop Player release gate
+
+Validation tooling now imports the delivered UPM sample, validates its references,
+builds a separate serialized desktop scene and executes a real Player. This is
+independent of Editor PlayMode tests. Local macOS Mono / Low-stripping builds on
+Unity 2022.3.62f3 and 6000.3.21f1 passed fourteen runtime checks with DSP progression
+and actual AudioSource playback. The Player contains AudioMW.Runtime but excludes
+AudioMW Editor and test assemblies. Muted output is not a human listening pass.
+
+Mac IL2CPP support modules were installed for both editors. High-stripping builds
+reach the native compiler gate but fail because full Xcode is absent; Command Line
+Tools alone are insufficient. No IL2CPP compatibility claim is made. The helper
+retains an explicit IL2CPP path for rerunning with a complete toolchain.
+
+Package/Python checks run as a separate license-free CI job and produce the one
+UPM archive consumed by Unity jobs. Fixture tarball paths are portable across
+workspace mounts. Cloud Unity execution still requires credentials. Windows,
+Linux, mobile/device and real Addressables catalog validation remain open.

@@ -36,3 +36,12 @@ sample using Package Manager, opens its scene and checks missing components,
 serialized references, shader import and the shipped Browser stylesheet.
 It writes distribution-validation.json in the fixture. Then run the package's
 EditMode and PlayMode tests using the same fixture.
+
+## Desktop Player release validation
+
+Maintainers can build and execute an isolated desktop validation scene using the
+repository's `Tools/run_player_smoke.py`. It reuses the installed-sample import
+and reference checks, then validates serialized graphs and native playback in
+a non-development Player. See the repository's compatibility-testing.md and
+release-readiness.md for commands and the verified platform/backend matrix.
+These development tools are not installed into a customer's AudioMW package.

@@ -8,7 +8,27 @@ on:
   workflow_dispatch:
 
 jobs:
+  package:
+    name: Package and validation tooling
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Check package and player validation tooling
+        run: python3 -m unittest discover -s Tools/Tests -v
+      - name: Assemble UPM archive
+        run: python3 Tools/build_package.py --output .ci/audiomw.tgz
+      - name: Prepare portable package fixture
+        run: python3 Tools/prepare_test_project.py --destination .ci/PackageProject --unity-version 2022.3.62f1 --archive .ci/audiomw.tgz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: audiomw-package
+          path: |
+            .ci/audiomw.tgz
+            .ci/audiomw.json
   test:
+    needs: package
     name: ${{ matrix.unityVersion }} ${{ matrix.testMode }}
     runs-on: ubuntu-latest
     strategy:
@@ -25,11 +45,10 @@ jobs:
         with:
           lfs: true
 
-      - name: Check package assembler
-        run: python3 -m unittest discover -s Tools/Tests -v
-
-      - name: Assemble UPM archive
-        run: python3 Tools/build_package.py --output .ci/audiomw.tgz
+      - uses: actions/download-artifact@v4
+        with:
+          name: audiomw-package
+          path: .ci
 
       - name: Prepare isolated package project
         run: python3 Tools/prepare_test_project.py --destination .ci/TestProject --unity-version '${{ matrix.unityVersion }}' --archive .ci/audiomw.tgz
