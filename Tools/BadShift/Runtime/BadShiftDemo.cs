@@ -159,13 +159,14 @@ public sealed class BadShiftDemo : MonoBehaviour
         Panel(new Rect(24,bottom,470,186),panel);
         GUI.Label(new Rect(44,bottom+16,430,26),tour!=null?tour.Heading:"Explore the cafe",TextStyle(17,white,true));
         GUI.Label(new Rect(44,bottom+48,430,86),tour!=null?tour.Explanation:"WASD move / Shift run / Space jump",TextStyle(14,muted));
-        GUI.Label(new Rect(44,bottom+142,430,25),"Ingredients "+Game.Collected+"/"+Game.Pickups.Length+"   ·   Cups "+BadShiftImpactProp.BreakCount+"/4",TextStyle(13,white));
+        GUI.Label(new Rect(44,bottom+142,430,25),"Ingredients "+Game.Collected+"/"+Game.Pickups.Length+"   ·   Cups "+BadShiftImpactProp.BreakCount+"/"+BadShiftImpactProp.InitialBreakableCount,TextStyle(13,white));
         Panel(new Rect(510,bottom,w-534,186),panel);
         int station=Station();MusicPlayer music=AudioSystem.Music;
         string state=station==1?(bag?"ShuffleBag":"Random")+" · "+answer:station==2?"Voice-over / mixer ducking":station==3?new[]{"Dry","Echo · 280 ms","Reverb · room tail"}[effect]:station==4?"Fridge · listener "+ListenerDistance.ToString("0.0")+" m":"Music · "+(music.CurrentTrack!=null?music.CurrentTrack.name:"Stopped");
         GUI.Label(new Rect(530,bottom+16,w-574,27),state,TextStyle(17,white,true));
         string status=music.IsTransitionPending?"Transition waiting for "+music.PendingQuantization:station==4?"Music muted · move the player to compare distance":"X interact · Q variation · V manager · P pause";
-        if(Game.Door != null && Game.Door.CanInteract(Game.transform.position))status="E / "+(Game.Door.IsOpen?"Close":"Open")+" stockroom door";
+        if(Game.Door != null && Game.Door.CanInteract(Game.transform.position))status="E / "+(Game.Door.IsOpen?"Close":"Open")+" bathroom door"+(Game.Door.IsBlocked?" · step aside":"");
+        if(station!=1 && Game.FridgeDoors != null && Game.FridgeDoors.CanInteract(Game.transform.position))status="E / lower door · G / upper door"+((Game.FridgeDoors.Lower.IsBlocked||Game.FridgeDoors.Upper.IsBlocked)?" · step aside":"");
         if(AudioSystem.VoiceOver.IsSpeaking && AudioRuntime.Instance.ActiveMixProfile!=null && AudioRuntime.Instance.ActiveMixProfile.Routing.Mixer.GetFloat("AudioMW_MusicDuckDb",out float db))status="Actual music duck: "+db.ToString("0.0")+" dB";
         GUI.Label(new Rect(530,bottom+49,w-574,46),status,TextStyle(13,muted));
         BadShiftOrbitCamera orbit=Game.OrbitCamera;

@@ -104,6 +104,7 @@ public sealed class BadShiftInteractionTests
     }
     [UnityTest] public IEnumerator ResetRestoresPickupsFurnitureAndPauseState()
     {
+        int breakablesBefore=Object.FindObjectsByType<BadShiftImpactProp>(FindObjectsSortMode.None).Count(p=>p.Breakable);
         PlaygroundPickup pickup=game.Pickups.First(p=>p.AutoCollect);PlacePlayer(pickup.transform.position+Vector3.down*.8f);game.TryCollect(pickup);
         Rigidbody chair=Object.FindObjectsByType<Rigidbody>(FindObjectsSortMode.None).First(r=>r.name=="Coral cafe chair");Vector3 original=chair.position;chair.position+=Vector3.right*2;
         AudioSystem.SetPaused(true);Time.timeScale=0;AudioMWPlayground old=game;game.ResetScene();game.ResetScene();
@@ -112,7 +113,7 @@ public sealed class BadShiftInteractionTests
         game=Object.FindFirstObjectByType<AudioMWPlayground>();Assert.AreEqual(0,game.Collected);Assert.IsTrue(game.Pickups.All(p=>!p.Collected));Assert.AreEqual(1,Time.timeScale);Assert.IsFalse(AudioListener.pause);
         Assert.IsTrue(Object.FindObjectsByType<Rigidbody>(FindObjectsSortMode.None).Any(r=>r.name=="Coral cafe chair"&&Vector3.Distance(r.position,original)<.15f));
         Assert.AreEqual(1,game.Bank.ScopeCount);Assert.AreEqual(0,BadShiftImpactProp.BreakCount);
-        Assert.AreEqual(4,Object.FindObjectsByType<BadShiftImpactProp>(FindObjectsSortMode.None).Count(p=>p.Breakable));
+        Assert.AreEqual(breakablesBefore,Object.FindObjectsByType<BadShiftImpactProp>(FindObjectsSortMode.None).Count(p=>p.Breakable));
         BadShiftDemo demo=game.GetComponent<BadShiftDemo>();var clips=new System.Collections.Generic.HashSet<string>();
         for(int i=0;i<demo.MicrowaveBag.Clips.Length;i++){demo.PlayMicrowave();clips.Add(demo.LastAnswer);yield return null;}
         Assert.AreEqual(demo.MicrowaveBag.Clips.Length,clips.Count);

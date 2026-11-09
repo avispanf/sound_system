@@ -37,8 +37,8 @@ public sealed class BadShiftTour : MonoBehaviour
         Game.OrbitCamera.Home();
         Heading = "01 / Surface footsteps & pickups";
         Explanation = "The player walks across stone and grass. Local surface parameters choose footsteps; glowing bananas trigger pickup events automatically.";
-        yield return WalkTo(new Vector3(-9,0,-6.5f)); if (!Running) yield break;
-        yield return WalkTo(new Vector3(-5.4f,0,-6.5f)); if (!Running) yield break;
+        yield return WalkTo(new Vector3(-10,0,-7.5f)); if (!Running) yield break;
+        yield return WalkTo(new Vector3(-6,0,-7.5f)); if (!Running) yield break;
         yield return new WaitForSeconds(2);
         Heading = "02 / Adaptive music";
         Explanation = "Crossing into the kitchen requests Combat. The music waits for a musical boundary; the employee dances only after the track changes.";
@@ -48,12 +48,12 @@ public sealed class BadShiftTour : MonoBehaviour
         yield return new WaitForSeconds(3);
         Heading = "03 / Random & ShuffleBag";
         Explanation = "The microwave plays three ShuffleBag choices, then Random. The station readout shows the clip actually selected by AudioMW.";
-        yield return WalkTo(new Vector3(3,0,4.3f)); if (!Running) yield break;
+        yield return WalkTo(new Vector3(6,0,5.75f)); if (!Running) yield break;
         for (int i=0;i<3;i++) { Demo.PlayMicrowave(); yield return new WaitForSeconds(1.2f); }
         Demo.ToggleSelection(); Demo.PlayMicrowave(); yield return new WaitForSeconds(2); Demo.ToggleSelection();
         Heading = "04 / Voice-over ducking";
         Explanation = "The manager speaks. Watch the quote and actual mixer duck value: music and ambience dip, then recover after the line.";
-        yield return WalkTo(new Vector3(-6,0,5.5f)); if (!Running) yield break;
+        yield return WalkTo(new Vector3(-5.8f,0,6.5f)); if (!Running) yield break;
         if (!AudioSystem.VoiceOver.IsSpeaking) Game.Speak();
         while (AudioSystem.VoiceOver.IsSpeaking) yield return null;
         yield return new WaitForSeconds(2);
@@ -68,9 +68,17 @@ public sealed class BadShiftTour : MonoBehaviour
         yield return WalkTo(new Vector3(-3,0,6.5f)); if (!Running) yield break;
         for (int mode=0;mode<3;mode++) { Demo.SetEffect(mode); Demo.PlayRoom(); yield return new WaitForSeconds(3); }
         Heading = "06 / Distance attenuation";
-        Explanation = "The refrigerator stays fixed. The listener moves with the player; music is muted on this lane. Compare the near and far sound. Camera zoom does not change distance.";
-        yield return WalkTo(new Vector3(9,0,3)); if (!Running) yield break;
+        Explanation = "Move the listener near and far from the fixed fridge. Music is muted here. E / lower door, G / upper door. Camera zoom does not change audio distance.";
+        yield return WalkTo(new Vector3(9,0,5.25f)); if (!Running) yield break;
         yield return new WaitForSeconds(3);
+        yield return WalkTo(new Vector3(7,0,5.25f)); if (!Running) yield break;
+        if (Game.FridgeDoors != null)
+        {
+            Game.FridgeDoors.Lower.SetOpen(true); Game.FridgeDoors.Upper.SetOpen(true);
+            yield return new WaitForSeconds(2);
+            Game.FridgeDoors.Lower.SetOpen(false); Game.FridgeDoors.Upper.SetOpen(false);
+            yield return new WaitForSeconds(.6f);
+        }
         yield return WalkTo(new Vector3(9,0,-5)); if (!Running) yield break;
         yield return new WaitForSeconds(3);
         Heading = "Demo complete / Your turn";

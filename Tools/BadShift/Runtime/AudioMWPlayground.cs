@@ -28,6 +28,7 @@ public sealed class AudioMWPlayground : MonoBehaviour
     public bool DioramaCamera;
     public BadShiftTour Tour;
     public BadShiftDoor Door;
+    public BadShiftFridge FridgeDoors;
     public BadShiftOrbitCamera OrbitCamera;
     public float JumpHeight = .55f;
     public bool IsResetting { get; private set; }
@@ -129,6 +130,7 @@ public sealed class AudioMWPlayground : MonoBehaviour
         AudioSystem.Music.SetVolume(musicMuted ? 0 : 0.75f * AuditionMixGain * (AudioRuntime.Instance.ActiveMixProfile != null ? 1 : Mathf.Lerp(1, 0.25f, AudioSystem.GetParameter(VoiceDuck))));
         if ((keys != null && keys.fKey.wasPressedThisFrame)) Fire();
         if ((keys != null && keys.eKey.wasPressedThisFrame)) Interact();
+        if (keys != null && keys.gKey.wasPressedThisFrame && FridgeDoors != null) FridgeDoors.ToggleUpperNear(transform.position);
         if ((keys != null && keys.vKey.wasPressedThisFrame)) Speak();
         if ((keys != null && keys.lKey.wasPressedThisFrame)) StressLimit();
         if ((keys != null && keys.mKey.wasPressedThisFrame)) RequestMusic(!requestedCombat);
@@ -190,6 +192,7 @@ public sealed class AudioMWPlayground : MonoBehaviour
 
     public void Interact()
     {
+        if (FridgeDoors != null && FridgeDoors.ToggleLowerNear(transform.position)) return;
         if (Door != null && Door.CanInteract(transform.position)) { Door.Toggle(); return; }
         PlaygroundPickup nearest = null; float distance = 2;
         foreach (PlaygroundPickup item in Pickups)

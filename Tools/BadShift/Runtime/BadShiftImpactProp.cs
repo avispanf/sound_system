@@ -13,10 +13,15 @@ public sealed class BadShiftImpactProp : MonoBehaviour
     public PhysicsMaterial ContactMaterial;
     public bool Broken { get; private set; }
     public static int BreakCount { get; private set; }
+    public static int InitialBreakableCount { get; private set; }
     private float nextImpact;
     private Rigidbody body;
     private void Awake() { body = GetComponent<Rigidbody>(); }
-    public static void ResetCounters() { BreakCount = 0; }
+    public static void ResetCounters()
+    {
+        BreakCount = 0; InitialBreakableCount = 0;
+        foreach (BadShiftImpactProp prop in FindObjectsByType<BadShiftImpactProp>(FindObjectsSortMode.None)) if (prop.Breakable) InitialBreakableCount++;
+    }
     public void ReportPush()
     {
         if (Time.time < nextImpact || ImpactSound == null) return;
