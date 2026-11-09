@@ -133,3 +133,27 @@ of cumulative hip offset. The result is procedural stylized animation, not an ex
 copy of the illustration or fully authored stop-motion animation.
 
 Validation on 2026-11-09: full suite 227/227 passed. After removing idle foot recentering, four focused actor/gait tests passed again, including fixed stance feet during movement and after stopping. Inspected post-LateUpdate walking captures. The whole demo route remains covered by the full suite; perceptual footstep/audio review is still manual.
+
+## Arm performance, dance, run and jump
+
+ClayPerformancePass.Run adds a visual arm layer after the gait layer. Shoulders,
+forearms and hands use different phase offsets: the hands lag the arm swing,
+running increases the response, and airborne motion opens the arms for balance.
+Both staff retain their source skeletal animation; every added rotation is removed
+before the next Animator evaluation to prevent accumulation.
+
+The employee's arm flourishes and body bounce follow the AudioMW music clock while
+Combat is active. Arm accents use six pose samples per beat; transitions into and
+out of the dance blend smoothly. VO and pause hold the offsets. This remains a
+procedural clay interpretation over continuous skeletal animation, not authored
+frame-by-frame stop-motion.
+
+The gait consumes full measured displacement below the teleport threshold, so low
+frame rates do not silently slow its phase. Added PlayMode checks cover running
+stance stability and distance cadence, physical jump height and landing, and actual
+post-pose arm motion/freeze/resume. Inspected close-ups: clay-dance-a/b, clay-run,
+clay-jump and clay-landing. No physical movement speeds, gravity or colliders change.
+
+The landing regression test clears its debugger window immediately before the fall: the bounded event history persists between scenes, so an old Landing entry can be evicted as a new one arrives. The test still requires exactly one landing record, now also requiring PlaybackOutcome.Played, and no additional record during the quiet period. No timeout or runtime landing behavior was changed.
+
+Performance-pass validation: all 230 PlayMode tests passed on 2026-11-09 after the debugger-isolation correction. All seven actor tests cover idle/walk, run cadence, jump/landing and arm/face pause/VO holds. Runtime camera images were inspected for both dance poses, run, jump and landing.

@@ -50,8 +50,8 @@ changed demo scene; don't reapply its old installation plan.
 
 ## Verification and boundaries
 
-227 PlayMode tests pass in Unity 6000.3.21f1, including forty demo tests: five inherited gameplay/mix tests and
-thirty-five BAD SHIFT checks (real clip selection, source/filter switching, listener
+230 PlayMode tests pass in Unity 6000.3.21f1, including forty-three demo tests: five inherited gameplay/mix tests and
+thirty-eight BAD SHIFT checks (real clip selection, source/filter switching, listener
 measurement, actual music/VO animation timing, collision, live character reactions and walkable routes). Collection tests move the character
 programmatically; they are not proof of complete human navigation/listening QA.
 
@@ -93,3 +93,5 @@ See LAYOUT-PASS.md for the three dining rows, kitchen alignment, furnished bathr
 The latest character pass replaces visible skeleton meshes with rounded clay geometry, bone-attached aprons, blinking eyes and stepped head animation. See REFERENCE-ART.md for authoring and lighting details.
 
 The gait pass adds longer legs, a smaller head and narrower apron, world-anchored stance feet, distance-driven swing and contact-driven footsteps. ClayGaitPass.Run applies it once after the character pass.
+
+ClayPerformancePass.Run adds delayed arm/hand motion and music-clock dance accents after the gait pass. Running, jump release, landing and VO/pause holds have dedicated PlayMode coverage.

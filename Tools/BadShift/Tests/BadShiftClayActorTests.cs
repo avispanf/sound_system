@@ -71,6 +71,58 @@ public sealed class BadShiftClayActorTests
         Assert.AreEqual(cycle,gait.Cycle);Assert.AreEqual(foot,gait.FootPositions[0]);Time.timeScale=1;AudioSystem.SetPaused(false);
         yield return null;Assert.Greater(probe.HipHeight,.65f);
     }
+    [UnityTest] public IEnumerator RunningMaintainsStanceContactsAndDistanceCadence()
+    {
+        var game=demo.Game;game.enabled=false;var gait=game.ClayGait;Vector3 start=game.transform.position;
+        float startCycle=gait.Cycle,until=Time.time+1.1f;int samples=0;bool captured=false;
+        while(Time.time<until)
+        {
+            var before=(Vector3[])gait.FootPositions.Clone();var stance=(bool[])gait.Planted.Clone();
+            game.MoveCharacter(Vector3.right,false,true,Time.deltaTime);yield return null;
+            for(int i=0;i<2;i++)if(stance[i]&&gait.Planted[i]){Assert.Less(Vector3.Distance(before[i],gait.FootPositions[i]),.015f);samples++;}
+            if(!captured&&gait.Cycle-startCycle>.7f){Capture("clay-run",demo.PlayerAnimator.transform);captured=true;}
+        }
+        float distance=Vector3.Distance(start,game.transform.position);Assert.Greater(distance,4);Assert.Greater(samples,8);
+        Assert.AreEqual(distance/2.2f,gait.Cycle-startCycle,.08f);Assert.Greater(game.MovementSpeed,5);
+    }
+    [UnityTest] public IEnumerator JumpReleasesFeetAndRestoresGroundedPoseOnLanding()
+    {
+        var game=demo.Game;game.enabled=false;var gait=game.ClayGait;
+        game.MoveCharacter(Vector3.zero,false,false,Time.deltaTime);yield return null;
+        float ground=game.transform.position.y,apex=ground;bool airborne=false,landed=false,captured=false;
+        game.MoveCharacter(Vector3.zero,true,false,Time.deltaTime);yield return null;
+        float until=Time.time+2;
+        while(Time.time<until)
+        {
+            game.MoveCharacter(Vector3.zero,false,false,Time.deltaTime);yield return null;
+            apex=Mathf.Max(apex,game.transform.position.y);
+            if(game.transform.position.y-ground>.1f)
+            {
+                airborne=true;Assert.IsFalse(gait.Planted[0]);Assert.IsFalse(gait.Planted[1]);
+                if(!captured&&game.transform.position.y-ground>.35f){Capture("clay-jump",demo.PlayerAnimator.transform);captured=true;}
+            }
+            if(airborne&&game.IsGrounded){landed=true;break;}
+        }
+        Assert.IsTrue(landed);Assert.That(apex-ground,Is.InRange(.40f,.65f));
+        yield return new WaitForSeconds(.3f);Assert.IsTrue(gait.Planted.All(p=>p));Assert.GreaterOrEqual(probe.FootBottom,-.06f);
+        Capture("clay-landing",demo.PlayerAnimator.transform);yield return null;
+    }
+    [UnityTest] public IEnumerator DanceArmsChangePoseAndHoldDuringVoiceAndPause()
+    {
+        probe.Actor=demo.DanceAnimator.transform;Assert.IsNotNull(probe.Actor.GetComponent<BadShiftClayArms>());
+        demo.Game.RequestMusic(true);float until=Time.time+10;
+        while(AudioSystem.Music.CurrentTrack.name!="Combat"&&Time.time<until)yield return null;
+        Assert.AreEqual("Combat",AudioSystem.Music.CurrentTrack.name);yield return new WaitForSeconds(.4f);
+        Quaternion first=probe.ArmRotation;Capture("clay-dance-a",probe.Actor);yield return new WaitForSeconds(.35f);
+        Assert.Greater(Quaternion.Angle(first,probe.ArmRotation),3);Capture("clay-dance-b",probe.Actor);
+        demo.Game.Speak();yield return new WaitForSeconds(.15f);Assert.IsTrue(AudioSystem.VoiceOver.IsSpeaking);
+        Quaternion held=probe.ArmRotation;yield return new WaitForSeconds(.15f);Assert.Less(Quaternion.Angle(held,probe.ArmRotation),.01f);
+        while(AudioSystem.VoiceOver.IsSpeaking)yield return null;
+        yield return new WaitForSeconds(.3f);Assert.Greater(Quaternion.Angle(held,probe.ArmRotation),1);
+        AudioSystem.SetPaused(true);Time.timeScale=0;yield return null;held=probe.ArmRotation;
+        yield return new WaitForSecondsRealtime(.15f);Assert.Less(Quaternion.Angle(held,probe.ArmRotation),.01f);Time.timeScale=1;AudioSystem.SetPaused(false);
+    }
+
 }
 
 [DefaultExecutionOrder(1000)]
@@ -79,9 +131,13 @@ public sealed class BadShiftPoseProbe : MonoBehaviour
     public System.Action Capture;
     public Transform Actor;
     public float HipHeight;
+    public float FootBottom;
+    public Quaternion ArmRotation;
     private void LateUpdate()
     {
         HipHeight=Actor.GetComponentsInChildren<Transform>().First(t=>t.name=="hips").position.y-Actor.position.y;
+        ArmRotation=Actor.GetComponentsInChildren<Transform>().First(t=>t.name=="lowerarm.l").localRotation;
+        FootBottom=Actor.GetComponentsInChildren<Renderer>().Where(r=>r.name=="Clay shoe").Min(r=>r.bounds.min.y);
         var capture=Capture;Capture=null;capture?.Invoke();
     }
 }

@@ -64,7 +64,7 @@ public sealed class BadShiftClayGait : MonoBehaviour
         if(!hold)
         {
             IsWalking=walking;
-            if(walking)Cycle+=Mathf.Min(distance,.3f)/2.2f;
+            if(walking)Cycle+=distance/2.2f;
             lean=Mathf.Lerp(lean,walking?Mathf.Min(1,Demo.Game.MovementSpeed/6):0,1-Mathf.Exp(-10*Time.deltaTime));
         }
         hipPose=hips.localPosition;chestPose=chest.localRotation;applied=true;

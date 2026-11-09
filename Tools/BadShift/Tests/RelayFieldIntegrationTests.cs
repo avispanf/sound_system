@@ -37,11 +37,13 @@ public sealed class RelayFieldIntegrationTests
     [UnityTest] public IEnumerator LandingFiresOnceAfterAnActualFall()
     {
         yield return new WaitForSeconds(0.6f);
+        AudioSystem.Debugger.Clear();
         int before = AudioSystem.Debugger.Records.Count(item => item.EventName == "Landing");
         CharacterController character = game.GetComponent<CharacterController>();
         character.enabled = false; game.transform.position += Vector3.up * 2; character.enabled = true;
         yield return new WaitForSeconds(1.2f);
         Assert.AreEqual(before + 1, AudioSystem.Debugger.Records.Count(item => item.EventName == "Landing"));
+        Assert.AreEqual(1, AudioSystem.Debugger.Records.Count(item => item.EventName == "Landing" && item.Outcome == PlaybackOutcome.Played));
         yield return new WaitForSeconds(0.6f);
         Assert.AreEqual(before + 1, AudioSystem.Debugger.Records.Count(item => item.EventName == "Landing"));
     }
