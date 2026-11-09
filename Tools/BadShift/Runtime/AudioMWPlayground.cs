@@ -46,6 +46,7 @@ public sealed class AudioMWPlayground : MonoBehaviour
     public bool FreezeForVoice;
     public float LastInteractionTime { get; private set; } = -10;
     public BadShiftClayGait ClayGait;
+    public BadShiftCafeLife Life;
     public void PlayFootstep() { AudioSystem.PlayTrackedAttached(Footsteps, transform, local); }
     public bool IsGrounded => character != null && character.isGrounded;
     public float MovementSpeed => character == null ? 0 : new Vector2(character.velocity.x, character.velocity.z).magnitude;
@@ -132,7 +133,7 @@ public sealed class AudioMWPlayground : MonoBehaviour
         AudioSystem.Music.SetVolume(musicMuted ? 0 : 0.75f * AuditionMixGain * (AudioRuntime.Instance.ActiveMixProfile != null ? 1 : Mathf.Lerp(1, 0.25f, AudioSystem.GetParameter(VoiceDuck))));
         if ((keys != null && keys.fKey.wasPressedThisFrame)) Fire();
         if ((keys != null && keys.eKey.wasPressedThisFrame)) Interact();
-        if (keys != null && keys.gKey.wasPressedThisFrame && FridgeDoors != null) FridgeDoors.ToggleUpperNear(transform.position);
+        if (keys != null && keys.gKey.wasPressedThisFrame && FridgeDoors != null) FridgeDoors.ToggleUpperNear(transform.position,character);
         if ((keys != null && keys.vKey.wasPressedThisFrame)) Speak();
         if ((keys != null && keys.lKey.wasPressedThisFrame)) StressLimit();
         if ((keys != null && keys.mKey.wasPressedThisFrame)) RequestMusic(!requestedCombat);
@@ -145,6 +146,7 @@ public sealed class AudioMWPlayground : MonoBehaviour
     public void MoveCharacter(Vector3 direction, bool jump, bool run, float deltaTime)
     {
         if (character == null || deltaTime <= 0 || IsResetting) return;
+        if(Life!=null&&Life.PlayerDead){direction=Vector3.zero;jump=false;}
         direction = Vector3.ClampMagnitude(Vector3.ProjectOnPlane(direction, Vector3.up), 1);
         if (FreezeForVoice) direction = Vector3.zero;
         bool grounded = character.isGrounded;
@@ -194,6 +196,7 @@ public sealed class AudioMWPlayground : MonoBehaviour
 
     public void Interact()
     {
+        if(Life!=null){Life.Interact();return;}
         if (FridgeDoors != null && FridgeDoors.ToggleLowerNear(transform.position)) return;
         if (Door != null && Door.CanInteract(transform.position)) { Door.Toggle(); return; }
         PlaygroundPickup nearest = null; float distance = 2;
@@ -216,6 +219,11 @@ public sealed class AudioMWPlayground : MonoBehaviour
         AudioSystem.PlayStinger(Stinger, MusicQuantization.Beat, 0.2f);
         Tell(collected == Pickups.Length ? "All ingredients collected. Reach the exit." : "Ingredient collected: " + collected + " / " + Pickups.Length);
         return true;
+    }
+
+    public void RespawnAt(Vector3 position,Quaternion rotation)
+    {
+        character.enabled=false;transform.SetPositionAndRotation(position,rotation);planarVelocity=Vector3.zero;vertical=0;character.enabled=true;
     }
 
     public void ResetScene()

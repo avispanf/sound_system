@@ -10,9 +10,9 @@ public sealed class BadShiftFridge : MonoBehaviour
         if (!CanInteract(position)) return false;
         Lower.Toggle(); return true;
     }
-    public bool ToggleUpperNear(Vector3 position)
+    public bool ToggleUpperNear(Vector3 position,CharacterController actor=null)
     {
         if (!CanInteract(position)) return false;
-        Upper.Toggle(); return true;
+        if(actor!=null)Upper.ToggleFor(actor);else Upper.Toggle(); return true;
     }
 }

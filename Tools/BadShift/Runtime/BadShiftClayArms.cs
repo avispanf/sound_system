@@ -10,13 +10,14 @@ public sealed class BadShiftClayArms : MonoBehaviour
     private Transform[] joints;
     private Quaternion[] source,offset;
     private BadShiftClayGait gait;
+    private BadShiftCafeLife life;
     private float clock,danceWeight,runWeight,airWeight;
     private bool applied;
     private void Awake()
     {
         var bones=GetComponentsInChildren<Transform>();
         joints=new[]{"upperarm.l","lowerarm.l","hand.l","upperarm.r","lowerarm.r","hand.r"}.Select(n=>bones.First(t=>t.name==n)).ToArray();
-        source=new Quaternion[6];offset=Enumerable.Repeat(Quaternion.identity,6).ToArray();gait=GetComponent<BadShiftClayGait>();
+        source=new Quaternion[6];offset=Enumerable.Repeat(Quaternion.identity,6).ToArray();gait=GetComponent<BadShiftClayGait>();life=Demo.Game.Life;
     }
     private void Restore()
     {
@@ -26,7 +27,7 @@ public sealed class BadShiftClayArms : MonoBehaviour
     private void Update(){Restore();}
     private void LateUpdate()
     {
-        bool hold=AudioListener.pause||AudioSystem.VoiceOver.IsSpeaking;
+        bool hold=AudioListener.pause||AudioSystem.VoiceOver.IsSpeaking||(life!=null&&(Employee?life.EnemyDead:life.PlayerDead));
         if(!hold)
         {
             clock+=Time.deltaTime;
@@ -50,7 +51,8 @@ public sealed class BadShiftClayArms : MonoBehaviour
                 offset[side*3+2]=Quaternion.Euler(Mathf.Sin(stride-1.1f+side*Mathf.PI)*runWeight*20,flourish*danceWeight*20,sign*(Mathf.Sin(beat*2-1.4f+side)*danceWeight*32+airWeight*12));
             }
         }
-        for(int i=0;i<6;i++){source[i]=joints[i].localRotation;joints[i].localRotation=source[i]*offset[i];}
+        float remaining=life==null?0:Mathf.Clamp01(((Employee?life.EnemySwingUntil:life.PlayerSwingUntil)-Time.time)/.35f);
+        for(int i=0;i<6;i++){source[i]=joints[i].localRotation;joints[i].localRotation=source[i]*offset[i];if(i>=3&&remaining>0)joints[i].localRotation*=Quaternion.Euler(Mathf.Sin((1-remaining)*Mathf.PI)*-65,0,Mathf.Sin((1-remaining)*Mathf.PI)*35);}
         applied=true;
     }
     private void OnDisable(){Restore();}

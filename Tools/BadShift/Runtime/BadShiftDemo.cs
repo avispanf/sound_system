@@ -27,7 +27,7 @@ public sealed class BadShiftDemo : MonoBehaviour
     private float bossYaw;
     private bool wasNearBoss;
     private float nextGreeting;
-    public string BossQuote => AudioRuntime.Exists && AudioSystem.VoiceOver.IsSpeaking ? AudioSystem.VoiceOver.CurrentLine.Subtitle : "";
+    public string BossQuote => AudioRuntime.Exists && AudioSystem.VoiceOver.IsSpeaking ? AudioSystem.VoiceOver.CurrentLine.Subtitle : Game.Life!=null?Game.Life.ReactionQuote:"";
     private Quaternion dancerRest;
     private float reactionTime;
     private Transform[] eyes;
@@ -90,7 +90,7 @@ public sealed class BadShiftDemo : MonoBehaviour
             if (k.xKey.wasPressedThisFrame) { if (Station() == 1) PlayMicrowave(); if (Station() == 2) Game.Speak(); if (Station() == 3) PlayRoom(); }
         }
         bool speaking = AudioSystem.VoiceOver.IsSpeaking;
-        Game.FreezeForVoice = speaking;
+        Game.FreezeForVoice = speaking || (Game.Life!=null&&Game.Life.PlayerDead);
         reactionTime += Time.deltaTime;
         for (int i=0;i<eyes.Length;i++) eyes[i].localScale = Vector3.Scale(eyeScales[i], new Vector3(1,Mathf.Repeat(reactionTime,4)<.12f?.15f:1,1));
         Vector3 towardPlayer = Game.transform.position - Boss.position;
@@ -105,23 +105,23 @@ public sealed class BadShiftDemo : MonoBehaviour
         Boss.localRotation = Quaternion.Euler(speaking ? Mathf.Sin(reactionTime*9)*5 : Mathf.Sin(reactionTime*1.2f)*1.2f, bossYaw, Mathf.Sin(reactionTime*.8f)*1.3f) * bossRest;
         MusicPlayer music = AudioSystem.Music;
         bool combat = music.CurrentTrack != null && music.CurrentTrack.name == "Combat";
-        if (!speaking && !AudioListener.pause && combat)
+        if (!speaking && !AudioListener.pause && combat && (Game.Life==null||!Game.Life.EnemyDead))
         {
             dancePhase += Time.deltaTime * 7;
             Dancer.localRotation = dancerRest * Quaternion.Euler(0, Mathf.Sin(dancePhase) * 25, Mathf.Sin(dancePhase * 2) * 12);
             Dancer.localPosition = danceBase + Vector3.up * Mathf.Abs(Mathf.Sin(dancePhase)) * 0.15f;
         }
-        if (!combat && !speaking) { Dancer.localPosition = danceBase; Dancer.localRotation = dancerRest; }
+        if ((!combat || (Game.Life!=null&&Game.Life.EnemyDead)) && !speaking) { Dancer.localPosition = danceBase; Dancer.localRotation = dancerRest; }
         string desiredPlayer = !Game.IsGrounded ? "Jump" : Time.time < Mathf.Max(responseUntil, Game.LastInteractionTime + .65f) ? "Interact" : Game.MovementSpeed > 4.2f ? "Run" : Game.MovementSpeed > .15f ? "Walk" : "Idle";
         if (PlayerAnimator != null)
         {
-            PlayerAnimator.speed = speaking ? 0 : 1;
+            PlayerAnimator.speed = speaking || (Game.Life!=null&&Game.Life.PlayerDead) ? 0 : 1;
             if (playerPose != desiredPlayer) { PlayerAnimator.CrossFadeInFixedTime(desiredPlayer, .12f); playerPose = desiredPlayer; }
         }
         string desiredStaff = combat ? "Cheer" : "Idle";
         if (DanceAnimator != null)
         {
-            DanceAnimator.speed = speaking ? 0 : 1;
+            DanceAnimator.speed = speaking || (Game.Life!=null&&Game.Life.EnemyDead) ? 0 : 1;
             if (staffPose != desiredStaff) { DanceAnimator.CrossFadeInFixedTime(desiredStaff, .15f); staffPose = desiredStaff; }
         }
         microwaveMaterial.color = Time.time < responseUntil ? Color.Lerp(microwaveColor, Color.white, .45f) : microwaveColor;
@@ -152,13 +152,14 @@ public sealed class BadShiftDemo : MonoBehaviour
         GUI.Label(new Rect(44,34,260,36),"BAD SHIFT",TextStyle(26,white,true));
         GUI.Label(new Rect(45,70,280,20),"AUDIOMW / AUDIO PLAYGROUND",TextStyle(11,muted));
         BadShiftTour tour=Game.Tour;bool watching=tour!=null&&tour.Running;
+        if(Game.Life!=null&&Button(new Rect(w-586,42,124,40),Game.Life.Muted?"Sound off":"Sound on"))Game.Life.ToggleSound();
         if(Button(new Rect(w-450,42,140,40),"Play yourself",!watching)&&tour!=null)tour.Stop();
         if(Button(new Rect(w-298,42,140,40),watching?"Replay demo":"Watch demo",watching)&&tour!=null)tour.WatchFromStart();
         if(Button(new Rect(w-146,42,102,40),"Reset")){BadShiftTour.StartOnLoad=false;Game.ResetScene();}
         float bottom=h-210;
         Panel(new Rect(24,bottom,470,186),panel);
         GUI.Label(new Rect(44,bottom+16,430,26),tour!=null?tour.Heading:"Explore the cafe",TextStyle(17,white,true));
-        GUI.Label(new Rect(44,bottom+48,430,86),tour!=null?tour.Explanation:"WASD move / Shift run / Space jump",TextStyle(14,muted));
+        GUI.Label(new Rect(44,bottom+48,430,86),Game.Life!=null&&(Game.Life.Duel||Game.Life.PlayerDead||Game.Life.EnemyDead)?Game.Life.CombatStatus:tour!=null?tour.Explanation:"WASD move / Shift run / Space jump",TextStyle(14,muted));
         GUI.Label(new Rect(44,bottom+142,430,25),"Ingredients "+Game.Collected+"/"+Game.Pickups.Length+"   ·   Cups "+BadShiftImpactProp.BreakCount+"/"+BadShiftImpactProp.InitialBreakableCount,TextStyle(13,white));
         Panel(new Rect(510,bottom,w-534,186),panel);
         int station=Station();MusicPlayer music=AudioSystem.Music;
@@ -167,6 +168,7 @@ public sealed class BadShiftDemo : MonoBehaviour
         string status=music.IsTransitionPending?"Transition waiting for "+music.PendingQuantization:station==4?"Music muted · move the player to compare distance":"X interact · Q variation · V manager · P pause";
         if(Game.Door != null && Game.Door.CanInteract(Game.transform.position))status="E / "+(Game.Door.IsOpen?"Close":"Open")+" bathroom door"+(Game.Door.IsBlocked?" · step aside":"");
         if(station!=1 && Game.FridgeDoors != null && Game.FridgeDoors.CanInteract(Game.transform.position))status="E / lower door · G / upper door"+((Game.FridgeDoors.Lower.IsBlocked||Game.FridgeDoors.Upper.IsBlocked)?" · step aside":"");
+        if(Game.Life!=null)status=Game.Life.Prompt;
         if(AudioSystem.VoiceOver.IsSpeaking && AudioRuntime.Instance.ActiveMixProfile!=null && AudioRuntime.Instance.ActiveMixProfile.Routing.Mixer.GetFloat("AudioMW_MusicDuckDb",out float db))status="Actual music duck: "+db.ToString("0.0")+" dB";
         GUI.Label(new Rect(530,bottom+49,w-574,46),status,TextStyle(13,muted));
         BadShiftOrbitCamera orbit=Game.OrbitCamera;

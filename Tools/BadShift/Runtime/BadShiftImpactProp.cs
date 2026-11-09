@@ -4,6 +4,7 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody))]
 public sealed class BadShiftImpactProp : MonoBehaviour
 {
+    public static event System.Action<Vector3,bool> Reacted;
     public SoundEvent ImpactSound;
     public SoundEvent BreakSound;
     public bool Breakable;
@@ -26,6 +27,7 @@ public sealed class BadShiftImpactProp : MonoBehaviour
     {
         if (Time.time < nextImpact || ImpactSound == null) return;
         nextImpact = Time.time + .5f;
+        Reacted?.Invoke(transform.position,false);
         AudioSystem.PlayTrackedAtPosition(ImpactSound, transform.position);
     }
     private void OnCollisionEnter(Collision collision)
@@ -36,11 +38,13 @@ public sealed class BadShiftImpactProp : MonoBehaviour
         if (Breakable && normalSpeed >= BreakSpeed) { Shatter(contact.point); return; }
         if (normalSpeed < 1.2f || Time.time < nextImpact) return;
         nextImpact = Time.time + .2f;
+        Reacted?.Invoke(contact.point,false);
         if (ImpactSound != null) AudioSystem.PlayTrackedAtPosition(ImpactSound, contact.point);
     }
     private void Shatter(Vector3 point)
     {
         Broken = true; BreakCount++;
+        Reacted?.Invoke(point,true);
         Vector3 velocity = body.linearVelocity;
         foreach (Collider collider in GetComponentsInChildren<Collider>()) collider.enabled = false;
         foreach (Renderer renderer in GetComponentsInChildren<Renderer>()) renderer.enabled = false;
