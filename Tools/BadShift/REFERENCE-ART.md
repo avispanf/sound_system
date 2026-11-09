@@ -10,14 +10,14 @@ picnic table and parasol, food crates, larger characters and refrigerator.
 Skeletons wear mint aprons. Rounded mesh primitives soften new furniture edges.
 
 Clay motion runs after skeletal animation. It adds restrained volume-preserving
-squash/stretch, a damped landing spring and stepped deformation at 16 poses/second.
+squash/stretch, a damped landing spring and stepped deformation at 12 poses/second.
 The existing skeletal clips remain smoothly evaluated. VO freezes staff deformation
 and skeletal playback; the manager continues speaking gestures. Colliders never
 inherit the visual squash. The fixed camera does not move the player AudioListener.
 
 This is an implemented real-time interpretation, not a pixel-identical reproduction
-of the illustration. Original KayKit skeleton topology, stock animation clips and
-some furniture silhouettes remain different. It is not frame-by-frame claymation.
+of the illustration. The KayKit animation rig and stock clips remain, while the latest pass replaces
+the visible skeleton geometry. Some furniture silhouettes still differ. It is not frame-by-frame claymation.
 No new third-party art or licensing assumptions were introduced.
 
 For a fresh prepared scene after ImproveBadShift.Run, run these authoring entry
@@ -75,11 +75,37 @@ kitchen cabinet, microwave, shelf and two-door fridge. Three evenly spaced dinin
 rows, the dark background, bathroom fixtures and appliance controls intentionally
 follow later user requests instead of the original illustration.
 
-Remaining visual differences: stock skeleton faces/body proportions rather than
-the illustration's simplified skulls; stock skeletal clips plus procedural clay
-motion rather than authored stop-motion; simpler materials, illumination and
-furniture silhouettes. The UI is an interactive demo overlay rather than the reference poster's
+At that checkpoint, the remaining differences included stock skeleton faces, smooth stock clips, lighting and furniture silhouettes. See the subsequent character pass below for the current state. The UI is an interactive demo overlay rather than the reference poster's
 title, palette swatches and two inset illustrations. Full reference parity is
 not claimed. Audio still uses placeholders.
 
 Validation for this pass: full PlayMode suite 223/223 passed; after selecting the whole-loaf model, all five layout/physics checks passed again. The full suite includes the guided route. Camera renders verify appearance, not animation quality or human listening.
+
+## Clay characters and studio lighting
+
+ClayCharacterPass.Run then FinishShapes replace visible stock skeleton geometry
+with cream rounded skulls, oval ink eyes, simple articulated bones, mittens and
+rib cages. Original renderers remain disabled; the original rig and animation
+controllers continue driving the new geometry. Aprons now attach to chest and hip
+bones. AlwaysAnimate prevents hidden source meshes from stopping the rig.
+
+BadShiftClayFace adds staggered blinking, head turns, delayed-looking head tilt
+and volume-preserving squash at twelve pose samples per second. The dancer's
+head response follows the actual Combat music state. Body deformation and landing
+compression are stronger; physical colliders are untouched. Voice-over holds both
+staff faces, and pause holds all procedural clocks. These are procedural clay
+accents over continuous skeletal clips, not fully authored stop-motion clips.
+
+Lighting uses a warm key, softer/lighter shadows, a cool shadowless fill and
+trilight ambient colors. Existing URP grade and camera post-processing stay intact.
+The dark blue-gray background follows the user's later direction. This changes
+real-time lighting rather than recreating the reference's offline softbox rendering.
+
+Reproduction requires com.unity.modules.imageconversion 1.0.0 for PlayMode visual
+capture. ClayCharacterPass is guarded to run only on the isolated prepared demo.
+Run the two entry points once after CompleteReferenceDetails. The prepared archive
+already contains the generated meshes, materials and authored scene.
+
+Character-pass validation: 225/225 PlayMode tests passed on 2026-11-09, including geometry/rig separation, Combat dance rendering and face freeze/resume checks. Inspected clay-idle-a.png, clay-idle-b.png and clay-dance.png captured from the live PlayMode camera. Human acoustic QA remains pending.
+
+The rebuilt macOS standalone launched successfully; its new characters and scene presentation were visually checked in the native BAD SHIFT window. Build completed with zero errors.

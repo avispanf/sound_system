@@ -34,7 +34,7 @@ public sealed class BadShiftClayMotion : MonoBehaviour
         bool speaking = AudioSystem.VoiceOver.IsSpeaking;
         bool landed = !grounded && Demo.Game.IsGrounded;
         grounded = Demo.Game.IsGrounded;
-        if (landed) springVelocity -= 1.8f;
+        if (landed) springVelocity -= 2.5f;
         float decay = Mathf.Exp(-6 * Time.deltaTime);
         float sine = Mathf.Sin(8 * Time.deltaTime);
         float cosine = Mathf.Cos(8 * Time.deltaTime);
@@ -45,8 +45,8 @@ public sealed class BadShiftClayMotion : MonoBehaviour
         for (int i = 0; i < bodies.Length; i++)
         {
             if (speaking && i < 2) continue;
-            float beat = Mathf.Floor(phase * 16) / 16;
-            float amount = i == 0 ? (Demo.Game.MovementSpeed > .15f ? .035f : .012f) : i == 1 ? (dancing ? .075f : .018f) : speaking ? .065f : .02f;
+            float beat = Mathf.Floor(phase * 12) / 12;
+            float amount = i == 0 ? (Demo.Game.MovementSpeed > .15f ? .055f : .018f) : i == 1 ? (dancing ? .11f : .025f) : speaking ? .065f : .02f;
             float stretch = Mathf.Sin(beat * (i == 0 ? 13 : i == 1 && dancing ? 14 : speaking ? 11 : 3)) * amount + (i == 0 ? spring : 0);
             float width = 1 / Mathf.Sqrt(1 + stretch);
             bodies[i].localScale = Vector3.Scale(scales[i], new Vector3(width, 1 + stretch, width));
