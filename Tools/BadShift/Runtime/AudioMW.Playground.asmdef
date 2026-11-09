@@ -1,0 +1,10 @@
+{
+  "name": "AudioMW.Playground",
+  "references": [
+    "AudioMW.Runtime",
+    "Unity.InputSystem",
+    "Unity.RenderPipelines.Core.Runtime",
+    "Unity.RenderPipelines.Universal.Runtime"
+  ],
+  "autoReferenced": true
+}

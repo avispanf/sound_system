@@ -123,14 +123,15 @@ public sealed class AudioMWPlayground : MonoBehaviour
             if (stride >= 1.5f) { stride = 0; AudioSystem.PlayTrackedAttached(Footsteps, transform, local); }
         }
         else stride = 0;
-        bool inDanger = transform.position.z > 3.5f;
+        bool inDanger = (Life!=null&&Life.Duel) || transform.position.z > 3.5f;
         if (inDanger != danger) { danger = inDanger; RequestMusic(danger); ChangeAmbience(danger); }
         ambienceBlend = Mathf.MoveTowards(ambienceBlend, 1, Time.deltaTime / 0.7f);
-        ambience.SetParameter(AmbienceFade, ambienceBlend); retiringAmbience.SetParameter(AmbienceFade, 1 - ambienceBlend);
+        bool battleResult=Life!=null&&Life.Battle!=null&&Life.Battle.Finished;
+        ambience.SetParameter(AmbienceFade, battleResult?0:ambienceBlend); retiringAmbience.SetParameter(AmbienceFade, battleResult?0:1 - ambienceBlend);
         if (ambienceBlend >= 1) retiringAmbience.Stop();
         intensity = Mathf.MoveTowards(intensity, danger ? 1 : 0, Time.deltaTime * 0.6f);
         AudioSystem.SetParameter(Intensity, intensity);
-        AudioSystem.Music.SetVolume(musicMuted ? 0 : 0.75f * AuditionMixGain * (AudioRuntime.Instance.ActiveMixProfile != null ? 1 : Mathf.Lerp(1, 0.25f, AudioSystem.GetParameter(VoiceDuck))));
+        AudioSystem.Music.SetVolume(musicMuted || battleResult ? 0 : 0.75f * AuditionMixGain * (AudioRuntime.Instance.ActiveMixProfile != null ? 1 : Mathf.Lerp(1, 0.25f, AudioSystem.GetParameter(VoiceDuck))));
         if ((keys != null && keys.fKey.wasPressedThisFrame)) Fire();
         if ((keys != null && keys.eKey.wasPressedThisFrame)) Interact();
         if (keys != null && keys.gKey.wasPressedThisFrame && FridgeDoors != null) FridgeDoors.ToggleUpperNear(transform.position,character);
@@ -143,10 +144,13 @@ public sealed class AudioMWPlayground : MonoBehaviour
         }
     }
 
+    public void SilenceBattleBackground(){AudioSystem.Music.SetVolume(0);ambience.SetParameter(AmbienceFade,0);retiringAmbience.SetParameter(AmbienceFade,0);}
+    private Vector3 impulseVelocity;
+    public void AddImpulse(Vector3 velocity){impulseVelocity+=Vector3.ProjectOnPlane(velocity,Vector3.up);}
     public void MoveCharacter(Vector3 direction, bool jump, bool run, float deltaTime)
     {
         if (character == null || deltaTime <= 0 || IsResetting) return;
-        if(Life!=null&&Life.PlayerDead){direction=Vector3.zero;jump=false;}
+        if(Life!=null&&(Life.PlayerDead||(Life.Battle!=null&&Life.Battle.LocksMovement))){direction=Vector3.zero;jump=false;}
         direction = Vector3.ClampMagnitude(Vector3.ProjectOnPlane(direction, Vector3.up), 1);
         if (FreezeForVoice) direction = Vector3.zero;
         bool grounded = character.isGrounded;
@@ -154,12 +158,14 @@ public sealed class AudioMWPlayground : MonoBehaviour
         if (grounded && !FreezeForVoice && jump) vertical = Mathf.Sqrt(2 * -Physics.gravity.y * JumpHeight);
         float verticalDistance = vertical * deltaTime + .5f * Physics.gravity.y * deltaTime * deltaTime;
         vertical = Mathf.Max(-35, vertical + Physics.gravity.y * deltaTime);
-        float speed = run ? 6 : 3.5f;
+        float speed = (run ? 6 : 3.5f)*(Life!=null&&Life.Battle!=null&&Life.Battle.IsBlocking?.45f:1);
         planarVelocity = Vector3.MoveTowards(planarVelocity, direction * speed, (grounded ? (direction.sqrMagnitude > 0 ? 28 : 40) : 4) * deltaTime);
         if (FreezeForVoice) planarVelocity = Vector3.zero;
-        CollisionFlags collision = character.Move(planarVelocity * deltaTime + Vector3.up * verticalDistance);
+        CollisionFlags collision = character.Move((planarVelocity+impulseVelocity) * deltaTime + Vector3.up * verticalDistance);
+        impulseVelocity=Vector3.MoveTowards(impulseVelocity,Vector3.zero,12*deltaTime);
         if ((collision & CollisionFlags.Above) != 0 && vertical > 0) vertical = 0;
-        if (direction.sqrMagnitude > 0) transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), 1-Mathf.Exp(-14*deltaTime));
+        Vector3 facing=Life!=null&&Life.Duel?Vector3.ProjectOnPlane(Life.Battle.EnemyBody.transform.position-transform.position,Vector3.up):direction;
+        if (facing.sqrMagnitude > 0) transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(facing), 1-Mathf.Exp(-14*deltaTime));
     }
 
     private void LateUpdate()
@@ -223,7 +229,7 @@ public sealed class AudioMWPlayground : MonoBehaviour
 
     public void RespawnAt(Vector3 position,Quaternion rotation)
     {
-        character.enabled=false;transform.SetPositionAndRotation(position,rotation);planarVelocity=Vector3.zero;vertical=0;character.enabled=true;
+        character.enabled=false;transform.SetPositionAndRotation(position,rotation);planarVelocity=Vector3.zero;impulseVelocity=Vector3.zero;vertical=0;character.enabled=true;
     }
 
     public void ResetScene()

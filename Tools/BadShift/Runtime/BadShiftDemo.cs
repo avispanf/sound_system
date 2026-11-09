@@ -42,6 +42,7 @@ public sealed class BadShiftDemo : MonoBehaviour
     private string answer = "Ready for questionable cuisine";
     private Vector3 danceBase;
     private float dancePhase;
+    public bool EmployeeDancing => (Game.Life==null||!Game.Life.Duel) && ((AudioSystem.Music.CurrentTrack!=null&&AudioSystem.Music.CurrentTrack.name=="Combat") || Vector3.Distance(Game.transform.position,Dancer.position)<3.5f);
     public string LastAnswer => answer;
     public int EffectMode => effect;
     public float ListenerDistance => Vector3.Distance(Game.Listener.position, Fridge.position);
@@ -90,7 +91,7 @@ public sealed class BadShiftDemo : MonoBehaviour
             if (k.xKey.wasPressedThisFrame) { if (Station() == 1) PlayMicrowave(); if (Station() == 2) Game.Speak(); if (Station() == 3) PlayRoom(); }
         }
         bool speaking = AudioSystem.VoiceOver.IsSpeaking;
-        Game.FreezeForVoice = speaking || (Game.Life!=null&&Game.Life.PlayerDead);
+        Game.FreezeForVoice = speaking || (Game.Life!=null&&(Game.Life.PlayerDead||(Game.Life.Battle!=null&&Game.Life.Battle.LocksMovement)));
         reactionTime += Time.deltaTime;
         for (int i=0;i<eyes.Length;i++) eyes[i].localScale = Vector3.Scale(eyeScales[i], new Vector3(1,Mathf.Repeat(reactionTime,4)<.12f?.15f:1,1));
         Vector3 towardPlayer = Game.transform.position - Boss.position;
@@ -104,28 +105,28 @@ public sealed class BadShiftDemo : MonoBehaviour
         bossYaw = Mathf.LerpAngle(bossYaw, look, 1 - Mathf.Exp(-3 * Time.deltaTime));
         Boss.localRotation = Quaternion.Euler(speaking ? Mathf.Sin(reactionTime*9)*5 : Mathf.Sin(reactionTime*1.2f)*1.2f, bossYaw, Mathf.Sin(reactionTime*.8f)*1.3f) * bossRest;
         MusicPlayer music = AudioSystem.Music;
-        bool combat = music.CurrentTrack != null && music.CurrentTrack.name == "Combat";
-        if (!speaking && !AudioListener.pause && combat && (Game.Life==null||!Game.Life.EnemyDead))
+        bool combat = EmployeeDancing;
+        if (!speaking && !AudioListener.pause && combat && (Game.Life==null||!Game.Life.Duel))
         {
             dancePhase += Time.deltaTime * 7;
             Dancer.localRotation = dancerRest * Quaternion.Euler(0, Mathf.Sin(dancePhase) * 25, Mathf.Sin(dancePhase * 2) * 12);
             Dancer.localPosition = danceBase + Vector3.up * Mathf.Abs(Mathf.Sin(dancePhase)) * 0.15f;
         }
-        if ((!combat || (Game.Life!=null&&Game.Life.EnemyDead)) && !speaking) { Dancer.localPosition = danceBase; Dancer.localRotation = dancerRest; }
+        if (!combat && !speaking) { Dancer.localPosition = danceBase; Dancer.localRotation = Game.Life!=null&&Game.Life.Duel?Quaternion.identity:dancerRest; }
         string desiredPlayer = !Game.IsGrounded ? "Jump" : Time.time < Mathf.Max(responseUntil, Game.LastInteractionTime + .65f) ? "Interact" : Game.MovementSpeed > 4.2f ? "Run" : Game.MovementSpeed > .15f ? "Walk" : "Idle";
         if (PlayerAnimator != null)
         {
             PlayerAnimator.speed = speaking || (Game.Life!=null&&Game.Life.PlayerDead) ? 0 : 1;
             if (playerPose != desiredPlayer) { PlayerAnimator.CrossFadeInFixedTime(desiredPlayer, .12f); playerPose = desiredPlayer; }
         }
-        string desiredStaff = combat ? "Cheer" : "Idle";
+        string desiredStaff = combat ? "Cheer" : Game.Life!=null&&Game.Life.Battle!=null&&Game.Life.Battle.EnemySpeed>.15f?"Walk":"Idle";
         if (DanceAnimator != null)
         {
             DanceAnimator.speed = speaking || (Game.Life!=null&&Game.Life.EnemyDead) ? 0 : 1;
             if (staffPose != desiredStaff) { DanceAnimator.CrossFadeInFixedTime(desiredStaff, .15f); staffPose = desiredStaff; }
         }
         microwaveMaterial.color = Time.time < responseUntil ? Color.Lerp(microwaveColor, Color.white, .45f) : microwaveColor;
-        Game.AuditionMixGain = Station() == 4 ? 0 : Station() == 3 ? .15f : 1;
+        Game.AuditionMixGain = Game.Life!=null&&Game.Life.Duel?(Game.Life.Battle.Finished?.25f:1):Station() == 4 ? 0 : Station() == 3 ? .15f : 1;
         RaveLight.color = combat ? Color.Lerp(new Color(1,.3f,.5f), new Color(.6f,.4f,1), .5f + .5f * Mathf.Sin(dancePhase)) : new Color(1,.85f,.65f);
         RaveLight.intensity = combat ? 4 : 1;
     }
@@ -153,9 +154,18 @@ public sealed class BadShiftDemo : MonoBehaviour
         GUI.Label(new Rect(45,70,280,20),"AUDIOMW / AUDIO PLAYGROUND",TextStyle(11,muted));
         BadShiftTour tour=Game.Tour;bool watching=tour!=null&&tour.Running;
         if(Game.Life!=null&&Button(new Rect(w-586,42,124,40),Game.Life.Muted?"Sound off":"Sound on"))Game.Life.ToggleSound();
-        if(Button(new Rect(w-450,42,140,40),"Play yourself",!watching)&&tour!=null)tour.Stop();
+        if(Button(new Rect(w-450,42,140,40),"Play yourself",!watching)&&tour!=null){tour.Stop();if(Game.Life!=null&&Game.Life.Duel)Game.Life.Battle.ReturnToCafe();}
         if(Button(new Rect(w-298,42,140,40),watching?"Replay demo":"Watch demo",watching)&&tour!=null)tour.WatchFromStart();
         if(Button(new Rect(w-146,42,102,40),"Reset")){BadShiftTour.StartOnLoad=false;Game.ResetScene();}
+        var battle=Game.Life!=null?Game.Life.Battle:null;
+        if(battle!=null&&battle.Active){BattleHUD(battle,w,h);GUI.matrix=previous;return;}
+        if(battle!=null&&battle.CanInvite)
+        {
+            Vector3 point=Game.View.WorldToScreenPoint(Dancer.position+Vector3.up*3)/scale;
+            Rect invitation=new Rect(Mathf.Clamp(point.x-210,24,w-444),Mathf.Clamp(h-point.y-74,112,h-320),420,72);
+            Panel(invitation,panel);GUI.Label(new Rect(invitation.x+18,invitation.y+10,384,22),"THE BREADSTICK WARDEN",TextStyle(15,white,true));
+            GUI.Label(new Rect(invitation.x+18,invitation.y+36,384,24),"E / Leave the dance floor. Enter the fight.",TextStyle(14,muted));
+        }
         float bottom=h-210;
         Panel(new Rect(24,bottom,470,186),panel);
         GUI.Label(new Rect(44,bottom+16,430,26),tour!=null?tour.Heading:"Explore the cafe",TextStyle(17,white,true));
@@ -189,6 +199,40 @@ public sealed class BadShiftDemo : MonoBehaviour
             if(anchor.z>0){Rect bubble=new Rect(Mathf.Clamp(anchor.x-160,24,w-344),Mathf.Clamp(h-anchor.y-82,112,bottom-90),320,76);Panel(bubble,new Color(.96f,.91f,.80f));GUIStyle quote=TextStyle(15,new Color(.12f,.15f,.18f));quote.alignment=TextAnchor.MiddleCenter;quote.padding=new RectOffset(14,14,8,8);GUI.Label(bubble,BossQuote,quote);}
         }
         GUI.matrix=previous;
+    }
+    private void HealthBar(Rect rect,string title,int health,Color accent)
+    {
+        Panel(rect,new Color(.035f,.045f,.075f,.94f));
+        GUI.Label(new Rect(rect.x+18,rect.y+12,rect.width-36,24),title+"  /  "+health+" HP",TextStyle(15,Color.white,true));
+        Rect track=new Rect(rect.x+18,rect.y+45,rect.width-36,10);Panel(track,new Color(.16f,.18f,.24f));
+        if(health>0)Panel(new Rect(track.x,track.y,track.width*health/100f,track.height),accent);
+    }
+    private void BattleHUD(BadShiftBattle battle,float w,float h)
+    {
+        HealthBar(new Rect(44,120,340,72),"YOU",battle.PlayerHealth,new Color(.26f,.75f,1));
+        HealthBar(new Rect(w-584,120,540,72),"THE BREADSTICK WARDEN",battle.EnemyHealth,new Color(1,.25f,.29f));
+        Panel(new Rect(w*.5f-320,h-100,640,64),new Color(.035f,.045f,.075f,.90f));
+        GUIStyle center=TextStyle(16,Color.white,true);center.alignment=TextAnchor.MiddleCenter;
+        GUI.Label(new Rect(w*.5f-300,h-90,600,44),battle.Status,center);
+        if(!string.IsNullOrEmpty(battle.EnemyTaunt)&&battle.Phase!=BadShiftBattlePhase.Intro)
+        {
+            float scale=Mathf.Min(Screen.width/1600f,Screen.height/900f);Vector3 point=Game.View.WorldToScreenPoint(Dancer.position+Vector3.up*3.1f)/scale;
+            Rect quote=new Rect(Mathf.Clamp(point.x-200,24,w-424),Mathf.Clamp(h-point.y-65,205,h-205),400,64);
+            Panel(quote,new Color(.04f,.07f,.13f,.88f));GUI.Label(new Rect(quote.x+12,quote.y+6,376,52),battle.EnemyTaunt,center);
+        }
+        if(battle.Phase==BadShiftBattlePhase.Intro||battle.Finished)
+        {
+            Rect box=new Rect(w*.5f-280,h*.5f-110,560,220);Panel(box,new Color(.035f,.045f,.075f,.94f));
+            string title=battle.Phase==BadShiftBattlePhase.Intro?"LAST DANCE":battle.Phase==BadShiftBattlePhase.Victory?"VICTORY":"YOU LOST";
+            GUIStyle heading=TextStyle(38,battle.Phase==BadShiftBattlePhase.Victory?new Color(.5f,1,.8f):new Color(1,.5f,.4f),true);heading.alignment=TextAnchor.MiddleCenter;
+            GUI.Label(new Rect(box.x+20,box.y+24,520,52),title,heading);
+            GUI.Label(new Rect(box.x+30,box.y+84,500,48),battle.Phase==BadShiftBattlePhase.Intro?"LMB attacks. Hold RMB to block.":battle.Phase==BadShiftBattlePhase.Victory?"The lunch break is yours.":"Out of bones. Ready for another shift?",center);
+            if(battle.Finished)
+            {
+                if(Button(new Rect(box.x+72,box.y+154,196,42),"Fight again",true))battle.Rematch();
+                if(Button(new Rect(box.x+292,box.y+154,196,42),"Reset demo"))Game.ResetScene();
+            }
+        }
     }
     private void OnDestroy() { fridgeHandle.Stop(); if (microwaveMaterial != null) Destroy(microwaveMaterial); }
 }

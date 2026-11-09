@@ -29,7 +29,7 @@ public sealed class BadShiftOrbitCamera : MonoBehaviour
         Mouse mouse = Mouse.current;
         if (mouse != null)
         {
-            if (mouse.rightButton.isPressed)
+            if (Game.Life!=null&&Game.Life.Duel?mouse.middleButton.isPressed:mouse.rightButton.isPressed)
             {
                 Vector2 delta = mouse.delta.ReadValue();
                 Orbit(delta.x * .18f, -delta.y * .18f);
@@ -38,11 +38,12 @@ public sealed class BadShiftOrbitCamera : MonoBehaviour
             if (Mathf.Abs(scroll) > .01f) Zoom(scroll / 120);
         }
         if (Keyboard.current != null && Keyboard.current.cKey.wasPressedThisFrame) FocusPlayer();
-        Vector3 pivot = FollowingPlayer ? Game.transform.position + Vector3.up : new Vector3(0,1,0);
+        var battle=Game.Life!=null?Game.Life.Battle:null;
+        Vector3 pivot = battle!=null&&battle.Active?(Game.transform.position+battle.EnemyBody.transform.position)*.5f+Vector3.up:FollowingPlayer ? Game.transform.position + Vector3.up : new Vector3(0,1,0);
         target = Vector3.Lerp(target, pivot, 1 - Mathf.Exp(-8 * Time.unscaledDeltaTime));
         Quaternion rotation = Quaternion.Euler(Pitch, Yaw, 0);
         Game.View.transform.SetPositionAndRotation(target + rotation * Vector3.back * 44, rotation);
-        Game.View.orthographicSize = Mathf.Lerp(Game.View.orthographicSize, Size, 1 - Mathf.Exp(-12 * Time.unscaledDeltaTime));
+        Game.View.orthographicSize = Mathf.Lerp(Game.View.orthographicSize, battle!=null&&battle.Active?Mathf.Clamp(Size*.48f,3.8f,8):Size, 1 - Mathf.Exp(-12 * Time.unscaledDeltaTime));
         Game.Listener.rotation = rotation;
     }
 }

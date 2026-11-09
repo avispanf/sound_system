@@ -1,5 +1,9 @@
 # Cafe life pass
 
+The sparring flow below describes the first implementation. The current prepared
+scene uses BATTLE-ARENA.md: E opens an intro, HP bars appear, and victory/defeat wait
+for an explicit rematch or reset. The former automatic respawn is superseded.
+
 ## Play
 
 E selects the closest reachable target within 2.3 metres; the HUD names the action.

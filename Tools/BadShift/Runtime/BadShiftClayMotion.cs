@@ -41,7 +41,7 @@ public sealed class BadShiftClayMotion : MonoBehaviour
         float nextSpring = decay * (spring * cosine + (springVelocity + 6 * spring) * sine / 8);
         springVelocity = decay * (springVelocity * cosine - (6 * springVelocity + 100 * spring) * sine / 8);
         spring = nextSpring;
-        bool dancing = AudioSystem.Music.CurrentTrack != null && AudioSystem.Music.CurrentTrack.name == "Combat";
+        bool dancing = Demo.EmployeeDancing;
         for (int i = 0; i < bodies.Length; i++)
         {
             if (speaking && i < 2) continue;

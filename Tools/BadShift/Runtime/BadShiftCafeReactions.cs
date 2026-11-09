@@ -20,8 +20,8 @@ public sealed class BadShiftCafeReactions : MonoBehaviour
     private void LateUpdate()
     {
         float player=Mathf.Clamp01((Life.PlayerReactionUntil-Time.time)/.5f),enemy=Mathf.Clamp01((Life.EnemyReactionUntil-Time.time)/.5f);
-        playerRig.localRotation=playerRest*Quaternion.Euler(0,0,Life.PlayerDead?85:Mathf.Sin(player*12)*player*12);
-        enemyRig.localRotation=enemyRest*Quaternion.Euler(0,0,Life.EnemyDead?85:Mathf.Sin(enemy*12)*enemy*16);
+        playerRig.localRotation=playerRest*Quaternion.Euler(0,0,Life.PlayerDead?85*Mathf.SmoothStep(0,1,Life.Battle.FallProgress):Mathf.Sin(player*12)*player*12);
+        enemyRig.localRotation=enemyRest*Quaternion.Euler(0,0,Life.EnemyDead?85*Mathf.SmoothStep(0,1,Life.Battle.FallProgress):Mathf.Sin(enemy*12)*enemy*16);
         float reaction=Mathf.Clamp01((Life.BossReactionUntil-Time.time)/1.4f);
         float pose=Mathf.Floor(Time.time*12)/12;
         arm.localRotation=armRest*Quaternion.Euler(Mathf.Sin(pose*2)*8,Mathf.Sin(pose*1.3f)*12,Mathf.Sin(pose*(reaction>0?14:3))* (reaction>0?30:8));

@@ -58,18 +58,32 @@ public sealed class BadShiftCafeLifeTests
         Assert.Greater(BadShiftImpactProp.BreakCount,count);Assert.IsNotEmpty(life.ReactionQuote);Assert.Greater(life.BossReactionUntil,Time.time);
         Assert.IsNotNull(Object.FindFirstObjectByType<BadShiftCafeReactions>());Capture("cafe-boss",new Vector3(-8,2,6.5f),3.2f);yield return null;
     }
-    [UnityTest] public IEnumerator StickDuelCanDefeatRivalAndReset()
+    [UnityTest] public IEnumerator StickDuelVictoryPersistsUntilReset()
     {
-        Place(new Vector3(.25f,.05f,5.65f));Assert.AreEqual(BadShiftUseKind.Spar,life.Nearest().Kind);
-        for(int i=0;i<4;i++){game.Interact();yield return new WaitForSeconds(.15f);if(i==0)Capture("cafe-duel",new Vector3(.25f,1.2f,6.5f),3);yield return new WaitForSeconds(.45f);}
-        Assert.IsTrue(life.EnemyDead);Assert.IsFalse(life.PlayerDead);Assert.IsTrue(life.PlayerStick.activeSelf);
-        Capture("cafe-rival-down",new Vector3(.25f,1,6.5f),3);yield return new WaitForSeconds(3.1f);Assert.AreEqual(100,life.EnemyHealth);Assert.IsFalse(life.Duel);Assert.IsFalse(life.PlayerStick.activeSelf);
+        var battle=life.Battle;Place(battle.ArenaCenter+new Vector3(-1.6f,0,-.5f));Assert.AreEqual(BadShiftUseKind.Spar,life.Nearest().Kind);
+        game.Interact();Assert.AreEqual(BadShiftBattlePhase.Intro,battle.Phase);Assert.AreEqual(100,life.EnemyHealth);yield return new WaitForSeconds(1.3f);
+        for(int i=0;i<4;i++){Place(battle.EnemyBody.transform.position+Vector3.left*1.5f);battle.Attack();yield return new WaitForSeconds(.7f);}
+        Assert.IsTrue(life.EnemyDead);Assert.IsFalse(life.PlayerDead);yield return new WaitForSeconds(1.2f);Assert.AreEqual(BadShiftBattlePhase.Victory,battle.Phase);
+        Capture("cafe-rival-down",battle.ArenaCenter+Vector3.up,3);yield return new WaitForSeconds(3.1f);Assert.IsTrue(life.EnemyDead);
+        Assert.IsTrue(AudioSystem.Debugger.Records.Any(r=>r.EventName==battle.VictorySound.name&&r.Outcome==PlaybackOutcome.Played));
+        battle.ReturnToCafe();Assert.AreEqual(100,life.EnemyHealth);Assert.IsFalse(life.Duel);Assert.IsFalse(life.PlayerStick.activeSelf);
     }
-    [UnityTest] public IEnumerator PlayerDiesAndRespawnsWithMovementRestored()
+    [UnityTest] public IEnumerator DefeatPersistsThenRematchRestoresMovement()
     {
-        Place(new Vector3(.25f,.05f,5.65f));game.Interact();yield return new WaitForSeconds(4.3f);
-        Assert.IsTrue(life.PlayerDead);Capture("cafe-player-down",game.transform.position+Vector3.up,3);Vector3 deadPosition=game.transform.position;game.MoveCharacter(Vector3.right,true,true,.02f);Assert.Less(Vector3.Distance(deadPosition,game.transform.position),.05f);
-        yield return new WaitForSeconds(3.1f);Assert.AreEqual(100,life.PlayerHealth);Assert.IsFalse(life.Duel);Assert.Less(game.transform.position.z,-6);
+        var battle=life.Battle;
+        Place(battle.ArenaCenter+Vector3.left*1.5f);game.Interact();
+        for(int i=0;i<5;i++)
+        {
+            int beforeHealth=battle.PlayerHealth;float deadline=Time.time+3;
+            while(battle.PlayerHealth==beforeHealth&&Time.time<deadline)yield return null;
+            Assert.AreEqual(beforeHealth-20,battle.PlayerHealth,"Expected counter "+(i+1));
+        }
+        yield return null;
+        Assert.IsTrue(life.PlayerDead);Assert.IsTrue(battle.Falling);yield return new WaitForSeconds(1.2f);Assert.AreEqual(BadShiftBattlePhase.Defeat,battle.Phase);Capture("cafe-player-down",game.transform.position+Vector3.up,3);
+        Vector3 deadPosition=game.transform.position;game.MoveCharacter(Vector3.right,true,true,.02f);Assert.Less(Vector3.Distance(deadPosition,game.transform.position),.05f);
+        yield return new WaitForSeconds(3.1f);Assert.IsTrue(life.PlayerDead);
+        Assert.IsTrue(AudioSystem.Debugger.Records.Any(r=>r.EventName==battle.DefeatSound.name&&r.Outcome==PlaybackOutcome.Played));
+        battle.Rematch();Assert.AreEqual(100,life.PlayerHealth);Assert.AreEqual(BadShiftBattlePhase.Intro,battle.Phase);yield return new WaitForSeconds(1.3f);
         Vector3 before=game.transform.position;game.MoveCharacter(Vector3.right,false,false,.1f);Assert.Greater(Vector3.Distance(before,game.transform.position),.01f);
     }
     [UnityTest] public IEnumerator SoundToggleDoesNotPauseSimulation()

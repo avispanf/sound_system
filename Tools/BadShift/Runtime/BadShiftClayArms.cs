@@ -11,7 +11,7 @@ public sealed class BadShiftClayArms : MonoBehaviour
     private Quaternion[] source,offset;
     private BadShiftClayGait gait;
     private BadShiftCafeLife life;
-    private float clock,danceWeight,runWeight,airWeight;
+    private float clock,danceWeight,runWeight,airWeight,windupWeight;
     private bool applied;
     private void Awake()
     {
@@ -31,7 +31,8 @@ public sealed class BadShiftClayArms : MonoBehaviour
         if(!hold)
         {
             clock+=Time.deltaTime;
-            bool dance=Employee&&AudioSystem.Music.CurrentTrack!=null&&AudioSystem.Music.CurrentTrack.name=="Combat";
+            windupWeight=Mathf.MoveTowards(windupWeight,Employee&&life!=null&&life.Battle!=null&&life.Battle.EnemyWindingUp?1:0,Time.deltaTime*7);
+            bool dance=Employee&&Demo.EmployeeDancing;
             float response=1-Mathf.Exp(-9*Time.deltaTime);
             danceWeight=Mathf.Lerp(danceWeight,dance?1:0,response);
             runWeight=Mathf.Lerp(runWeight,!Employee?Mathf.Clamp01(Demo.Game.MovementSpeed/6):0,response);
@@ -52,8 +53,29 @@ public sealed class BadShiftClayArms : MonoBehaviour
             }
         }
         float remaining=life==null?0:Mathf.Clamp01(((Employee?life.EnemySwingUntil:life.PlayerSwingUntil)-Time.time)/.35f);
-        for(int i=0;i<6;i++){source[i]=joints[i].localRotation;joints[i].localRotation=source[i]*offset[i];if(i>=3&&remaining>0)joints[i].localRotation*=Quaternion.Euler(Mathf.Sin((1-remaining)*Mathf.PI)*-65,0,Mathf.Sin((1-remaining)*Mathf.PI)*35);}
+        for(int i=0;i<6;i++){source[i]=joints[i].localRotation;joints[i].localRotation=source[i]*offset[i];if(i>=3)joints[i].localRotation*=Quaternion.Euler(35*windupWeight,0,-30*windupWeight);if(i>=3&&remaining>0)joints[i].localRotation*=Quaternion.Euler(Mathf.Sin((1-remaining)*Mathf.PI)*-65,0,Mathf.Sin((1-remaining)*Mathf.PI)*35);}
+        if(life!=null&&life.Duel&&!hold)PoseWeapon(remaining);
         applied=true;
+    }
+    private void PoseWeapon(float remaining)
+    {
+        Transform body=Employee?life.Battle.EnemyBody.transform:Demo.Game.transform;
+        Transform upper=joints[3],lower=joints[4],hand=joints[5];
+        bool block=!Employee&&life.Battle.IsBlocking;
+        float swing=remaining>0?1-remaining:0;
+        Vector3 target=upper.position+body.forward*(block?.35f:.4f)+body.right*(block?-.2f:.15f)+Vector3.up*(block?.1f:-.3f);
+        float lengthA=Vector3.Distance(upper.position,lower.position),lengthB=Vector3.Distance(lower.position,hand.position);
+        Vector3 direction=(target-upper.position).normalized;float distance=Mathf.Clamp(Vector3.Distance(target,upper.position),Mathf.Abs(lengthA-lengthB)+.001f,(lengthA+lengthB)*.98f);
+        target=upper.position+direction*distance;
+        float along=(lengthA*lengthA-lengthB*lengthB+distance*distance)/(2*distance);
+        Vector3 bend=Vector3.ProjectOnPlane(body.right-Vector3.up*.5f,direction).normalized;
+        Vector3 elbow=upper.position+direction*along+bend*Mathf.Sqrt(Mathf.Max(0,lengthA*lengthA-along*along));
+        upper.rotation=Quaternion.FromToRotation(lower.position-upper.position,elbow-upper.position)*upper.rotation;
+        lower.rotation=Quaternion.FromToRotation(hand.position-lower.position,target-lower.position)*lower.rotation;
+        Vector3 blade=block?(Vector3.up-body.right*.45f).normalized:remaining>0?Quaternion.AngleAxis(Mathf.Lerp(75,-65,Mathf.SmoothStep(0,1,swing)),Vector3.up)*body.forward:Employee&&life.Battle.EnemyWindingUp?(-body.forward*.4f+Vector3.up).normalized:(body.forward*.35f+Vector3.up).normalized;
+        Transform stick=(Employee?life.EnemyStick:life.PlayerStick).transform;
+        float length=stick.TransformVector(Vector3.up).magnitude;
+        stick.SetPositionAndRotation(hand.position+blade*length*.44f,Quaternion.FromToRotation(Vector3.up,blade));
     }
     private void OnDisable(){Restore();}
 }
