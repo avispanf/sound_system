@@ -61,4 +61,16 @@ public sealed class BadShiftLayoutTests
         float until=Time.time+.65f;while(Time.time<until){game.MoveCharacter(Vector3.forward,false,false,Time.deltaTime);yield return null;}
         Assert.Greater(game.transform.position.z,6.4f);Assert.Less(game.transform.position.z,7.6f);
     }
+    [UnityTest] public IEnumerator PreparationTableAndLooseDishesRemainStable()
+    {
+        var table=GameObject.Find("Kitchen preparation table").GetComponent<Rigidbody>();
+        Vector3 start=table.position;yield return new WaitForSeconds(1);
+        Assert.Less(Vector3.Distance(start,table.position),.08f);
+        Assert.Less(Quaternion.Angle(table.rotation,Quaternion.identity),2);
+        foreach(string name in new[]{"Prep bread","Prep bowl"})
+        {
+            var item=GameObject.Find(name);Assert.IsNotNull(item.GetComponent<BadShiftImpactProp>());
+            Assert.Greater(item.transform.position.y,1.3f);Assert.Less(item.GetComponent<Rigidbody>().linearVelocity.magnitude,.1f);
+        }
+    }
 }

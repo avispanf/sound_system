@@ -50,8 +50,8 @@ changed demo scene; don't reapply its old installation plan.
 
 ## Verification and boundaries
 
-222 PlayMode tests pass in Unity 6000.3.21f1, including thirty-five demo tests: five inherited gameplay/mix tests and
-thirty BAD SHIFT checks (real clip selection, source/filter switching, listener
+223 PlayMode tests pass in Unity 6000.3.21f1, including thirty-six demo tests: five inherited gameplay/mix tests and
+thirty-one BAD SHIFT checks (real clip selection, source/filter switching, listener
 measurement, actual music/VO animation timing, collision, live character reactions and walkable routes). Collection tests move the character
 programmatically; they are not proof of complete human navigation/listening QA.
 

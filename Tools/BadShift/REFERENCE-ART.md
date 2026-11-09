@@ -58,3 +58,28 @@ Validation: 202/202 PlayMode tests in Unity 6000.3.21f1, including 15 demo tests
 Native walkthrough reached the microwave; X displayed the actual selected SFX clip.
 Final macOS standalone build succeeded without errors. Human audio sign-off and
 pixel-identical custom character modelling remain outside the completed art pass.
+
+## Reference comparison, 2026-11-09
+
+Compared the supplied illustration with a fresh 1600x1000 Unity camera render
+(reference-review.png in the prepared project). CompleteReferenceDetails.Run is a
+one-time migration after ArrangeBadShift: faceted broccoli crowns, hollow gold
+megaphone, coffee cup and steam sign with cream lettering band, and a preparation
+table with lower shelf, loose bread and bowl. The table and dishes use Rigidbody
+collision and AudioMW impact playback. Capture renders the saved scene without HUD;
+it does not certify animation or runtime interaction.
+
+The current composition includes the cafe street/car/sign, manager desk,
+lavender bathroom, dancing employee platform, parasol table, food crates,
+kitchen cabinet, microwave, shelf and two-door fridge. Three evenly spaced dining
+rows, the dark background, bathroom fixtures and appliance controls intentionally
+follow later user requests instead of the original illustration.
+
+Remaining visual differences: stock skeleton faces/body proportions rather than
+the illustration's simplified skulls; stock skeletal clips plus procedural clay
+motion rather than authored stop-motion; simpler materials, illumination and
+furniture silhouettes. The UI is an interactive demo overlay rather than the reference poster's
+title, palette swatches and two inset illustrations. Full reference parity is
+not claimed. Audio still uses placeholders.
+
+Validation for this pass: full PlayMode suite 223/223 passed; after selecting the whole-loaf model, all five layout/physics checks passed again. The full suite includes the guided route. Camera renders verify appearance, not animation quality or human listening.
