@@ -9,7 +9,7 @@ when BadShiftDemo exists and adds an audition music multiplier.
 
 Open Assets/Playground/RelayField.unity in the prepared AudioMW-BadShift project
 using Unity 6000.3.21f1. Or launch Build/RelayField.app (window title BAD SHIFT).
-WASD / Shift / Space move; E collects five foods; reach the blue exit. R resets.
+WASD / Shift / Space move; Walk through three bananas; E collects the other four foods; reach the blue exit. R resets.
 
 - Microwave: approach the coral appliance, X plays an actual AudioMW container;
   Q switches Random / ShuffleBag. HUD shows the actual debugger clip name.
@@ -50,8 +50,8 @@ changed demo scene; don't reapply its old installation plan.
 
 ## Verification and boundaries
 
-202 PlayMode tests pass in Unity 6000.3.21f1, including fifteen demo tests: five inherited gameplay/mix tests and
-ten BAD SHIFT checks (real clip selection, source/filter switching, listener
+210 PlayMode tests pass in Unity 6000.3.21f1, including twenty-three demo tests: five inherited gameplay/mix tests and
+eighteen BAD SHIFT checks (real clip selection, source/filter switching, listener
 measurement, actual music/VO animation timing, collision, live character reactions and walkable routes). Collection tests move the character
 programmatically; they are not proof of complete human navigation/listening QA.
 
@@ -73,3 +73,8 @@ staff idle between demonstrations, and VO freezes staff/player motion.
 
 The current prepared scene includes the reference art pass. See REFERENCE-ART.md
 for visual changes, animation behavior and one-time authoring order.
+
+## Interactive physics and orbit camera
+
+See INTERACTION-PASS.md for camera controls, automatic banana collection,
+moving furniture, breakable cups, boss speech bubbles and complete scene reset.

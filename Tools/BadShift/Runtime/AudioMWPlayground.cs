@@ -26,6 +26,9 @@ public sealed class AudioMWPlayground : MonoBehaviour
     public AudioClip Stinger;
     public Camera View;
     public bool DioramaCamera;
+    public BadShiftOrbitCamera OrbitCamera;
+    public float JumpHeight = .55f;
+    public bool IsResetting { get; private set; }
     public Transform Listener;
     public PlaygroundPickup[] Pickups;
     private CharacterController character;
@@ -86,22 +89,15 @@ public sealed class AudioMWPlayground : MonoBehaviour
         {
             paused = !paused; AudioSystem.SetPaused(paused); Time.timeScale = paused ? 0 : 1;
         }
-        if (keys.rKey.wasPressedThisFrame) { Time.timeScale = 1; AudioSystem.SetPaused(false); SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex); return; }
+        if (keys.rKey.wasPressedThisFrame) { ResetScene(); return; }
         if (keys.digit1Key.wasPressedThisFrame) musicMuted = !musicMuted;
         if (keys.f8Key.wasPressedThisFrame) SaveSession();
         if (Time.unscaledTime >= stressUntil) foreach (SoundHandle handle in stress) handle.Stop();
         if (paused) return;
         Vector3 direction = new Vector3((keys.dKey.isPressed ? 1 : 0) - (keys.aKey.isPressed ? 1 : 0), 0, (keys.wKey.isPressed ? 1 : 0) - (keys.sKey.isPressed ? 1 : 0)).normalized;
+        if (OrbitCamera != null) direction = OrbitCamera.MovementDirection(direction);
         if (FreezeForVoice) direction = Vector3.zero;
-        bool grounded = character.isGrounded;
-        if (grounded && vertical < 0) vertical = -2;
-        if (grounded && !FreezeForVoice && keys.spaceKey.wasPressedThisFrame) vertical = Mathf.Sqrt(2 * -Physics.gravity.y * 1.1f);
-        vertical = Mathf.Max(-25, vertical + Physics.gravity.y * Time.deltaTime);
-        float speed = keys.leftShiftKey.isPressed ? 6 : 3.5f;
-        planarVelocity = Vector3.MoveTowards(planarVelocity, direction * speed, (grounded ? 24 : 6) * Time.deltaTime);
-        if (FreezeForVoice) planarVelocity = Vector3.zero;
-        character.Move((planarVelocity + Vector3.up * vertical) * Time.deltaTime);
-        if (direction.sqrMagnitude > 0) transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), 1-Mathf.Exp(-14*Time.deltaTime));
+        MoveCharacter(direction, keys.spaceKey.wasPressedThisFrame, keys.leftShiftKey.isPressed, Time.deltaTime);
         bool nowGrounded = character.isGrounded;
         if (nowGrounded)
         {
@@ -140,9 +136,27 @@ public sealed class AudioMWPlayground : MonoBehaviour
         }
     }
 
+    public void MoveCharacter(Vector3 direction, bool jump, bool run, float deltaTime)
+    {
+        if (character == null || deltaTime <= 0 || IsResetting) return;
+        direction = Vector3.ClampMagnitude(Vector3.ProjectOnPlane(direction, Vector3.up), 1);
+        if (FreezeForVoice) direction = Vector3.zero;
+        bool grounded = character.isGrounded;
+        if (grounded && vertical < 0) vertical = -2;
+        if (grounded && !FreezeForVoice && jump) vertical = Mathf.Sqrt(2 * -Physics.gravity.y * JumpHeight);
+        float verticalDistance = vertical * deltaTime + .5f * Physics.gravity.y * deltaTime * deltaTime;
+        vertical = Mathf.Max(-35, vertical + Physics.gravity.y * deltaTime);
+        float speed = run ? 6 : 3.5f;
+        planarVelocity = Vector3.MoveTowards(planarVelocity, direction * speed, (grounded ? (direction.sqrMagnitude > 0 ? 28 : 40) : 4) * deltaTime);
+        if (FreezeForVoice) planarVelocity = Vector3.zero;
+        CollisionFlags collision = character.Move(planarVelocity * deltaTime + Vector3.up * verticalDistance);
+        if ((collision & CollisionFlags.Above) != 0 && vertical > 0) vertical = 0;
+        if (direction.sqrMagnitude > 0) transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), 1-Mathf.Exp(-14*deltaTime));
+    }
+
     private void LateUpdate()
     {
-        if (View == null) return;
+        if (View == null || OrbitCamera != null) return;
         if (DioramaCamera)
         {
             View.transform.position = new Vector3(-10, 23, -36);
@@ -182,10 +196,40 @@ public sealed class AudioMWPlayground : MonoBehaviour
             if (current < distance) { distance = current; nearest = item; }
         }
         if (nearest == null) { Tell("Move close to a gold relay, then press E."); return; }
+        TryCollect(nearest);
+    }
+
+    public bool TryCollect(PlaygroundPickup item)
+    {
+        if (item == null || item.Collected || IsResetting || paused || !Array.Exists(Pickups, candidate => candidate == item)) return false;
+        if (Vector3.Distance(transform.position, item.transform.position) > 2) return false;
         LastInteractionTime = Time.time;
-        nearest.Collect(); collected++; AudioSystem.PlayTrackedAtPosition(Pickup, nearest.transform.position);
+        item.Collect(); collected++; AudioSystem.PlayTrackedAtPosition(Pickup, item.transform.position);
         AudioSystem.PlayStinger(Stinger, MusicQuantization.Beat, 0.2f);
-        Tell(collected == Pickups.Length ? "All relays collected. Reach the blue exit in the red zone." : "Relay collected: " + collected + " / " + Pickups.Length);
+        Tell(collected == Pickups.Length ? "All ingredients collected. Reach the exit." : "Ingredient collected: " + collected + " / " + Pickups.Length);
+        return true;
+    }
+
+    public void ResetScene()
+    {
+        if (IsResetting) return;
+        IsResetting = true; Time.timeScale = 1; AudioSystem.SetPaused(false);
+        SceneManager.LoadSceneAsync(SceneManager.GetActiveScene().buildIndex);
+    }
+
+    private void OnControllerColliderHit(ControllerColliderHit hit)
+    {
+        Rigidbody body = hit.collider.attachedRigidbody;
+        if (body == null || body.isKinematic || Mathf.Abs(hit.normal.y) > .5f) return;
+        Vector3 direction = Vector3.ProjectOnPlane(hit.moveDirection, Vector3.up).normalized;
+        bool running = planarVelocity.magnitude > 4;
+        float target = Mathf.Min(running ? 3 : 1.6f, Vector3.Dot(planarVelocity, direction));
+        float difference = target - Vector3.Dot(body.GetPointVelocity(hit.point), direction);
+        float impulse = Mathf.Clamp(difference * body.mass, 0, (running ? 260 : 120) * Time.deltaTime);
+        if (impulse <= 0) return;
+        body.AddForceAtPosition(direction * impulse, hit.point, ForceMode.Impulse);
+        BadShiftImpactProp prop = body.GetComponent<BadShiftImpactProp>();
+        if (prop != null) prop.ReportPush();
     }
 
     public void Speak()

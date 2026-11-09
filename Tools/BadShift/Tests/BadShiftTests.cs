@@ -59,7 +59,7 @@ public sealed class BadShiftTests
     {
         var clips=new System.Collections.Generic.HashSet<string>();
         for(int i=0;i<demo.MicrowaveBag.Clips.Length;i++){demo.PlayMicrowave();clips.Add(demo.LastAnswer);yield return null;}
-        Assert.AreEqual(demo.MicrowaveBag.Clips.Length,clips.Count);
+        Assert.AreEqual(demo.MicrowaveBag.Clips.Length,clips.Count,string.Join(" | ",clips)+" / "+string.Join(" | ",AudioSystem.Debugger.Records.Where(r=>r.EventName==demo.MicrowaveBag.name).Select(r=>r.ClipName+":"+r.DescribeOutcome())));
         demo.ToggleSelection();demo.PlayMicrowave();Assert.IsTrue(demo.MicrowaveRandom.Clips.Any(c=>c.name==demo.LastAnswer));
     }
     [UnityTest] public IEnumerator ProcessingUsesSameClipAndRealFilters()
