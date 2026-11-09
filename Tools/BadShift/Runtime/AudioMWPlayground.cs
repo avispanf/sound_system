@@ -45,6 +45,8 @@ public sealed class AudioMWPlayground : MonoBehaviour
     private Vector3 planarVelocity;
     public bool FreezeForVoice;
     public float LastInteractionTime { get; private set; } = -10;
+    public BadShiftClayGait ClayGait;
+    public void PlayFootstep() { AudioSystem.PlayTrackedAttached(Footsteps, transform, local); }
     public bool IsGrounded => character != null && character.isGrounded;
     public float MovementSpeed => character == null ? 0 : new Vector2(character.velocity.x, character.velocity.z).magnitude;
     private float airborneSeconds;
@@ -114,7 +116,7 @@ public sealed class AudioMWPlayground : MonoBehaviour
             PlaygroundSurface ground = hit.collider.GetComponent<PlaygroundSurface>();
             if (ground != null) { local.Set(Surface, ground.State); surfaceName = ground.Label; }
         }
-        if (nowGrounded && MovementSpeed > .15f)
+        if (nowGrounded && MovementSpeed > .15f && ClayGait == null)
         {
             stride += MovementSpeed * Time.deltaTime;
             if (stride >= 1.5f) { stride = 0; AudioSystem.PlayTrackedAttached(Footsteps, transform, local); }

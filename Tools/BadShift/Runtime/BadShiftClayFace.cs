@@ -12,8 +12,10 @@ public sealed class BadShiftClayFace : MonoBehaviour
     private Vector3 scale;
     private Vector3[] eyeScales;
     private float clock;
+    private BadShiftClayGait gait;
     private void Awake()
     {
+        gait=GetComponent<BadShiftClayGait>();
         rest=Head.localRotation;scale=Head.localScale;eyeScales=new Vector3[Eyes.Length];
         for(int i=0;i<Eyes.Length;i++)eyeScales[i]=Eyes[i].localScale;
     }
@@ -24,7 +26,8 @@ public sealed class BadShiftClayFace : MonoBehaviour
         float pose=Mathf.Floor(clock*12)/12+(Employee?.7f:0);
         bool dance=Employee&&AudioSystem.Music.CurrentTrack!=null&&AudioSystem.Music.CurrentTrack.name=="Combat";
         float energy=dance?1:Demo.Game.MovementSpeed>.15f&&!Employee?.55f:.2f;
-        Head.localRotation=rest*Quaternion.Euler(Mathf.Sin(pose*5)*energy*9,Mathf.Sin(pose*1.7f)*12,Mathf.Sin(pose*3.2f)*energy*12);
+        float sway=gait!=null&&gait.IsWalking?gait.Cycle*Mathf.PI*2-.8f:pose*3.2f;
+        Head.localRotation=rest*Quaternion.Euler(Mathf.Sin(sway*2-.5f)*energy*9,Mathf.Sin(pose*1.7f)*12,Mathf.Sin(sway)*energy*12);
         float stretch=1+Mathf.Sin(pose*7)*energy*.065f;
         Head.localScale=Vector3.Scale(scale,new Vector3(1/Mathf.Sqrt(stretch),stretch,1/Mathf.Sqrt(stretch)));
         float blink=Mathf.Repeat(clock+(Employee?1.1f:0),3.7f);

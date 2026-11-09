@@ -109,3 +109,27 @@ already contains the generated meshes, materials and authored scene.
 Character-pass validation: 225/225 PlayMode tests passed on 2026-11-09, including geometry/rig separation, Combat dance rendering and face freeze/resume checks. Inspected clay-idle-a.png, clay-idle-b.png and clay-dance.png captured from the live PlayMode camera. Human acoustic QA remains pending.
 
 The rebuilt macOS standalone launched successfully; its new characters and scene presentation were visually checked in the native BAD SHIFT window. Build completed with zero errors.
+
+## Proportions and distance-driven gait
+
+ClayGaitPass.Run (once after ClayCharacterPass) raises the visual pelvis by 0.43
+world units, replaces the short leg presentation with longer slim segments,
+reduces head size to 90 percent and narrows/shortens the apron. Colliders and
+CharacterController movement are preserved. Bone poses are restored before Animator
+evaluation, then visual posing runs after body deformation; offsets do not accumulate.
+
+Player gait phase follows measured displacement, not elapsed time. Stance feet
+retain world anchors, while swing feet arc toward a ground-projected landing point.
+Airborne motion and employee dance retain the underlying clip's foot targets.
+Torso twist/lean and delayed head sway add clay comedy; the contact trajectory stays
+continuous. Landings and teleports reinitialize anchors. The player footstep sound
+now fires on swing-to-stance contact through the existing local surface parameters;
+projects without this presentation component retain their original stride playback.
+
+PlayMode visual captures now run after LateUpdate, so they include the final visual
+pose rather than the temporarily restored Animator source pose. Tests exercise
+stance-foot stability during actual CharacterController movement, pause, and absence
+of cumulative hip offset. The result is procedural stylized animation, not an exact
+copy of the illustration or fully authored stop-motion animation.
+
+Validation on 2026-11-09: full suite 227/227 passed. After removing idle foot recentering, four focused actor/gait tests passed again, including fixed stance feet during movement and after stopping. Inspected post-LateUpdate walking captures. The whole demo route remains covered by the full suite; perceptual footstep/audio review is still manual.
