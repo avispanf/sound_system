@@ -9,7 +9,7 @@ when BadShiftDemo exists and adds an audition music multiplier.
 
 Open Assets/Playground/RelayField.unity in the prepared AudioMW-BadShift project
 using Unity 6000.3.21f1. Or launch Build/RelayField.app (window title BAD SHIFT).
-WASD / Shift / Space move; Walk through three bananas; E collects the other four foods; reach the blue exit. R resets.
+WASD / Shift / Space move; E opens/closes the stockroom door when nearby; Walk through three bananas; E collects the other four foods; reach the blue exit. R resets.
 
 - Microwave: approach the coral appliance, X plays an actual AudioMW container;
   Q switches Random / ShuffleBag. HUD shows the actual debugger clip name.
@@ -24,7 +24,7 @@ WASD / Shift / Space move; Walk through three bananas; E collects the other four
   while standing in this station. Echo delay 280 ms; reverb Bathroom preset.
 - Floors: original local Surface Switch / ShuffleBag footsteps remain active.
 
-Tab opens diagnostics. P pauses. M requests music; L exercises the voice limit.
+P pauses. M requests music; L exercises the voice limit.
 All audio remains synthesized placeholder content. No human listening sign-off.
 
 ## Reproduce in an isolated copy
@@ -50,8 +50,8 @@ changed demo scene; don't reapply its old installation plan.
 
 ## Verification and boundaries
 
-210 PlayMode tests pass in Unity 6000.3.21f1, including twenty-three demo tests: five inherited gameplay/mix tests and
-eighteen BAD SHIFT checks (real clip selection, source/filter switching, listener
+218 PlayMode tests pass in Unity 6000.3.21f1, including thirty-one demo tests: five inherited gameplay/mix tests and
+twenty-six BAD SHIFT checks (real clip selection, source/filter switching, listener
 measurement, actual music/VO animation timing, collision, live character reactions and walkable routes). Collection tests move the character
 programmatically; they are not proof of complete human navigation/listening QA.
 
@@ -59,7 +59,7 @@ Native visual review catches model placement and HUD issues. Echo/reverb compone
 and playback are tested; the perceptual difference and tails still need listening.
 No live acoustic measurements or audio-quality approval is claimed. The visual
 scene is an implementation inspired by the concept, not a reproduction of its art.
-Animation is deliberately simple, and furniture now has static collision. See GUIDE-AUDIT.md for the complete current checklist.
+Animation is deliberately simple, and dining furniture is dynamic while appliances retain static collision. See GUIDE-AUDIT.md for the complete current checklist.
 
 ## Physics and animation update
 
@@ -78,3 +78,10 @@ for visual changes, animation behavior and one-time authoring order.
 
 See INTERACTION-PASS.md for camera controls, automatic banana collection,
 moving furniture, breakable cups, boss speech bubbles and complete scene reset.
+
+## Presentation and guided demo
+
+See PRESENTATION-PASS.md for the dark UI, resizing and guided tour.
+In the prepared Unity project use Tools > AudioMW > BAD SHIFT Demo, then
+Watch demo in Game View or Play yourself. The same two modes and Reset are
+available in the player. Use Free Aspect in Game View when resizing its panel.

@@ -23,7 +23,7 @@ public sealed class BadShiftInteractionTests
     }
     [UnityTearDown] public IEnumerator Stop()
     {
-        Time.timeScale=1;AudioSystem.SetPaused(false);AudioSystem.Shutdown();
+        yield return PlaygroundTestCleanup.Clear();
         if(addedKeyboard)InputSystem.RemoveDevice(keyboard);else InputSystem.QueueStateEvent(keyboard,new KeyboardState());
         addedKeyboard=false;yield return null;
     }
@@ -69,7 +69,7 @@ public sealed class BadShiftInteractionTests
     }
     [UnityTest] public IEnumerator WalkingIntoAChairPushesItsRigidbody()
     {
-        Rigidbody chair=Object.FindObjectsByType<Rigidbody>(FindObjectsSortMode.None).First(r=>r.name=="Coral cafe chair");Vector3 before=chair.position;
+        Rigidbody chair=Object.FindObjectsByType<Rigidbody>(FindObjectsSortMode.None).Where(r=>r.name=="Coral cafe chair").OrderBy(r=>r.position.z).ThenBy(r=>r.position.x).First();Vector3 before=chair.position;
         game.OrbitCamera.Orbit(-game.OrbitCamera.Yaw,0);PlacePlayer(before+Vector3.back*1.3f+Vector3.up*.05f);
         game.enabled=false;float until=Time.time+.9f;
         while(Time.time<until){game.MoveCharacter(Vector3.forward,false,false,Time.deltaTime);yield return null;}

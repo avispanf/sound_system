@@ -26,6 +26,8 @@ public sealed class AudioMWPlayground : MonoBehaviour
     public AudioClip Stinger;
     public Camera View;
     public bool DioramaCamera;
+    public BadShiftTour Tour;
+    public BadShiftDoor Door;
     public BadShiftOrbitCamera OrbitCamera;
     public float JumpHeight = .55f;
     public bool IsResetting { get; private set; }
@@ -83,21 +85,21 @@ public sealed class AudioMWPlayground : MonoBehaviour
     private void Update()
     {
         Keyboard keys = Keyboard.current;
-        if (keys == null) return;
-        if (keys.hKey.wasPressedThisFrame) help = !help;
-        if (keys.pKey.wasPressedThisFrame)
+        if ((keys != null && keys.hKey.wasPressedThisFrame)) help = !help;
+        if ((keys != null && keys.pKey.wasPressedThisFrame))
         {
             paused = !paused; AudioSystem.SetPaused(paused); Time.timeScale = paused ? 0 : 1;
         }
-        if (keys.rKey.wasPressedThisFrame) { ResetScene(); return; }
-        if (keys.digit1Key.wasPressedThisFrame) musicMuted = !musicMuted;
-        if (keys.f8Key.wasPressedThisFrame) SaveSession();
+        if ((keys != null && keys.rKey.wasPressedThisFrame)) { ResetScene(); return; }
+        if ((keys != null && keys.digit1Key.wasPressedThisFrame)) musicMuted = !musicMuted;
+        if ((keys != null && keys.f8Key.wasPressedThisFrame)) SaveSession();
         if (Time.unscaledTime >= stressUntil) foreach (SoundHandle handle in stress) handle.Stop();
         if (paused) return;
-        Vector3 direction = new Vector3((keys.dKey.isPressed ? 1 : 0) - (keys.aKey.isPressed ? 1 : 0), 0, (keys.wKey.isPressed ? 1 : 0) - (keys.sKey.isPressed ? 1 : 0)).normalized;
+        Vector3 direction = new Vector3(((keys != null && keys.dKey.isPressed) ? 1 : 0) - ((keys != null && keys.aKey.isPressed) ? 1 : 0), 0, ((keys != null && keys.wKey.isPressed) ? 1 : 0) - ((keys != null && keys.sKey.isPressed) ? 1 : 0)).normalized;
         if (OrbitCamera != null) direction = OrbitCamera.MovementDirection(direction);
+        if (Tour != null && Tour.Running) direction = Tour.Direction;
         if (FreezeForVoice) direction = Vector3.zero;
-        MoveCharacter(direction, keys.spaceKey.wasPressedThisFrame, keys.leftShiftKey.isPressed, Time.deltaTime);
+        MoveCharacter(direction, (Tour == null || !Tour.Running) && (keys != null && keys.spaceKey.wasPressedThisFrame), (Tour == null || !Tour.Running) && (keys != null && keys.leftShiftKey.isPressed), Time.deltaTime);
         bool nowGrounded = character.isGrounded;
         if (nowGrounded)
         {
@@ -125,11 +127,11 @@ public sealed class AudioMWPlayground : MonoBehaviour
         intensity = Mathf.MoveTowards(intensity, danger ? 1 : 0, Time.deltaTime * 0.6f);
         AudioSystem.SetParameter(Intensity, intensity);
         AudioSystem.Music.SetVolume(musicMuted ? 0 : 0.75f * AuditionMixGain * (AudioRuntime.Instance.ActiveMixProfile != null ? 1 : Mathf.Lerp(1, 0.25f, AudioSystem.GetParameter(VoiceDuck))));
-        if (keys.fKey.wasPressedThisFrame) Fire();
-        if (keys.eKey.wasPressedThisFrame) Interact();
-        if (keys.vKey.wasPressedThisFrame) Speak();
-        if (keys.lKey.wasPressedThisFrame) StressLimit();
-        if (keys.mKey.wasPressedThisFrame) RequestMusic(!requestedCombat);
+        if ((keys != null && keys.fKey.wasPressedThisFrame)) Fire();
+        if ((keys != null && keys.eKey.wasPressedThisFrame)) Interact();
+        if ((keys != null && keys.vKey.wasPressedThisFrame)) Speak();
+        if ((keys != null && keys.lKey.wasPressedThisFrame)) StressLimit();
+        if ((keys != null && keys.mKey.wasPressedThisFrame)) RequestMusic(!requestedCombat);
         if (!complete && collected == Pickups.Length && Vector3.Distance(transform.position, Exit.position) < 2.5f)
         {
             complete = true; RequestMusic(false); AudioSystem.PlayStinger(Stinger, MusicQuantization.Bar, 0.3f); Tell("Route complete. Use R to replay, or continue audio tests.");
@@ -188,6 +190,7 @@ public sealed class AudioMWPlayground : MonoBehaviour
 
     public void Interact()
     {
+        if (Door != null && Door.CanInteract(transform.position)) { Door.Toggle(); return; }
         PlaygroundPickup nearest = null; float distance = 2;
         foreach (PlaygroundPickup item in Pickups)
         {
@@ -222,6 +225,8 @@ public sealed class AudioMWPlayground : MonoBehaviour
         Rigidbody body = hit.collider.attachedRigidbody;
         if (body == null || body.isKinematic || Mathf.Abs(hit.normal.y) > .5f) return;
         Vector3 direction = Vector3.ProjectOnPlane(hit.moveDirection, Vector3.up).normalized;
+        BadShiftKickable ball = body.GetComponent<BadShiftKickable>();
+        if (ball != null) { ball.Kick(direction, planarVelocity.magnitude); return; }
         bool running = planarVelocity.magnitude > 4;
         float target = Mathf.Min(running ? 3 : 1.6f, Vector3.Dot(planarVelocity, direction));
         float difference = target - Vector3.Dot(body.GetPointVelocity(hit.point), direction);

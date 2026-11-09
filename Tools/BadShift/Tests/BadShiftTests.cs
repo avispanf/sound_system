@@ -10,7 +10,7 @@ public sealed class BadShiftTests
 {
     private BadShiftDemo demo;
     [UnitySetUp] public IEnumerator Load() { yield return SceneManager.LoadSceneAsync("RelayField"); yield return null;demo=Object.FindFirstObjectByType<BadShiftDemo>();Assert.IsNotNull(demo); }
-    [UnityTearDown] public IEnumerator Stop(){AudioSystem.Shutdown();yield return null;}
+    [UnityTearDown] public IEnumerator Stop(){yield return PlaygroundTestCleanup.Clear();}
     [UnityTest] public IEnumerator ClayMotionPreservesPhysicalBodyAndFixedCamera()
     {
         yield return new WaitForSeconds(.2f);

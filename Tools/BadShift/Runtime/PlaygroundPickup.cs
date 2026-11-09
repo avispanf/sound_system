@@ -8,6 +8,8 @@ public sealed class PlaygroundPickup : MonoBehaviour
     private void Update()
     {
         if (Collected) return;
+        Rigidbody body = GetComponent<Rigidbody>();
+        if (body != null && !body.isKinematic) return;
         Transform visual = AutoCollect && transform.childCount > 0 ? transform.GetChild(0) : transform;
         visual.Rotate(0, 60 * Time.deltaTime, 0, Space.World);
     }
@@ -23,6 +25,8 @@ public sealed class PlaygroundPickup : MonoBehaviour
     {
         if (Collected) return;
         Collected = true;
+        Rigidbody body = GetComponent<Rigidbody>();
+        if (body != null) { body.isKinematic = true; }
         foreach (ParticleSystem effect in GetComponentsInChildren<ParticleSystem>()) effect.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         if (CollectBurst != null)
         {

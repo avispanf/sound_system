@@ -19,7 +19,7 @@ public sealed class RelayFieldIntegrationTests
     }
     [UnityTearDown] public IEnumerator Stop()
     {
-        AudioSystem.Shutdown();
+        yield return PlaygroundTestCleanup.Clear();
         if (addedKeyboard != null) InputSystem.RemoveDevice(addedKeyboard);
         addedKeyboard = null; yield return null;
     }
@@ -29,9 +29,10 @@ public sealed class RelayFieldIntegrationTests
         EventDebugRecord record; Assert.IsTrue(AudioSystem.Debugger.TryGetLast(out record)); Assert.AreEqual(PlaybackOutcome.Played,record.Outcome);
         game.StressLimit(); AudioSystem.Debugger.TryGetLast(out record);
         Assert.AreEqual(PlaybackOutcome.RejectedInstanceLimit,record.Outcome); Assert.AreEqual(2,record.Rejection.CurrentCount);
+        Assert.AreEqual(2,AudioRuntime.Instance.Pool.Voices.Count(v=>v.IsActive&&v.CurrentEvent==game.StressLoop));
         game.Speak(); yield return null; Assert.IsTrue(AudioSystem.VoiceOver.IsSpeaking);
         yield return new WaitForSecondsRealtime(1.5f);
-        Assert.LessOrEqual(AudioSystem.ActiveVoiceCount,3, string.Join(" | ",AudioSystem.Debugger.Records.GroupBy(item => item.EventName).Select(group => group.Key + ":" + group.Count())));
+        Assert.AreEqual(0,AudioRuntime.Instance.Pool.Voices.Count(v=>v.IsActive&&v.CurrentEvent==game.StressLoop),"Both admitted stress loops must stop after the exercise; independent prop impacts may still be playing.");
     }
     [UnityTest] public IEnumerator LandingFiresOnceAfterAnActualFall()
     {

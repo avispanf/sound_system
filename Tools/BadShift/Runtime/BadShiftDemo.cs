@@ -129,70 +129,63 @@ public sealed class BadShiftDemo : MonoBehaviour
         RaveLight.color = combat ? Color.Lerp(new Color(1,.3f,.5f), new Color(.6f,.4f,1), .5f + .5f * Mathf.Sin(dancePhase)) : new Color(1,.85f,.65f);
         RaveLight.intensity = combat ? 4 : 1;
     }
+    private GUIStyle TextStyle(int size, Color color, bool bold=false)
+    {
+        GUIStyle style=new GUIStyle(GUI.skin.label){fontSize=size,wordWrap=true,fontStyle=bold?FontStyle.Bold:FontStyle.Normal};style.normal.textColor=color;return style;
+    }
+    private void Panel(Rect rect, Color color) { GUI.DrawTexture(rect,Texture2D.whiteTexture,ScaleMode.StretchToFill,true,0,color,0,12); }
+    private bool Button(Rect rect,string text,bool accent=false)
+    {
+        Color background=accent?new Color(.92f,.38f,.28f):new Color(.20f,.25f,.31f);
+        if(rect.Contains(Event.current.mousePosition))background=Color.Lerp(background,Color.white,.12f);
+        Panel(rect,background);
+        GUIStyle style=TextStyle(14,Color.white,true);style.alignment=TextAnchor.MiddleCenter;
+        return GUI.Button(rect,text,style);
+    }
     private void OnGUI()
     {
-        Color ink = new Color(.15f,.18f,.2f);
-        GUIStyle title = new GUIStyle(GUI.skin.label) { fontSize = 38, fontStyle = FontStyle.Bold };
-        title.normal.textColor = ink;
-        GUI.Label(new Rect(28,18,500,55), "BAD SHIFT", title);
-        GUIStyle subtitle = new GUIStyle(GUI.skin.label) { fontSize = 13, fontStyle = FontStyle.Bold };
-        subtitle.normal.textColor = ink;
-        GUI.Label(new Rect(31,68,500,24), "A U D I O   P L A Y G R O U N D", subtitle);
-        Color oldColor = GUI.color;
-        GUI.color = new Color(.96f,.89f,.79f,.96f);
-        GUI.DrawTexture(new Rect(20,Screen.height-(details ? 370 : 180),470,details ? 350 : 160), Texture2D.whiteTexture);
-        GUI.color = oldColor;
-        Color oldText = GUI.skin.label.normal.textColor;
-        GUI.skin.label.normal.textColor = ink;
-        GUILayout.BeginArea(new Rect(20,Screen.height-(details ? 370 : 180)+10,470,details ? 330 : 140));
-        GUILayout.Label("BAD SHIFT  /  AUDIO PLAYGROUND");
-        GUILayout.Label("Ingredients " + Game.Collected + "/" + Game.Pickups.Length + (Game.IsComplete ? "  SHIFT COMPLETE" : "  ·  E collect / blue exit"));
-        int station = Station();
-        if (station == 1) { GUILayout.Label("MICROWAVE  ·  X answer / Q mode"); GUILayout.Label((bag ? "ShuffleBag" : "Random") + "  ·  " + answer); }
-        else if (station == 2) { GUILayout.Label("THE MANAGER  ·  X speech"); GUILayout.Label(AudioSystem.VoiceOver.IsSpeaking ? "Staff meeting. Nobody move." : "Your supervisor is a vegetable."); }
-        else if (station == 3) { GUILayout.Label("STOCKROOM  ·  X same sound / Q processing"); GUILayout.Label(new[] { "Dry", "Echo · 280 ms repeats", "Reverb · room tail" }[effect]); }
-        else if (station == 4) { GUILayout.Label("FRIDGE  ·  Walk towards / away"); GUILayout.Label("Music muted · listener distance " + ListenerDistance.ToString("0.0") + " m"); }
-        else GUILayout.Label("Collect the glowing bananas · E picks other ingredients");
-        MusicPlayer m = AudioSystem.Music;
-        if (station == 0 || details) GUILayout.Label(m.IsTransitionPending ? "Music waiting for " + m.PendingQuantization + " · " + Mathf.Max(0,(float)(m.PendingStartDspTime - AudioSettings.dspTime)).ToString("0.0") + " s" : "Music " + (m.CurrentTrack != null ? m.CurrentTrack.name : "Stopped"));
-        AudioMixProfile mix = AudioRuntime.Instance.ActiveMixProfile;
-        if ((station == 2 || details || AudioSystem.VoiceOver.IsSpeaking) && mix != null && mix.Routing.Mixer.GetFloat("AudioMW_MusicDuckDb", out float db)) GUILayout.Label("Music duck " + db.ToString("0.0") + " dB");
-        GUILayout.Label("Tab diagnostics · R reset · P pause · audio placeholders");
-        if (details) { GUILayout.Label("WASD / Shift / Space · V VO · M music · L voice limits"); GUILayout.Label("Footsteps: stone / grass / metal. Q changes only the nearby station."); GUILayout.Label("Fridge: fixed 3D source, distance from player AudioListener."); GUILayout.Label("Stockroom: Unity AudioEchoFilter / AudioReverbFilter on one source."); GUILayout.Label(Game.LastDiagnostic); }
-        GUILayout.EndArea();
-        GUI.skin.label.normal.textColor = oldText;
-        GUIStyle control = new GUIStyle(GUI.skin.button) { fontSize = 14, fontStyle = FontStyle.Bold };
-        control.normal.textColor = ink; control.hover.textColor = ink; control.active.textColor = ink; control.focused.textColor = ink;
-        if (GUI.Button(new Rect(Screen.width-170,22,150,38), "Reset scene", control)) Game.ResetScene();
-        GUI.DrawTexture(new Rect(Screen.width-170,66,150,24),Texture2D.whiteTexture,ScaleMode.StretchToFill,true,0,new Color(.98f,.94f,.84f,.94f),0,5);
-        GUI.Label(new Rect(Screen.width-165,66,145,24), "Cups broken " + BadShiftImpactProp.BreakCount + "/4", subtitle);
-        BadShiftOrbitCamera orbit = Game.OrbitCamera;
-        if (orbit != null)
+        float scale=Mathf.Min(Screen.width/1600f,Screen.height/900f);
+        Matrix4x4 previous=GUI.matrix;GUI.matrix=Matrix4x4.Scale(new Vector3(scale,scale,1));
+        float w=Screen.width/scale,h=Screen.height/scale;
+        Color white=new Color(.94f,.96f,.98f),muted=new Color(.65f,.72f,.79f),panel=new Color(.04f,.065f,.09f,.78f);
+        Panel(new Rect(24,24,w-48,76),panel);
+        GUI.Label(new Rect(44,34,260,36),"BAD SHIFT",TextStyle(26,white,true));
+        GUI.Label(new Rect(45,70,280,20),"AUDIOMW / AUDIO PLAYGROUND",TextStyle(11,muted));
+        BadShiftTour tour=Game.Tour;bool watching=tour!=null&&tour.Running;
+        if(Button(new Rect(w-450,42,140,40),"Play yourself",!watching)&&tour!=null)tour.Stop();
+        if(Button(new Rect(w-298,42,140,40),watching?"Replay demo":"Watch demo",watching)&&tour!=null)tour.WatchFromStart();
+        if(Button(new Rect(w-146,42,102,40),"Reset")){BadShiftTour.StartOnLoad=false;Game.ResetScene();}
+        float bottom=h-210;
+        Panel(new Rect(24,bottom,470,186),panel);
+        GUI.Label(new Rect(44,bottom+16,430,26),tour!=null?tour.Heading:"Explore the cafe",TextStyle(17,white,true));
+        GUI.Label(new Rect(44,bottom+48,430,86),tour!=null?tour.Explanation:"WASD move / Shift run / Space jump",TextStyle(14,muted));
+        GUI.Label(new Rect(44,bottom+142,430,25),"Ingredients "+Game.Collected+"/"+Game.Pickups.Length+"   ·   Cups "+BadShiftImpactProp.BreakCount+"/4",TextStyle(13,white));
+        Panel(new Rect(510,bottom,w-534,186),panel);
+        int station=Station();MusicPlayer music=AudioSystem.Music;
+        string state=station==1?(bag?"ShuffleBag":"Random")+" · "+answer:station==2?"Voice-over / mixer ducking":station==3?new[]{"Dry","Echo · 280 ms","Reverb · room tail"}[effect]:station==4?"Fridge · listener "+ListenerDistance.ToString("0.0")+" m":"Music · "+(music.CurrentTrack!=null?music.CurrentTrack.name:"Stopped");
+        GUI.Label(new Rect(530,bottom+16,w-574,27),state,TextStyle(17,white,true));
+        string status=music.IsTransitionPending?"Transition waiting for "+music.PendingQuantization:station==4?"Music muted · move the player to compare distance":"X interact · Q variation · V manager · P pause";
+        if(Game.Door != null && Game.Door.CanInteract(Game.transform.position))status="E / "+(Game.Door.IsOpen?"Close":"Open")+" stockroom door";
+        if(AudioSystem.VoiceOver.IsSpeaking && AudioRuntime.Instance.ActiveMixProfile!=null && AudioRuntime.Instance.ActiveMixProfile.Routing.Mixer.GetFloat("AudioMW_MusicDuckDb",out float db))status="Actual music duck: "+db.ToString("0.0")+" dB";
+        GUI.Label(new Rect(530,bottom+49,w-574,46),status,TextStyle(13,muted));
+        BadShiftOrbitCamera orbit=Game.OrbitCamera;
+        if(orbit!=null)
         {
-            float x = Screen.width - 340;
-            GUI.DrawTexture(new Rect(x-6,Screen.height-91,337,78),Texture2D.whiteTexture,ScaleMode.StretchToFill,true,0,new Color(.98f,.94f,.84f,.94f),0,8);
-            GUI.Label(new Rect(x,Screen.height-85,330,25), "Camera: RMB drag / wheel / C follow", subtitle);
-            if (GUI.Button(new Rect(x,Screen.height-50,45,30), "-", control)) orbit.Zoom(-1);
-            if (GUI.Button(new Rect(x+48,Screen.height-50,45,30), "+", control)) orbit.Zoom(1);
-            if (GUI.Button(new Rect(x+96,Screen.height-50,45,30), "<", control)) orbit.Orbit(-15,0);
-            if (GUI.Button(new Rect(x+144,Screen.height-50,45,30), ">", control)) orbit.Orbit(15,0);
-            if (GUI.Button(new Rect(x+192,Screen.height-50,65,30), "Home", control)) orbit.Home();
-            if (GUI.Button(new Rect(x+260,Screen.height-50,65,30), "Follow", control)) orbit.FocusPlayer();
+            float x=530,y=bottom+102;
+            if(Button(new Rect(x,y,44,36),"−"))orbit.Zoom(-1);
+            if(Button(new Rect(x+52,y,44,36),"+"))orbit.Zoom(1);
+            if(Button(new Rect(x+104,y,44,36),"‹"))orbit.Orbit(-15,0);
+            if(Button(new Rect(x+156,y,44,36),"›"))orbit.Orbit(15,0);
+            if(Button(new Rect(x+208,y,80,36),"Overview"))orbit.Home();
+            if(Button(new Rect(x+296,y,76,36),"Follow"))orbit.FocusPlayer();
         }
-        if (!string.IsNullOrEmpty(BossQuote))
+        GUI.Label(new Rect(530,bottom+146,w-574,22),"Camera: RMB drag / wheel / C follow   ·   Audio placeholders",TextStyle(12,muted));
+        if(!string.IsNullOrEmpty(BossQuote))
         {
-            Vector3 anchor = Game.View.WorldToScreenPoint(Boss.position + Vector3.up * 4.9f);
-            if (anchor.z > 0)
-            {
-                float width = Mathf.Min(320,Screen.width-24);
-                Rect bubble = new Rect(Mathf.Clamp(anchor.x-width/2,12,Screen.width-width-12),Mathf.Clamp(Screen.height-anchor.y-75,105,Screen.height-140),width,72);
-                GUIStyle quote = new GUIStyle(GUI.skin.box) { wordWrap = true, alignment = TextAnchor.MiddleCenter, fontSize = 16, padding = new RectOffset(14,14,9,9) };
-                GUI.DrawTexture(new Rect(bubble.x,bubble.y+3,bubble.width,bubble.height),Texture2D.whiteTexture,ScaleMode.StretchToFill,true,0,new Color(0,0,0,.15f),0,12);
-                GUI.DrawTexture(bubble,Texture2D.whiteTexture,ScaleMode.StretchToFill,true,0,new Color(.98f,.94f,.84f),0,12);
-                quote.normal.background = null; quote.normal.textColor = ink; GUI.Label(bubble,BossQuote,quote);
-                GUI.Label(new Rect(Mathf.Clamp(anchor.x-6,bubble.x+8,bubble.xMax-20),bubble.yMax-2,20,20), "▼", subtitle);
-            }
+            Vector3 anchor=Game.View.WorldToScreenPoint(Boss.position+Vector3.up*4.9f)/scale;
+            if(anchor.z>0){Rect bubble=new Rect(Mathf.Clamp(anchor.x-160,24,w-344),Mathf.Clamp(h-anchor.y-82,112,bottom-90),320,76);Panel(bubble,new Color(.96f,.91f,.80f));GUIStyle quote=TextStyle(15,new Color(.12f,.15f,.18f));quote.alignment=TextAnchor.MiddleCenter;quote.padding=new RectOffset(14,14,8,8);GUI.Label(bubble,BossQuote,quote);}
         }
+        GUI.matrix=previous;
     }
     private void OnDestroy() { fridgeHandle.Stop(); if (microwaveMaterial != null) Destroy(microwaveMaterial); }
 }
