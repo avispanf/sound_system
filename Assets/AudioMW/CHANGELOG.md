@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0-preview.22 — Editor polish
+
+- Separate captured Music scheduling and unavailable runtime states; scrollable narrow layout.
+- Compact Diagnostics, explicit gain-capture availability and scoped captured details.
+
 ## 0.5.0-preview.21 — Spatial, Parameters and Routing workspaces
 
 - Added native read-only workspaces with shared navigation, search, selection following and native Inspector access.

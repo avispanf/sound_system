@@ -11,6 +11,7 @@ namespace AudioMW.Editor
         private VisualElement stateButtons;
         private MusicState[] displayedStates = new MusicState[0];
         private Label status;
+        private Label timing;
         private HelpBox help;
         private IVisualElementScheduledItem refresh;
 
@@ -34,6 +35,15 @@ namespace AudioMW.Editor
             root.Clear();
             AudioWorkspace.Style(root);
             root.Add(AudioWorkspace.Navigation("Music"));
+            root.AddToClassList("audiomw-inspection");
+            ScrollView content = new ScrollView { name = "music-content" };
+            content.style.flexGrow = 1;
+            root.Add(content);
+            root = content;
+            Label eyebrow = new Label("ADAPTIVE MUSIC / SCENE RUNTIME");
+            eyebrow.AddToClassList("audiomw-eyebrow"); root.Add(eyebrow);
+            Label title = new Label("Music transitions");
+            title.AddToClassList("audiomw-title"); root.Add(title);
             root.style.paddingLeft = root.style.paddingRight = 12;
             root.style.paddingTop = root.style.paddingBottom = 12;
             ObjectField field = new ObjectField("State profile") { objectType = typeof(MusicStateProfile), value = profile, allowSceneObjects = false };
@@ -43,12 +53,16 @@ namespace AudioMW.Editor
             root.Add(settings);
             help = new HelpBox("", HelpBoxMessageType.Info);
             root.Add(help);
-            status = new Label();
+            status = new Label { name = "music-current-pending" };
+            status.AddToClassList("audiomw-runtime-card");
             status.style.whiteSpace = WhiteSpace.Normal;
             status.style.marginTop = status.style.marginBottom = 12;
             root.Add(status);
+            timing = new Label { name = "music-timing" };
+            timing.AddToClassList("audiomw-runtime-card");
+            root.Add(timing);
             root.Add(new Label("Request state · Profile rules") { style = { unityFontStyleAndWeight = FontStyle.Bold } });
-            stateButtons = new ScrollView { name = "music-states" };
+            stateButtons = new VisualElement { name = "music-states" };
             stateButtons.style.flexGrow = 1;
             root.Add(stateButtons);
             Button stop = new Button(() => { if (EditorApplication.isPlaying && AudioRuntime.Exists) AudioSystem.StopMusic(); }) { text = "Stop music", name = "stop-scene-music" };
@@ -90,19 +104,21 @@ namespace AudioMW.Editor
             if (help == null) return;
             string error = profile == null ? "Choose a music state profile." : profile.Validate();
             bool ready = string.IsNullOrEmpty(error) && EditorApplication.isPlaying;
+            timing.text = "Timing · Unavailable outside Play Mode";
             stateButtons.SetEnabled(ready);
             help.text = !string.IsNullOrEmpty(error) ? error : !EditorApplication.isPlaying ? "Enter Play Mode to audition transitions through the scene audio runtime." : "Select a state to hear its transition. This controls the running scene's music.";
             if (!EditorApplication.isPlaying) { status.text = "Current: Unavailable outside Play Mode\nPending: Unavailable outside Play Mode"; UpdateRules(null); return; }
-            if (!AudioRuntime.Exists) { status.text = "Current: Runtime not started\nPending: None"; UpdateRules(null); return; }
+            if (!AudioRuntime.Exists) { status.text = "Current: Unavailable · runtime not started\nPending: Unavailable · runtime not started"; timing.text = "Timing · Unavailable until the scene runtime starts"; UpdateRules(null); return; }
             MusicPlayer player = AudioSystem.Music;
             string current = player.CurrentTrack != null ? player.CurrentTrack.name : "Stopped";
             status.text = "Current: " + current + "\nPending: " + (player.IsTransitionPending ? player.PendingTrack.name : "None");
             UpdateRules(player.CurrentTrack);
+            timing.text = "Timing · No scheduled transition";
             if (player.IsCrossfading)
-                status.text += "\nCrossfading • gain " + player.TransitionGain.ToString("F2") + " • " + System.Math.Max(0, player.TransitionEndDspTime - AudioSettings.dspTime).ToString("F2") + " s remaining";
-            if (!player.SupportsDspFades) status.text += "\nDSP crossfades are unavailable on this platform; transitions use cuts.";
+                timing.text = "Crossfading • gain " + player.TransitionGain.ToString("F2") + " • " + System.Math.Max(0, player.TransitionEndDspTime - AudioSettings.dspTime).ToString("F2") + " s remaining";
             if (player.IsTransitionPending)
-                status.text += "\nBoundary: " + player.PendingQuantization + " · in " + System.Math.Max(0, player.PendingStartDspTime - AudioSettings.dspTime).ToString("F2") + " s\nScheduled crossfade: " + player.PendingFadeSeconds.ToString("0.##") + " s · " + player.PendingCurve;
+                timing.text = "Scheduled timing · Captured\nBoundary: " + player.PendingQuantization + " · in " + System.Math.Max(0, player.PendingStartDspTime - AudioSettings.dspTime).ToString("F2") + " s\nScheduled crossfade: " + player.PendingFadeSeconds.ToString("0.##") + " s · " + player.PendingCurve + "\nProfile edits do not change this queued transition.";
+            if (!player.SupportsDspFades) timing.text += "\nDSP crossfades are unavailable on this platform; transitions use cuts.";
         }
         private void UpdateRules(MusicTrack current)
         {

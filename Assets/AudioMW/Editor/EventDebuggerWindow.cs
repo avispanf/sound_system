@@ -39,6 +39,11 @@ namespace AudioMW.Editor
             rootVisualElement.Clear();
             AudioWorkspace.Style(rootVisualElement);
             rootVisualElement.Add(AudioWorkspace.Navigation("Diagnostics"));
+            rootVisualElement.AddToClassList("audiomw-inspection");
+            Label eyebrow = new Label("DIAGNOSTICS / CAPTURED REQUESTS");
+            eyebrow.AddToClassList("audiomw-eyebrow"); rootVisualElement.Add(eyebrow);
+            Label title = new Label("Why is it silent?");
+            title.AddToClassList("audiomw-title"); rootVisualElement.Add(title);
             Toolbar toolbar = new Toolbar();
             toolbar.style.flexWrap = Wrap.Wrap;
             toolbar.style.height = StyleKeyword.Auto;
@@ -74,6 +79,7 @@ namespace AudioMW.Editor
             listView.fixedItemHeight = 28f;
             listView.selectionType = SelectionType.Single;
             listView.style.flexGrow = 1f;
+            listView.style.minHeight = 84f;
             rootVisualElement.Add(MakeRow(true));
             listView.makeItem = () => MakeRow(false);
             listView.bindItem = BindItem;
@@ -83,15 +89,20 @@ namespace AudioMW.Editor
             emptyLabel = new Label { name = "diagnostics-empty", style = { whiteSpace = WhiteSpace.Normal, paddingLeft = 6, paddingBottom = 8 } };
             rootVisualElement.Add(emptyLabel);
 
+            ScrollView details = new ScrollView { name = "diagnostics-details" };
+            details.style.maxHeight = Length.Percent(50);
+            details.style.flexShrink = 1;
+            details.AddToClassList("audiomw-runtime-card");
+            rootVisualElement.Add(details);
             detailLabel = new Label();
             detailLabel.style.whiteSpace = WhiteSpace.Normal;
             detailLabel.style.paddingLeft = 6f;
             detailLabel.style.paddingTop = 4f;
             detailLabel.style.minHeight = 52f;
-            rootVisualElement.Add(detailLabel);
+            details.Add(detailLabel);
 
             bankLabel = new Label { name = "live-bank-state", style = { whiteSpace = WhiteSpace.Normal, paddingLeft = 6, paddingBottom = 6 } };
-            rootVisualElement.Add(bankLabel);
+            details.Add(bankLabel);
             openEvent = new Button(() =>
             {
                 bool limits = selectedRecord.Outcome == PlaybackOutcome.RejectedCooldown || selectedRecord.Outcome == PlaybackOutcome.RejectedInstanceLimit || selectedRecord.Outcome == PlaybackOutcome.RejectedNoVoice;
@@ -100,9 +111,9 @@ namespace AudioMW.Editor
                     selectedRecord.Outcome == PlaybackOutcome.RejectedCooldown ? "cooldownSeconds" :
                     selectedRecord.Rejection.HasInstanceLimit ? (selectedRecord.Rejection.Scope == "emitter" ? "maxInstancesPerEmitter" : selectedRecord.Rejection.Scope == "event" ? "maxInstances" : "concurrencyGroup") : null);
             }) { text = "Open event settings", name = "open-event-settings" };
-            openEvent.SetEnabled(false); rootVisualElement.Add(openEvent);
+            openEvent.SetEnabled(false); details.Add(openEvent);
             Foldout gains = new Foldout { text = "Gain details · Captured", value = false };
-            gainLabel = new Label { style = { whiteSpace = WhiteSpace.Normal } }; gains.Add(gainLabel); rootVisualElement.Add(gains);
+            gainLabel = new Label { style = { whiteSpace = WhiteSpace.Normal } }; gains.Add(gainLabel); details.Add(gains);
             summaryLabel = new Label { style = { whiteSpace = WhiteSpace.Normal } };
             summaryLabel.style.paddingLeft = 6f;
             summaryLabel.style.paddingBottom = 4f;
@@ -169,7 +180,7 @@ namespace AudioMW.Editor
         public static string Reason(EventDebugRecord record)
         {
             return record.Outcome != PlaybackOutcome.Played ? record.DescribeOutcome() :
-                record.HasGainCapture && record.FinalVolume == 0 ? "Source volume is zero" : "Playback request accepted";
+                !record.HasGainCapture ? "Accepted · gain capture unavailable" : record.FinalVolume == 0 ? "Source volume is zero" : "Playback request accepted";
         }
 
         private static VisualElement MakeRow(bool header)
@@ -184,7 +195,7 @@ namespace AudioMW.Editor
                 cell.AddToClassList("audiomw-diagnostic-" + names[i]);
                 row.Add(cell);
             }
-            if (header) row.AddToClassList("audiomw-title");
+            if (header) row.AddToClassList("audiomw-group");
             return row;
         }
 
@@ -202,8 +213,9 @@ namespace AudioMW.Editor
                     detailLabel.text = record.EventName + "\n" +
                         (record.Outcome == PlaybackOutcome.Played ? "Accepted" + (record.HasGainCapture && record.FinalVolume == 0 ? " · Source volume is zero" : "") : "Rejected · " + record.DescribeOutcome()) +
                         "\nCaptured at " + record.Time.ToString("0.00") + " s · " + (string.IsNullOrEmpty(record.ClipName) ? "No source clip captured" : record.ClipName);
-                    gainLabel.text = record.Outcome == PlaybackOutcome.Played && record.HasGainCapture ? record.DescribeVolumeChain() + "\n" + record.DescribeVolumeDecibels() : "No source-gain values captured for this record.";
+                    gainLabel.text = record.Outcome == PlaybackOutcome.Played && record.HasGainCapture ? record.DescribeVolumeChain() + "\n" + record.DescribeVolumeDecibels() + "\nCaptured source gain only. Mixer, distance attenuation and master output are not measured here." : "No source-gain values captured for this record.";
                     openEvent.SetEnabled(SettingsEvent(record) != null);
+                    openEvent.tooltip = SettingsEvent(record) != null ? "Select the captured event and reveal relevant settings." : "Unavailable: the captured event asset no longer exists.";
                 }
 
                 break;
@@ -224,7 +236,7 @@ namespace AudioMW.Editor
                     rejectionsToggle != null && rejectionsToggle.value);
 
                 summaryLabel.text = string.Format(
-                    "{0} shown of {1} records   played {2}   rejected {3}",
+                    "{0} shown of {1} records   accepted {2}   rejected {3}",
                     visible.Count,
                     debugger.Count,
                     debugger.CountWithOutcome(PlaybackOutcome.Played),
@@ -247,7 +259,7 @@ namespace AudioMW.Editor
                 else
                 {
                     hasSelectedRecord = false; selectedBanks.Clear(); UpdateBankState(); detailLabel.text = "Select a captured outcome to inspect its reason.";
-                    gainLabel.text = "No record selected."; openEvent.SetEnabled(false);
+                    gainLabel.text = "No record selected."; openEvent.SetEnabled(false); openEvent.tooltip = "Select a captured record with an available event asset.";
                 }
             }
         }

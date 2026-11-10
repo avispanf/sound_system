@@ -15,3 +15,11 @@ Native selection follows compatible assets unless Follow selection is disabled. 
 Verification is recorded in SPATIAL-UI-VERIFICATION.json in the delivered BAD SHIFT project. Runtime source parity with preview.20 is checked; this Editor-only batch does not claim a fresh gameplay/native-build or listening test. Unreal, output LUFS capture, dynamic reference discovery and native mixer topology/effect introspection remain outside this batch.
 
 Fresh acceptance: 314/314 EditMode passed on 6000.3.21f1. Native BAD SHIFT fixture inspected at 620 logical pixels in Light and Dark; Spatial preview marker changed to 7 m, parameter preview to 0.6 with the actual music-layer response, and three Footsteps_Switch routes displayed their actual groups. Editor output stayed muted, Play Mode was not entered. Original Dark theme was restored. No fresh native gameplay build or listening pass is claimed.
+
+## Music and Diagnostics polish (2026-11-10)
+
+Music uses the shared native typography and teal context cards, with a separate captured scheduling section and a vertically scrollable workspace. Current/Pending remain unavailable before runtime starts. Scheduled quantization, fade and curve still come from MusicPlayer. Scheduler and runtime sources are unchanged.
+
+Diagnostics has a compact header, scrollable captured details, explicit accepted-without-gain-capture wording, and a source-chain scope disclosure. Settings navigation provides a reason when its captured asset is unavailable. Accepted request counts do not imply audible playback.
+
+Validation: 314/314 EditMode tests and 5/5 package tests passed before the final ordering-only fix that preserves the DSP-platform warning below pending timing. Final delivery is rerun separately in music-delivery-edit.xml. Native Unity 6000.3.21f1 screenshots cover both windows at 360 logical pixels in Dark, with real Music_States and the genuine empty Diagnostics state. Editor master mute was enabled before opening RelayField. Light theme verification remains incomplete: repeated native dropdown actions did not open the theme menu. Dark was left unchanged. No PlayMode, populated-record visual acceptance, listening pass or native player rebuild is claimed for this editor-only batch. Vertical layer meters and a graphical musical timeline remain future work; no illustrative measurements were added.

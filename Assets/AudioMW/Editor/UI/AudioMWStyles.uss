@@ -139,3 +139,18 @@
 .audiomw-nav-current { border-bottom-width: 2px; border-bottom-color: rgb(89, 177, 162); opacity: 1; }
 
 .audiomw-inspection .unity-button { white-space: normal; height: auto; min-height: 20px; }
+
+.audiomw-runtime-card {
+    margin-top: 6px;
+    margin-bottom: 6px;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    border-left-width: 2px;
+    border-left-color: rgb(89, 177, 162);
+    background-color: var(--unity-colors-default-background);
+    white-space: normal;
+    flex-shrink: 0;
+}
+.audiomw-runtime-card .unity-label { white-space: normal; }

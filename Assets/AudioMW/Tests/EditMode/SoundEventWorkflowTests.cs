@@ -80,7 +80,8 @@ namespace AudioMW.Tests
         public void DiagnosticReasonsDistinguishAcceptedSilenceFromRejection()
         {
             Assert.AreEqual("Source volume is zero", EventDebuggerWindow.Reason(new EventDebugRecord { Outcome = PlaybackOutcome.Played, HasGainCapture = true, FinalVolume = 0 }));
-            Assert.AreEqual("Playback request accepted", EventDebuggerWindow.Reason(new EventDebugRecord { Outcome = PlaybackOutcome.Played }));
+            Assert.AreEqual("Accepted · gain capture unavailable", EventDebuggerWindow.Reason(new EventDebugRecord { Outcome = PlaybackOutcome.Played }));
+            Assert.AreEqual("Playback request accepted", EventDebuggerWindow.Reason(new EventDebugRecord { Outcome = PlaybackOutcome.Played, HasGainCapture = true, FinalVolume = 0.5f }));
             StringAssert.Contains("2", EventDebuggerWindow.Reason(new EventDebugRecord { Outcome = PlaybackOutcome.RejectedInstanceLimit, Rejection = new PlaybackRejectionInfo { HasInstanceLimit = true, CurrentCount = 2, Limit = 2, Scope = "emitter" } }));
         }
 
@@ -95,6 +96,8 @@ namespace AudioMW.Tests
                 bool explained = false;
                 window.rootVisualElement.Query<Label>().ForEach(label => { if (!string.IsNullOrEmpty(label.text) && label.text.Contains("Unavailable outside Play Mode")) explained = true; });
                 Assert.IsTrue(explained);
+                StringAssert.Contains("Unavailable", window.rootVisualElement.Q<Label>("music-timing").text);
+                Assert.IsNotNull(window.rootVisualElement.Q<ScrollView>("music-content"));
             }
             finally { Object.DestroyImmediate(window); }
         }
