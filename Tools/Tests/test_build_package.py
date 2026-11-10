@@ -45,6 +45,17 @@ class PackageTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Unshipped asset reference"):
             collect(self.root)
 
+    def test_agent_companion_ships_source_and_lockfile_without_node_modules(self):
+        bridge = self.root / "Tools" / "AgentBridge"
+        (bridge / "node_modules" / "fixture").mkdir(parents=True)
+        (bridge / "server.mjs").write_text("export {}")
+        (bridge / "package-lock.json").write_text("{}")
+        (bridge / "node_modules" / "fixture" / "index.js").write_text("dependency")
+        _, files = collect(self.root)
+        self.assertIn("AgentBridge~/server.mjs", files)
+        self.assertIn("AgentBridge~/package-lock.json", files)
+        self.assertFalse(any("node_modules" in name for name in files))
+
     def test_duplicate_guids_reject_archive(self):
         source = self.root / "Assets" / "AudioMW"
         for name in ("A.meta", "B.meta"):

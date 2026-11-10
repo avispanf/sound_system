@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0-preview.17 — Local agent review
+
+- Added an optional stdio MCP companion for local attachment-to-SoundEvent plans, shared by Claude Code and Codex.
+- Added an Editor-only Agent Review with explicit Unity confirmation, source hashes, preserved event references, stale-plan rejection, decode validation and failure rollback.
+- Added project/session binding, request retry identity and status/receipt reporting without a remote approval operation.
+- Kept mixer gains, scene/code hooks, music/VO authoring and live LUFS outside this import-only batch.
+
 ## 0.5.0-preview.16 — Reviewed mixer installation
 
 - Added an explicit Mix Setup review/apply flow for native mixer creation, asset routes and VO ducking.

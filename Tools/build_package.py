@@ -9,7 +9,7 @@ import tarfile
 
 
 SAMPLE = {"displayName": "Demo Scene", "description": "Interactive demo with synthesized placeholder audio.", "path": "Samples~/Demo"}
-DOCS = ("getting-started.md", "api-reference.md", "music.md", "optimisation.md", "authoring-and-runtime.md", "ui-design.md", "distribution.md", "runtime-profiling.md", "loading-and-pause.md", "gain-authoring.md", "sound-event-workflow.md", "project-setup.md", "agent-assisted-authoring.md", "mix-setup.md")
+DOCS = ("getting-started.md", "api-reference.md", "music.md", "optimisation.md", "authoring-and-runtime.md", "ui-design.md", "distribution.md", "runtime-profiling.md", "loading-and-pause.md", "gain-authoring.md", "sound-event-workflow.md", "project-setup.md", "agent-assisted-authoring.md", "mix-setup.md", "agent-mcp.md", "agent-mcp-verification.md")
 
 
 def collect(repository, version=None):
@@ -32,6 +32,15 @@ def collect(repository, version=None):
     files["README.md.meta"] = b"fileFormatVersion: 2\nguid: d6265d75a3f940b8bc431753a421f223\n"
     for name in DOCS:
         files["Documentation~/" + name] = (repository / "Documentation" / name).read_bytes()
+    bridge = repository / "Tools" / "AgentBridge"
+    for path in sorted(bridge.rglob("*")):
+        relative = path.relative_to(bridge)
+        if "node_modules" in relative.parts or path.name.startswith("."):
+            continue
+        if path.is_symlink():
+            raise ValueError("Agent companion must not contain symlinks: " + str(path))
+        if path.is_file():
+            files["AgentBridge~/" + relative.as_posix()] = path.read_bytes()
     guids = {}
     for name, data in files.items():
         if name.endswith(".meta"):

@@ -1,7 +1,7 @@
 # BAD SHIFT — AudioMW demo
 
-A separate visual/gameplay variant of Relay Field, based on AudioMW preview.16
-(commit c9cb351). Runtime and original Relay Field project are preserved. The
+A separate visual/gameplay variant of Relay Field, originally based on AudioMW preview.16
+(commit c9cb351), now using preview.17 with the optional local MCP companion. Runtime and original Relay Field project are preserved. The
 AudioMWPlayground.cs here is a demo-only integration snapshot: it hides the old HUD
 when BadShiftDemo exists and adds an audition music multiplier.
 
@@ -133,3 +133,7 @@ At 50 HP the rival enters OVERTIME with a short elastic tantrum, amber/violet li
 
 
 See FINAL-HANDOFF.md for the final gameplay freeze, sound replacement map, central bathroom, collision enclosure, bounded clay deformation, overtime finishing sequence and live audio explanation overlay. Tab or Audio map toggles the overlay; it hides during battle invitations and combat.
+
+## Agent integration
+
+Open Window > AudioMW > Agent Review and enable the local bridge for this editor session. The prepared project includes AgentBridge (run npm ci --ignore-scripts there) and Documentation/agent-mcp.md. Claude Code/Codex can propose local audio imports and existing SoundEvent clip replacements; changes require confirmation in Unity. The fixture helper BadShiftAgentReview.Open opens this window with editor audio muted. See AGENT-MCP-VERIFICATION.json for this separate editor integration pass. Gameplay and original placeholder clips are preserved.

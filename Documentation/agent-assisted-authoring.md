@@ -1,10 +1,12 @@
 # Agent-assisted audio implementation
 
-Status: product requirement, updated 2026-11-07. The first Editor-only brief,
+Status: partially implemented, updated 2026-11-10. The first Editor-only brief,
 metadata/library analysis and reviewed-profile workflow is implemented; see
 [project-setup.md](project-setup.md). Reviewed native mixer-template installation,
 asset routing and VO ducking are implemented in [mix-setup.md](mix-setup.md).
-The remaining work below is planned. No AudioMW MCP server or live spectral adviser is implemented. The existing middleware remains
+The local MCP adapter and Unity-approved SoundEvent import flow are now implemented;
+see [agent-mcp.md](agent-mcp.md) and its separate client acceptance results. The
+broader music/hook authoring, live master metering and spectral adviser below remain planned. The existing middleware remains
 usable without an agent, cloud account or subscription.
 
 See [the 2026-11-10 source and target-profile audit](agent-and-mix-audit-2026-11-10.md)

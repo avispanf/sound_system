@@ -1,5 +1,7 @@
 # AudioMW agent, UI and mix-target audit — 2026-11-10
 
+Later implementation update: preview.17 adds the local MCP companion and reviewed SoundEvent imports. See [agent-mcp.md](agent-mcp.md) and [acceptance results](agent-mcp-verification.md). The audit below records the earlier baseline; its statements about an absent bridge are superseded for that limited scope. Master metering, adviser and Unreal gaps remain open.
+
 This is a source audit and implementation proposal, not a claim that the agent bridge or Unreal adapter has shipped. The current BAD SHIFT demo is a separate gameplay/visual showcase. Its live audio map reads runtime events and mixer values; it does not measure final-output LUFS.
 
 ## What works today
