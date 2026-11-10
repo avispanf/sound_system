@@ -78,7 +78,7 @@ public sealed class BadShiftFinaleTests
         Assert.IsFalse(BadShiftSilentLaunch.Requested);Assert.IsFalse(game.Life.Muted);Assert.AreEqual(1,AudioListener.volume);
         game.Life.ToggleSound();Assert.AreEqual(0,AudioListener.volume);game.ResetScene();yield return new WaitForSeconds(.8f);
         game=Object.FindFirstObjectByType<AudioMWPlayground>();demo=game.GetComponent<BadShiftDemo>();Assert.IsFalse(game.Life.Muted);Assert.AreEqual(1,AudioListener.volume);
-        var guide=game.GetComponent<BadShiftAudioGuide>();Assert.IsNotNull(guide);Assert.IsTrue(demo.AudioMapVisible);
+        var guide=game.GetComponent<BadShiftAudioGuide>();Assert.IsNotNull(guide);Assert.IsTrue(demo.AudioLabelsVisible);Assert.IsFalse(demo.AudioMapVisible);
         game.RespawnAt(new Vector3(8,.05f,5),Quaternion.identity);yield return new WaitForSeconds(.1f);float near=guide.DistanceGain;
         game.RespawnAt(new Vector3(8,.05f,-7),Quaternion.identity);yield return new WaitForSeconds(.1f);Assert.Less(guide.DistanceGain,near);
         game.Speak();yield return new WaitForSeconds(.4f);Assert.IsTrue(guide.HasMixerDuck);Assert.Less(guide.MixerDuckDb,-1);

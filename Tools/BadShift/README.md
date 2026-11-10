@@ -1,7 +1,7 @@
 # BAD SHIFT — AudioMW demo
 
 A separate visual/gameplay variant of Relay Field, originally based on AudioMW preview.16
-(commit c9cb351), now using preview.18 with the optional local MCP companion. Runtime and original Relay Field project are preserved. The
+(commit c9cb351), now using preview.20 with the optional local MCP companion. Runtime and original Relay Field project are preserved. The
 AudioMWPlayground.cs here is a demo-only integration snapshot: it hides the old HUD
 when BadShiftDemo exists and adds an audition music multiplier.
 
@@ -132,10 +132,14 @@ The rival now alternates DOUBLE DIP (two separately telegraphed sideways swings)
 At 50 HP the rival enters OVERTIME with a short elastic tantrum, amber/violet lighting and two new combinations: TRIPLE SERVING and RUSH ORDER. Each strike keeps its own readable windup and direction cue. Frontal blocks cancel the remaining series; the transition remains vulnerable. See BATTLE-ARENA.md for timings, reset behavior and verification.
 
 
-See FINAL-HANDOFF.md for the final gameplay freeze, sound replacement map, central bathroom, collision enclosure, bounded clay deformation, overtime finishing sequence and live audio explanation overlay. Tab or Audio map toggles the overlay; it hides during battle invitations and combat.
+See FINAL-HANDOFF.md for the final gameplay freeze, sound replacement map, central bathroom, collision enclosure, bounded clay deformation, overtime finishing sequence and live audio explanation overlay. The Audio button or Tab cycles labels → details → off. Labels are the default; details show the journal and nearby links. Invitations hide the overlay; combat retains short event labels.
 
 ## Agent integration
 
 Open Window > AudioMW > Agent Review and enable the local bridge for this editor session. The prepared project includes AgentBridge (run npm ci --ignore-scripts there) and Documentation/agent-mcp.md. Claude Code/Codex can propose local audio imports and existing SoundEvent clip replacements; changes require confirmation in Unity. The fixture helper BadShiftAgentReview.Open opens this window with editor audio muted. See AGENT-MCP-VERIFICATION.json for this separate editor integration pass. Gameplay and original placeholder clips are preserved.
 
 Preview.18 adds `audiomw_propose_music`: reviewed stems, Intensity bindings and Explore/Combat transition rules. See Documentation/agent-music-mcp.md and MUSIC-MCP-VERIFICATION.json. Original demo music is restored after silent acceptance.
+
+Preview.19 adds nearby, transient sound-event labels and distance-limited links. See AUDIO-VISUALS.md for controls, filters and verification.
+
+Preview.20 develops the native Events/Inspector workflow from the v1.1 editor guide: explicit dry/runtime audition, actual routing and parameter references, Review changes access and Mute with Undo. See Documentation/editor-ui-stage-one.md and EDITOR-UI-VERIFICATION.json. Screenshots are actual Unity captures.

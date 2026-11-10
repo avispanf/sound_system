@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.0-preview.20 — Native Events workflow
+
+- Clarified Events navigation, container selection labels and separate Review changes access while retaining existing menus and tools.
+- Added actual routing/parameter references and context-gated scene-emitter audition alongside explicitly dry source preview.
+- Reported failed PCM reads as unavailable instead of measured silence; retained native binding and runtime semantics.
+
+## 0.5.0-preview.19 — Nearby audio visualization
+
+- Added monotonic event diagnostic sequence IDs that survive buffer trimming and clearing.
+- Updated the separate BAD SHIFT demo with transient nearby SoundEvent labels, a labels/details/off control and short distance-faded source links.
+
 ## 0.5.0-preview.18 — Reviewed adaptive music imports
 
 - Added MCP music plans for synchronized stems, intensity weights and quantized MusicStateProfile transitions, confirmed in Unity.

@@ -5,6 +5,7 @@ namespace AudioMW
 {
     public struct EventDebugRecord
     {
+        public long Sequence;
         public SoundEvent Event;
         public PlaybackRejectionInfo Rejection;
         public float Time;
@@ -100,6 +101,7 @@ namespace AudioMW
         public const int DefaultCapacity = 256;
 
         private readonly List<EventDebugRecord> records = new List<EventDebugRecord>();
+        private long sequence;
         private int capacity = DefaultCapacity;
         private bool enabled = true;
 
@@ -142,6 +144,7 @@ namespace AudioMW
             }
 
             EventDebugRecord record = new EventDebugRecord();
+            record.Sequence = ++sequence;
             record.Event = soundEvent;
             record.Rejection = rejection;
             record.ProblemEventName = rejection.ProblemEvent != null ? rejection.ProblemEvent.name : null;

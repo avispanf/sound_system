@@ -139,6 +139,11 @@ namespace AudioMW.Tests
             Assert.AreEqual(0.25f, a.Volume); Assert.AreEqual(0.75f, b.Volume);
             Undo.PerformRedo(); yield return null;
             Assert.AreEqual(0.1f, a.Volume, 0.00001f); Assert.AreEqual(a.Volume, b.Volume);
+            Undo.IncrementCurrentGroup();
+            Button mute = field.Q<Button>("gain-mute");
+            using (NavigationSubmitEvent submit = NavigationSubmitEvent.GetPooled()) { submit.target = mute; mute.SendEvent(submit); }
+            yield return null; Undo.FlushUndoRecordObjects(); Assert.AreEqual(0, a.Volume); Assert.AreEqual(0, b.Volume);
+            Undo.PerformUndo(); yield return null; Assert.AreEqual(0.1f, a.Volume, 0.00001f); Assert.AreEqual(a.Volume, b.Volume);
         }
         [UnityTest] public IEnumerator MixedSelectionCanBeSetToItsFirstExistingValueThroughText()
         {

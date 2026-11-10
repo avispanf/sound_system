@@ -87,16 +87,19 @@ namespace AudioMW.Editor
                 bool directSource = source.Reference == null || !source.Reference.IsAddressed;
                 if ((clip.loadState == AudioDataLoadState.Loaded || (directSource && clip.loadState == AudioDataLoadState.Unloaded)) && clip.loadType == AudioClipLoadType.DecompressOnLoad)
                 {
-                    detail.Add(new Image { name = "source-waveform", image = WaveformCache.Get(clip), scaleMode = ScaleMode.StretchToFill, tooltip = "Waveform: " + clip.name, style = { height = 64, marginTop = 6, marginBottom = 6 } });
-                    LoudnessResult result = Measure(clip);
-                    string loudness = result.HasSignal ? result.IntegratedLufs.ToString("0.0") + " LUFS · " + result.TruePeakDb.ToString("0.0") + " dBTP" : "No measurable signal";
-                    detail.Add(new Label(loudness + " · PCM " + (clip.samples * (double)clip.channels * 4 / 1048576).ToString("0.##") + " MB") { name = "source-metrics", style = { whiteSpace = WhiteSpace.Normal } });
+                    if (TryMeasure(clip, out LoudnessResult result))
+                    {
+                        detail.Add(new Image { name = "source-waveform", image = WaveformCache.Get(clip), scaleMode = ScaleMode.StretchToFill, tooltip = "Waveform: " + clip.name, style = { height = 64, marginTop = 6, marginBottom = 6 } });
+                        string loudness = result.HasSignal ? result.IntegratedLufs.ToString("0.0") + " LUFS · " + result.TruePeakDb.ToString("0.0") + " dBTP" : "No measurable signal";
+                        detail.Add(new Label(loudness + " · PCM " + (clip.samples * (double)clip.channels * 4 / 1048576).ToString("0.##") + " MB") { name = "source-metrics", style = { whiteSpace = WhiteSpace.Normal } });
+                    }
+                    else detail.Add(new HelpBox("Unavailable: Unity could not read PCM samples. Waveform and loudness are not measured.", HelpBoxMessageType.Warning));
                 }
-                else detail.Add(new Label("Waveform and loudness require loaded, decompressed audio.") { style = { whiteSpace = WhiteSpace.Normal } });
+                else detail.Add(new Label("Unavailable: waveform and loudness require loaded, decompressed audio.") { style = { whiteSpace = WhiteSpace.Normal } });
             }
             lastState = clip != null ? clip.loadState : AudioDataLoadState.Unloaded;
             VisualElement transport = new VisualElement(); transport.style.flexDirection = FlexDirection.Row; transport.style.flexWrap = Wrap.Wrap;
-            Button play = new Button(() => EditorAudioPreview.Play(SelectedClip)) { text = "Preview source clip", name = "preview-source", tooltip = string.IsNullOrEmpty(issue) ? "Play this original AudioClip without event processing." : issue };
+            Button play = new Button(() => EditorAudioPreview.Play(SelectedClip)) { text = "Play source (dry)", name = "preview-source", tooltip = string.IsNullOrEmpty(issue) ? "Play this original AudioClip without event processing." : issue };
             play.SetEnabled(string.IsNullOrEmpty(issue)); transport.Add(play);
             transport.Add(new Button(EditorAudioPreview.Stop) { text = "Stop", name = "stop-source" });
             detail.Add(transport);
@@ -114,10 +117,12 @@ namespace AudioMW.Editor
             }
         }
 
-        private static LoudnessResult Measure(AudioClip clip)
+        private static bool TryMeasure(AudioClip clip, out LoudnessResult result)
         {
             float[] samples = new float[clip.samples * clip.channels];
-            return clip.GetData(samples, 0) ? LoudnessMeter.Analyze(samples, clip.channels, clip.frequency) : LoudnessResult.Silent(clip.length);
+            result = default;
+            if (!clip.GetData(samples, 0)) return false;
+            result = LoudnessMeter.Analyze(samples, clip.channels, clip.frequency); return true;
         }
     }
 }

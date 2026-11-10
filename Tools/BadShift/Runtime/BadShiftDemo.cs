@@ -38,7 +38,10 @@ public sealed class BadShiftDemo : MonoBehaviour
     private SoundHandle fridgeHandle;
     private bool bag = true;
     private int effect;
-    public bool AudioMapVisible { get; private set; } = true;
+    public int AudioVisualMode { get; private set; } = 1;
+    public bool AudioMapVisible => AudioVisualMode == 2;
+    public bool AudioLabelsVisible => AudioVisualMode != 0;
+    public void CycleAudioVisuals() { AudioVisualMode = (AudioVisualMode + 1) % 3; }
     public SoundHandle FridgeHandle=>fridgeHandle;
     private BadShiftAudioGuide guide;
     private string answer = "Ready for questionable cuisine";
@@ -89,7 +92,7 @@ public sealed class BadShiftDemo : MonoBehaviour
         if (AudioListener.pause) return;
         if (k != null)
         {
-            if (k.tabKey.wasPressedThisFrame) AudioMapVisible = !AudioMapVisible;
+            if (k.tabKey.wasPressedThisFrame) CycleAudioVisuals();
             if (k.qKey.wasPressedThisFrame) { if (Station() == 1) ToggleSelection(); if (Station() == 3) SetEffect((effect + 1) % 3); }
             if (k.xKey.wasPressedThisFrame) { if (Station() == 1) PlayMicrowave(); if (Station() == 2) Game.Speak(); if (Station() == 3) PlayRoom(); }
         }
@@ -157,12 +160,12 @@ public sealed class BadShiftDemo : MonoBehaviour
         GUI.Label(new Rect(45,70,280,20),"AUDIOMW / AUDIO PLAYGROUND",TextStyle(11,muted));
         BadShiftTour tour=Game.Tour;bool watching=tour!=null&&tour.Running;
         if(Game.Life!=null&&Button(new Rect(w-586,42,124,40),Game.Life.Muted?"Sound off":"Sound on"))Game.Life.ToggleSound();
-        if(Button(new Rect(w-714,42,116,40),AudioMapVisible?"Audio map on":"Audio map off"))AudioMapVisible=!AudioMapVisible;
+        if(Button(new Rect(w-730,42,132,40),new[]{"Audio: off","Audio: labels","Audio: details"}[AudioVisualMode]))CycleAudioVisuals();
         if(Button(new Rect(w-450,42,140,40),"Play yourself",!watching)&&tour!=null){tour.Stop();if(Game.Life!=null&&Game.Life.Duel)Game.Life.Battle.ReturnToCafe();}
         if(Button(new Rect(w-298,42,140,40),watching?"Replay demo":"Watch demo",watching)&&tour!=null)tour.WatchFromStart();
         if(Button(new Rect(w-146,42,102,40),"Reset")){BadShiftTour.StartOnLoad=false;Game.ResetScene();}
         var battle=Game.Life!=null?Game.Life.Battle:null;
-        if(battle!=null&&battle.Active){BattleHUD(battle,w,h);GUI.matrix=previous;return;}
+        if(battle!=null&&battle.Active){if(guide!=null&&AudioLabelsVisible)guide.DrawLabels(w,h,238,h-118);BattleHUD(battle,w,h);GUI.matrix=previous;return;}
         if(battle!=null&&battle.CanInvite)
         {
             Vector3 point=Game.View.WorldToScreenPoint(Dancer.position+Vector3.up*3)/scale;
@@ -171,6 +174,7 @@ public sealed class BadShiftDemo : MonoBehaviour
             GUI.Label(new Rect(invitation.x+18,invitation.y+36,384,24),"E / Leave the dance floor. Enter the fight.",TextStyle(14,muted));
         }
         float bottom=h-210;
+        if(guide!=null&&AudioLabelsVisible&&(battle==null||!battle.CanInvite))guide.DrawLabels(w,h,112,bottom-12);
         if(guide!=null&&AudioMapVisible&&(battle==null||!battle.CanInvite))guide.Draw(w,h,bottom);
         Panel(new Rect(24,bottom,470,186),panel);
         GUI.Label(new Rect(44,bottom+16,430,26),tour!=null?tour.Heading:"Explore the cafe",TextStyle(17,white,true));

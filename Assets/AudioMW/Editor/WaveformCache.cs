@@ -82,8 +82,8 @@ namespace AudioMW.Editor
 
             Color background = new Color(0f, 0f, 0f, 0f);
             Color foreground = EditorGUIUtility.isProSkin
-                ? new Color(0.42f, 0.62f, 0.88f, 1f)
-                : new Color(0.20f, 0.42f, 0.72f, 1f);
+                ? new Color(0.44f, 0.79f, 0.72f, 1f)
+                : new Color(0.12f, 0.42f, 0.36f, 1f);
 
             Color[] pixels = new Color[Width * Height];
 

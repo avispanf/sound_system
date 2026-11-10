@@ -109,3 +109,7 @@ and partial results legible. See [agent-assisted-authoring.md](agent-assisted-au
 The first Project Setup UI now implements draft questions, read-only inventory,
 Why explanations, rejection and explicit reviewed-profile saving. It does not
 apply the broader routing/gain proposals. See [project-setup.md](project-setup.md).
+
+### Visual / UX guide v1.1 — 2026-11-10
+
+The first native implementation and the guide-to-code scope map are documented in [editor-ui-stage-one.md](editor-ui-stage-one.md). Current project contracts remain authoritative; screenshots are references, not measured project data.

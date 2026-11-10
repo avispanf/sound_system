@@ -38,7 +38,7 @@ namespace AudioMW.Editor
         [MenuItem("Window/AudioMW/Audio Browser")]
         public static void Open()
         {
-            AudioBrowserWindow window = GetWindow<AudioBrowserWindow>(); window.titleContent = new GUIContent("Sounds");
+            AudioBrowserWindow window = GetWindow<AudioBrowserWindow>(); window.titleContent = new GUIContent("Events");
             window.minSize = new Vector2(620, 360); window.Show();
         }
         private void OnFocus() { if (listView != null) Refresh(); }
@@ -53,7 +53,7 @@ namespace AudioMW.Editor
         public void CreateGUI()
         {
             rootVisualElement.Clear(); AudioWorkspace.Style(rootVisualElement);
-            rootVisualElement.Add(AudioWorkspace.Navigation("Sounds"));
+            rootVisualElement.Add(AudioWorkspace.Navigation("Events"));
             Toolbar toolbar = new Toolbar();
             searchField = new ToolbarSearchField { name = "asset-search", tooltip = "Search audio assets by name." }; searchField.style.flexGrow = 1;
             searchField.SetValueWithoutNotify(query);
@@ -157,6 +157,7 @@ namespace AudioMW.Editor
                 return;
             }
             selectedDirty = EditorUtility.GetDirtyCount(selected);
+            Label context = new Label("READ-ONLY OVERVIEW · " + EntryKind(selected)) { name = "overview-context" }; context.AddToClassList("audiomw-eyebrow"); preview.Add(context);
             Label title = new Label(selected.name) { tooltip = selected.name, name = "asset-title" }; title.AddToClassList("audiomw-title"); preview.Add(title);
             Entry entry = visible.Find(value => !value.IsHeader && value.Asset == selected);
             preview.Add(new Label(DescribeAsset(entry)) { style = { whiteSpace = WhiteSpace.Normal } });
@@ -168,7 +169,7 @@ namespace AudioMW.Editor
             if (selected is SoundEvent || selected is MusicTrack || selected is VoiceLine)
             {
                 sourcePane = new AudioSourcePreviewPane(selected, sourceIndex, index => sourceIndex = index); preview.Add(sourcePane);
-                preview.Add(new HelpBox("Enter Play Mode to audition event random selection, layers, routing and spatial processing.", HelpBoxMessageType.Info));
+                if (selected is SoundEvent auditionEvent) preview.Add(new AudioEventContextPane(auditionEvent));
             }
             SoundEvent soundEvent = selected as SoundEvent;
             if (soundEvent != null)
@@ -177,20 +178,22 @@ namespace AudioMW.Editor
                 if (!string.IsNullOrEmpty(message)) preview.Add(new HelpBox(message, HelpBoxMessageType.Warning));
             }
         }
+        private static string EntryKind(Object asset) { return asset is SoundEvent ? "SOUND EVENT" : ObjectNames.NicifyVariableName(asset.GetType().Name).ToUpperInvariant(); }
+
         private static string DescribeAsset(Entry entry)
         {
             SoundEvent soundEvent = entry.Asset as SoundEvent;
 
             if (soundEvent != null)
             {
-                if (soundEvent.IsBlendContainer)
+                if (soundEvent.ContainerMode == ContainerMode.Blend)
                 {
                     return "Blend container   " + soundEvent.BlendLayers.Length + " layers";
                 }
 
                 if (soundEvent.ContainerMode == ContainerMode.Layered || soundEvent.ContainerMode == ContainerMode.Switch)
                     return soundEvent.ContainerMode + " container   " + soundEvent.Children.Length + " child events";
-                return ObjectNames.NicifyVariableName(soundEvent.SelectionMode.ToString()) + "   " + soundEvent.TotalClipCount + " clips";
+                return "Random / Sequence · " + AudioEventContextPane.SelectionLabel(soundEvent.SelectionMode) + " · " + soundEvent.TotalClipCount + " clips";
             }
 
             MusicTrack track = entry.Asset as MusicTrack;

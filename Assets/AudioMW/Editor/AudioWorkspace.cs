@@ -46,12 +46,15 @@ namespace AudioMW.Editor
             bar.style.flexWrap = Wrap.Wrap;
             bar.style.height = StyleKeyword.Auto;
             bar.name = "workspace-navigation";
-            Add(bar, "Sounds", current, Sounds);
+            Add(bar, "Events", current == "Sounds" ? "Events" : current, Sounds);
             Add(bar, "Music", current, Music);
+            Add(bar, "Parameters", current, () => { Sounds(); GetBrowser().FilterMask = 4; });
+            Add(bar, "Routing", current, AudioMixSetupWindow.Open);
             Add(bar, "Diagnostics", current, Diagnostics);
             ToolbarSpacer space = new ToolbarSpacer { flex = true }; bar.Add(space);
             ToolbarButton create = new ToolbarButton(SoundEventSetupWindow.Open) { text = "+ Create event", tooltip = "Create a Sound Event from clips selected in the Project window." };
             create.AddToClassList("audiomw-primary"); bar.Add(create);
+            ToolbarButton review = new ToolbarButton(AudioAgentReviewWindow.Open) { text = "Review changes", name = "review-changes", tooltip = "Review agent proposals. Opening this tool applies nothing." }; bar.Add(review);
             ToolbarMenu tools = new ToolbarMenu { text = "Tools" };
             tools.menu.AppendAction("Mix setup", _ => AudioMixSetupWindow.Open());
             tools.menu.AppendAction("Project setup", _ => AudioProjectSetupWindow.Open());
@@ -64,9 +67,12 @@ namespace AudioMW.Editor
             return bar;
         }
 
+        private static AudioBrowserWindow GetBrowser() { return EditorWindow.GetWindow<AudioBrowserWindow>(); }
+
         private static void Add(Toolbar bar, string title, string current, System.Action action)
         {
             ToolbarButton button = new ToolbarButton(action) { text = title };
+            button.EnableInClassList("audiomw-nav-current", title == current);
             button.SetEnabled(title != current);
             bar.Add(button);
         }

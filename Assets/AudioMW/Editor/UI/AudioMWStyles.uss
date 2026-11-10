@@ -128,3 +128,12 @@
 .audiomw-diagnostic-event { flex-basis: 140px; flex-grow: 1; flex-shrink: 1; min-width: 60px; }
 .audiomw-diagnostic-outcome { width: 65px; flex-shrink: 0; }
 .audiomw-diagnostic-reason { flex-basis: 240px; flex-grow: 2; flex-shrink: 1; min-width: 80px; }
+
+.audiomw-title { font-size: 18px; margin-top: 4px; margin-bottom: 6px; }
+.audiomw-eyebrow { font-size: 11px; opacity: 0.75; white-space: normal; }
+.audiomw-context { margin-top: 10px; padding-top: 8px; border-top-width: 1px; border-top-color: var(--unity-colors-app_toolbar-border); }
+.audiomw-context .unity-label { white-space: normal; }
+.audiomw-context .unity-base-field { flex-shrink: 1; }
+
+.audiomw-chip--active, .audiomw-primary { background-color: rgba(43, 144, 128, 0.35); }
+.audiomw-nav-current { border-bottom-width: 2px; border-bottom-color: rgb(89, 177, 162); opacity: 1; }

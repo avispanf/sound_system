@@ -15,6 +15,29 @@ namespace AudioMW.Tests
     public sealed class SoundEventWorkflowTests
     {
         [Test]
+        public void EventContextSeparatesDryPreviewFromUnavailableRuntime()
+        {
+            SoundEvent item = ScriptableObject.CreateInstance<SoundEvent>();
+            try
+            {
+                var pane = new AudioEventContextPane(item);
+                Assert.IsFalse(pane.Q<Button>("play-event").enabledSelf);
+                StringAssert.Contains("Play Mode", pane.Q<Label>("audition-status").text);
+                StringAssert.Contains("No AudioMixerGroup", pane.Q<Label>("event-route").text);
+                Assert.IsNull(pane.Q<ObjectField>("audition-emitter").value);
+            }
+            finally { Object.DestroyImmediate(item); }
+        }
+
+        [Test]
+        public void SelectionLabelsPreserveSerializedAlgorithms()
+        {
+            Assert.AreEqual("No immediate repeat", AudioEventContextPane.SelectionLabel(ClipSelectionMode.RandomNoRepeat));
+            Assert.AreEqual("Shuffle bag", AudioEventContextPane.SelectionLabel(ClipSelectionMode.ShuffleBag));
+            Assert.AreEqual(0, (int)ContainerMode.Simple); Assert.AreEqual(1, (int)ClipSelectionMode.RandomNoRepeat);
+        }
+
+        [Test]
         public void DiagnosticReasonsDistinguishAcceptedSilenceFromRejection()
         {
             Assert.AreEqual("Source volume is zero", EventDebuggerWindow.Reason(new EventDebugRecord { Outcome = PlaybackOutcome.Played, HasGainCapture = true, FinalVolume = 0 }));

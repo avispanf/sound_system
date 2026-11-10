@@ -21,13 +21,14 @@ namespace AudioMW.Editor
             AudioWorkspace.Style(root);
             root.style.paddingTop = 4;
             root.style.paddingBottom = 8;
-            Field(root, "containerMode", "Playback");
+            Field(root, "containerMode", "Container");
             VisualElement simple = new VisualElement();
             Field(simple, "clips", "Audio clips");
             Foldout references = Section(simple, "Addressed clips", false);
             Field(references, "clipReferences", "Clip references");
             references.Add(new HelpBox("Assign addresses here and include this event in a Sound Bank. Load the bank before playback. Weights follow Audio clips first, then Clip references.", HelpBoxMessageType.Info));
             Field(simple, "selectionMode", "Selection");
+            simple.Add(new Label("One source per trigger · History shared per SoundEvent") { style = { whiteSpace = WhiteSpace.Normal }, tooltip = "Sequential advances on each trigger; it is not a continuous playlist." });
             VisualElement weighted = new VisualElement();
             weighted.Add(new ClipWeightEditor(serializedObject));
             simple.Add(weighted);
@@ -39,7 +40,7 @@ namespace AudioMW.Editor
             VisualElement children = new VisualElement();
             VisualElement switchField = new VisualElement();
             Field(switchField, "switchParameter", "State parameter");
-            switchField.Add(new HelpBox("The rounded parameter selects states when playback starts. All matching child rows play together. Pass local parameters to PlayTracked for independent emitters.", HelpBoxMessageType.Info));
+            switchField.Add(new HelpBox("Evaluated at trigger. The rounded parameter selects states when playback starts. All matching child rows play together. Pass local parameters to PlayTracked for independent emitters.", HelpBoxMessageType.Info));
             HelpBox switchSummary = new HelpBox("", HelpBoxMessageType.Info) { name = "switch-default-summary" };
             switchField.Add(switchSummary);
             children.Add(switchField);

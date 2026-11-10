@@ -10,7 +10,7 @@ This pass freezes the requested gameplay/visual scope so that sound design can p
 - Four tall, invisible static collision boundaries contain the playable area, including jumps and knockback. Decorative low walls remain visible.
 - Repeated landing impulses no longer accumulate unbounded compression. The body spring stays inside a finite deformation range; leg IK limits reach and releases an unreachable planted contact.
 - Normal launch and scene Reset restore Sound on. Development batch runs mute the editor output; the standalone -audiomw-silent flag retains silence through Reset. The flag is not a shipping default.
-- Audio map / Tab toggles live source-to-player links and the event journal. It explains distance attenuation, VO ducking, room processing and selected microwave clips. The distance curve is labelled as a model; captured event gain excludes mixer/distance/master processing and is not LUFS. Combat/invitation hides the explanatory overlay.
+- Audio / Tab cycles labels → details → off, starting with labels. Nearby spatial one-shots show their actual SoundEvent name for 0.85 seconds. Details adds live source-to-player links and the event journal; links fade out by 5 metres or 260 logical screen pixels. It explains distance attenuation, VO ducking, room processing and selected microwave clips. The distance curve is labelled as a model; captured event gain excludes mixer/distance/master processing and is not LUFS. Invitations hide the overlay; combat retains the short event labels.
 
 ## Sound-design work
 

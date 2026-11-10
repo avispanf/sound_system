@@ -154,6 +154,16 @@ namespace AudioMW.Tests
             yield return null;
         }
 
+        [Test]
+        public void SequenceRemainsMonotonicAfterCapacityTrimAndClear()
+        {
+            var debugger = new EventDebugger { Capacity = 2 };
+            for (int i = 0; i < 4; i++) debugger.Record(null, PlaybackOutcome.RejectedNullEvent, null, Vector3.zero, false);
+            Assert.AreEqual(3, debugger.Records[0].Sequence); Assert.AreEqual(4, debugger.Records[1].Sequence);
+            debugger.Clear(); debugger.Record(null, PlaybackOutcome.RejectedNullEvent, null, Vector3.zero, false);
+            Assert.AreEqual(5, debugger.Records[0].Sequence);
+        }
+
         private static SoundEvent MakeEvent(string eventName)
         {
             SoundEvent soundEvent = SoundEvent.CreateRuntime(MakeSine(1f));
