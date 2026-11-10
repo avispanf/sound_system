@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0-preview.21 — Spatial, Parameters and Routing workspaces
+
+- Added native read-only workspaces with shared navigation, search, selection following and native Inspector access.
+- Added distance-model graphs with explicit preview versus scene context, parameter response curves and separate runtime store readings.
+- Added authored leaf output routing, Switch branch states, missing/cyclic-reference diagnostics and native mixer links.
+- Kept runtime, authored assets, defaults, selection history and mixer processing unchanged.
+
 ## 0.5.0-preview.20 — Native Events workflow
 
 - Clarified Events navigation, container selection labels and separate Review changes access while retaining existing menus and tools.

@@ -15,6 +15,45 @@ namespace AudioMW.Tests
     public sealed class SoundEventWorkflowTests
     {
         [Test]
+        public void SpatialModelKeepsScaleAndCustomSourceAxisExplicit()
+        {
+            Assert.AreEqual(1, AudioInspectionData.DistanceModel(0,2,10,1,AudioRolloffMode.Linear,null));
+            Assert.AreEqual(.5f, AudioInspectionData.DistanceModel(6,2,10,1,AudioRolloffMode.Linear,null), .0001f);
+            Assert.AreEqual(0, AudioInspectionData.DistanceModel(10,2,10,1,AudioRolloffMode.Linear,null));
+            Assert.AreEqual(1, AudioInspectionData.DistanceModel(100,2,10,0,AudioRolloffMode.Linear,null));
+            Assert.AreEqual(.02f, AudioInspectionData.DistanceModel(100,2,10,1,AudioRolloffMode.Logarithmic,null), .0001f);
+            Assert.AreEqual(.8f, AudioInspectionData.DistanceModel(2,2,10,1,AudioRolloffMode.Custom,AnimationCurve.Linear(0,1,1,0)), .0001f);
+        }
+
+        [Test]
+        public void RoutingRetainsRepeatedLeavesAndExplainsCycles()
+        {
+            var leaf = Event("RouteLeaf",Clip("LeafClip")); var root = Event("RouteRoot",Clip("Unused")); root.ContainerMode=ContainerMode.Layered;
+            root.Children=new[] { SoundEventChild.Create(leaf),SoundEventChild.Create(leaf),SoundEventChild.Create(root) };
+            var routes=AudioInspectionData.Routes(root);Assert.AreEqual(3,routes.Count);
+            Assert.AreEqual(leaf,routes[0].Owner);Assert.AreEqual(leaf,routes[1].Owner);
+            StringAssert.Contains("no mixer group",routes[0].Path);StringAssert.Contains("cycle",routes[2].Path);
+        }
+
+        [Test]
+        public void ParameterResponsesDoNotWriteDefaultsOrInventScope()
+        {
+            var parameter=SoundParameter.CreateRuntime(-1,1,.25f);AssetDatabase.CreateAsset(parameter,folder+"/ResponseParameter.asset");
+            var item=Event("BoundEvent",Clip("BoundClip"));item.ParameterBindings=new[] { ParameterBinding.CreateRuntime(parameter,ParameterTarget.Volume,AnimationCurve.Linear(0,0,1,1)) };
+            var uses=AudioInspectionData.ParameterUses(parameter);Assert.AreEqual(1,uses.Count);Assert.AreEqual(item,uses[0].Asset);
+            Assert.AreEqual(.5f,uses[0].Evaluate(0),.0001f);Assert.AreEqual(.25f,parameter.DefaultValue);
+        }
+
+        [Test]
+        public void ParentSpatialWorkspaceDoesNotClaimOneCurve()
+        {
+            var item=Event("SpatialParent",Clip("Unused"));item.ContainerMode=ContainerMode.Layered;
+            var window=AudioInspectionWindow.Open(AudioInspectionWindow.Workspace.Spatial);
+            try { window.SelectAsset(item);Assert.IsNull(window.rootVisualElement.Q<Label>("spatial-context"));bool explained=false;window.rootVisualElement.Query<Label>().ForEach(label=>{if(label.text!=null&&label.text.Contains("no single attenuation"))explained=true;});Assert.IsTrue(explained); }
+            finally { window.Close(); }
+        }
+
+        [Test]
         public void EventContextSeparatesDryPreviewFromUnavailableRuntime()
         {
             SoundEvent item = ScriptableObject.CreateInstance<SoundEvent>();

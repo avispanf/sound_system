@@ -137,3 +137,5 @@
 
 .audiomw-chip--active, .audiomw-primary { background-color: rgba(43, 144, 128, 0.35); }
 .audiomw-nav-current { border-bottom-width: 2px; border-bottom-color: rgb(89, 177, 162); opacity: 1; }
+
+.audiomw-inspection .unity-button { white-space: normal; height: auto; min-height: 20px; }

@@ -1,7 +1,7 @@
 # BAD SHIFT — AudioMW demo
 
 A separate visual/gameplay variant of Relay Field, originally based on AudioMW preview.16
-(commit c9cb351), now using preview.20 with the optional local MCP companion. Runtime and original Relay Field project are preserved. The
+(commit c9cb351), now using preview.21 with the optional local MCP companion. Runtime and original Relay Field project are preserved. The
 AudioMWPlayground.cs here is a demo-only integration snapshot: it hides the old HUD
 when BadShiftDemo exists and adds an audition music multiplier.
 
@@ -143,3 +143,5 @@ Preview.18 adds `audiomw_propose_music`: reviewed stems, Intensity bindings and 
 Preview.19 adds nearby, transient sound-event labels and distance-limited links. See AUDIO-VISUALS.md for controls, filters and verification.
 
 Preview.20 develops the native Events/Inspector workflow from the v1.1 editor guide: explicit dry/runtime audition, actual routing and parameter references, Review changes access and Mute with Undo. See Documentation/editor-ui-stage-one.md and EDITOR-UI-VERIFICATION.json. Screenshots are actual Unity captures.
+
+Preview.21 adds Spatial, Parameters and Routing workspaces. Native light/dark checks and 314 EditMode tests are recorded in SPATIAL-UI-VERIFICATION.json; see Documentation/editor-context-workspaces.md. Runtime and gameplay build remain unchanged.

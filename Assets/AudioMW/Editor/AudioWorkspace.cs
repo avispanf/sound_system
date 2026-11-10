@@ -48,8 +48,9 @@ namespace AudioMW.Editor
             bar.name = "workspace-navigation";
             Add(bar, "Events", current == "Sounds" ? "Events" : current, Sounds);
             Add(bar, "Music", current, Music);
-            Add(bar, "Parameters", current, () => { Sounds(); GetBrowser().FilterMask = 4; });
-            Add(bar, "Routing", current, AudioMixSetupWindow.Open);
+            Add(bar, "Parameters", current, AudioInspectionWindow.Parameters);
+            Add(bar, "Routing", current, AudioInspectionWindow.Routing);
+            Add(bar, "Spatial", current, AudioInspectionWindow.Spatial);
             Add(bar, "Diagnostics", current, Diagnostics);
             ToolbarSpacer space = new ToolbarSpacer { flex = true }; bar.Add(space);
             ToolbarButton create = new ToolbarButton(SoundEventSetupWindow.Open) { text = "+ Create event", tooltip = "Create a Sound Event from clips selected in the Project window." };
