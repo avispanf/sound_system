@@ -59,7 +59,7 @@ public sealed class BadShiftClayArms : MonoBehaviour
         if(life!=null&&life.Duel)
         {
             bool dead=Employee?life.EnemyDead:life.PlayerDead;
-            if(dead)PoseFalling();else PoseWeapon(remaining);
+            if(dead)PoseFalling();else if(life.Battle.Celebrating(Employee))PoseCelebration();else PoseWeapon(remaining);
         }
         applied=true;
     }
@@ -89,6 +89,26 @@ public sealed class BadShiftClayArms : MonoBehaviour
             joints[1].localRotation*=Quaternion.Euler(-wind*25,0,cut*32);
             joints[2].localRotation*=Quaternion.Euler(0,0,Mathf.Sin(swing*Mathf.PI*2)*24);
         }
+    }
+    private void PoseCelebration()
+    {
+        var battle=life.Battle;Transform body=rig;
+        float t=battle.OutcomeTime,w=battle.CelebrationWeight;
+        float guitar=Mathf.SmoothStep(0,1,(t-1.2f)/.3f)*(1-Mathf.SmoothStep(0,1,(t-3)/.3f));
+        float wave=Mathf.Sin(t*12),bow=Mathf.Sin(Mathf.Clamp01((t-3.1f)/1)*Mathf.PI);
+        Vector3 rest=joints[3].position+body.forward*.4f+body.right*.36f-Vector3.up*.3f;
+        Vector3 raised=joints[3].position+Vector3.up*(.36f+wave*.06f)+body.right*.2f+body.forward*.15f;
+        Vector3 strum=joints[3].position+body.forward*.42f-body.right*.12f-Vector3.up*(.28f+wave*.045f);
+        Vector3 target=Vector3.Lerp(raised,strum,guitar)-Vector3.up*(bow*.28f);
+        SolveArm(3,Vector3.Lerp(rest,target,w),body.right-Vector3.up*.4f);
+        Vector3 blade=Vector3.Slerp((Vector3.up+body.forward*.35f).normalized,(-body.right+Vector3.up*.12f).normalized,guitar);
+        Transform stick=(Employee?life.EnemyStick:life.PlayerStick).transform;float length=stick.TransformVector(Vector3.up).magnitude;
+        stick.SetPositionAndRotation(joints[5].position+blade*length*.44f,Quaternion.FromToRotation(Vector3.up,blade));
+        Vector3 free=joints[0].position-body.right*.3f+Vector3.up*(.25f+wave*.07f)+body.forward*.15f;
+        Vector3 fret=joints[5].position+blade*.38f;
+        Vector3 left=Vector3.Lerp(free,fret,guitar);
+        left=Vector3.Lerp(left,joints[0].position-body.right*.45f+body.forward*.3f,bow);
+        SolveArm(0,Vector3.Lerp(joints[2].position,left,w),-body.right-Vector3.up*.3f);
     }
     private void SolveArm(int index,Vector3 target,Vector3 pole)
     {

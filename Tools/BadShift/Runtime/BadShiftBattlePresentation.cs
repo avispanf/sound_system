@@ -11,6 +11,9 @@ public sealed class BadShiftBattlePresentation : MonoBehaviour
     public Light RedLight,BlueLight,PlayerHitLight,EnemyHitLight;
     public LineRenderer Ring;
     public float Weight { get; private set; }
+    public Texture BossPortrait=>portraitTarget;
+    private Camera portraitCamera;
+    private RenderTexture portraitTarget;
     private Light[] keys;
     private float[] keyIntensities;
     private Color[] keyColors;
@@ -109,6 +112,26 @@ public sealed class BadShiftBattlePresentation : MonoBehaviour
             }
             Light flash=a==0?PlayerHitLight:EnemyHitLight;flash.intensity=amount*2.5f;flash.color=pulse;
         }
+        RenderBossPortrait();
+    }
+    private void RenderBossPortrait()
+    {
+        if(!Battle.Finished)return;
+        if(portraitCamera==null)
+        {
+            portraitTarget=new RenderTexture(480,256,24){name="Broccoli result portrait"};
+            portraitCamera=new GameObject("Broccoli portrait camera").AddComponent<Camera>();portraitCamera.transform.SetParent(transform,false);
+            portraitCamera.CopyFrom(Battle.Life.Demo.Game.View);portraitCamera.enabled=false;portraitCamera.targetTexture=portraitTarget;
+            portraitCamera.orthographic=true;portraitCamera.orthographicSize=2.8f;portraitCamera.aspect=1.875f;portraitCamera.clearFlags=CameraClearFlags.SolidColor;
+            portraitCamera.backgroundColor=new Color(.13f,.18f,.20f);
+        }
+        Vector3 focus=Battle.Life.Demo.Boss.position+Vector3.up*3.1f;
+        portraitCamera.transform.position=focus+new Vector3(0,.6f,-9);portraitCamera.transform.LookAt(focus);portraitCamera.Render();
+    }
+    private void OnDestroy()
+    {
+        if(portraitCamera!=null)Destroy(portraitCamera.gameObject);
+        if(portraitTarget!=null){portraitTarget.Release();Destroy(portraitTarget);}
     }
     private void OnDisable()
     {

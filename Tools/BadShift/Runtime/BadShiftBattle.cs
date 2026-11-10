@@ -13,6 +13,10 @@ public sealed class BadShiftBattle : MonoBehaviour
     public BadShiftBattlePhase Phase { get; private set; }
     public bool Active=>Phase!=BadShiftBattlePhase.Idle;
     public bool Finished=>Phase==BadShiftBattlePhase.Victory||Phase==BadShiftBattlePhase.Defeat;
+    public float OutcomeTime { get; private set; }
+    public bool Celebrating(bool enemy)=>Finished&&OutcomeTime<4.6f&&(enemy?Phase==BadShiftBattlePhase.Defeat:Phase==BadShiftBattlePhase.Victory);
+    public float CelebrationWeight=>Finished?Mathf.SmoothStep(0,1,OutcomeTime/.2f)*(1-Mathf.SmoothStep(0,1,(OutcomeTime-4.1f)/.5f)):0;
+    public string BossOutcomeQuote=>!Finished?"":Phase==BadShiftBattlePhase.Victory?(OutcomeTime<2.3f?"Employee of the minute!":"Your reward: one unpaid lunch break."):(OutcomeTime<2.3f?"That was a very expensive nap.":"Stand up. The soup is getting cold.");
     public bool Falling=>Phase==BadShiftBattlePhase.FallingVictory||Phase==BadShiftBattlePhase.FallingDefeat;
     public bool LocksMovement=>Phase==BadShiftBattlePhase.Intro||Falling||Finished;
     public float FallProgress=>Falling||Finished?Mathf.Clamp01((Time.time-fallStarted)/.85f):0;
@@ -115,9 +119,10 @@ public sealed class BadShiftBattle : MonoBehaviour
         float dt=Time.deltaTime;
         if(Falling&&Time.time>=phaseUntil)
         {
-            Phase=EnemyHealth==0?BadShiftBattlePhase.Victory:BadShiftBattlePhase.Defeat;Life.Demo.Game.SilenceBattleBackground();
+            Phase=EnemyHealth==0?BadShiftBattlePhase.Victory:BadShiftBattlePhase.Defeat;OutcomeTime=0;Life.Demo.Game.SilenceBattleBackground();
             resultTheme=AudioSystem.PlayTracked(EnemyHealth==0?VictorySound:DefeatSound);
         }
+        if(Finished)OutcomeTime+=dt;
         if(Phase==BadShiftBattlePhase.Intro&&Time.time>=phaseUntil){Phase=BadShiftBattlePhase.Fighting;nextEnemy=Time.time+.6f;nextAttack=Time.time;}
         if(Phase!=BadShiftBattlePhase.Fighting){EnemySpeed=0;return;}
         if(Time.time>=nextTaunt){Say(Taunts[tauntIndex++%Taunts.Length]);nextTaunt=Time.time+4.2f;}
@@ -141,7 +146,7 @@ public sealed class BadShiftBattle : MonoBehaviour
     }
     public void ReturnToCafe()
     {
-        resultTheme.Stop();Phase=BadShiftBattlePhase.Idle;PlayerHealth=EnemyHealth=100;enemyHitAt=0;IsBlocking=false;tauntUntil=0;
+        resultTheme.Stop();OutcomeTime=0;Phase=BadShiftBattlePhase.Idle;PlayerHealth=EnemyHealth=100;enemyHitAt=0;IsBlocking=false;tauntUntil=0;
         PlayerSwingUntil=EnemySwingUntil=PlayerHurtUntil=EnemyHurtUntil=PlayerFlashUntil=EnemyFlashUntil=PlayerBlockUntil=0;
         enemyPush=Vector3.zero;EnemySpeed=0;
         EnemyBody.enabled=false;EnemyBody.transform.SetPositionAndRotation(enemySpawn,enemyRotation);EnemyBody.enabled=true;

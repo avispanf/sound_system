@@ -27,7 +27,7 @@ public sealed class BadShiftDemo : MonoBehaviour
     private float bossYaw;
     private bool wasNearBoss;
     private float nextGreeting;
-    public string BossQuote => AudioRuntime.Exists && AudioSystem.VoiceOver.IsSpeaking ? AudioSystem.VoiceOver.CurrentLine.Subtitle : Game.Life!=null?Game.Life.ReactionQuote:"";
+    public string BossQuote => Game.Life!=null&&Game.Life.Battle!=null&&Game.Life.Battle.Finished?Game.Life.Battle.BossOutcomeQuote:AudioRuntime.Exists && AudioSystem.VoiceOver.IsSpeaking ? AudioSystem.VoiceOver.CurrentLine.Subtitle : Game.Life!=null?Game.Life.ReactionQuote:"";
     private Quaternion dancerRest;
     private float reactionTime;
     private Transform[] eyes;
@@ -101,7 +101,7 @@ public sealed class BadShiftDemo : MonoBehaviour
             Game.Speak(); nextGreeting = Time.time + 15;
         }
         wasNearBoss = nearBoss;
-        float look = towardPlayer.sqrMagnitude < 81 ? Mathf.Clamp(Mathf.Atan2(-towardPlayer.x, -towardPlayer.z) * Mathf.Rad2Deg, -30, 30) : Mathf.Sin(reactionTime * .65f) * 12;
+        float look = (Game.Life!=null&&Game.Life.Battle!=null&&Game.Life.Battle.Finished)||towardPlayer.sqrMagnitude < 81 ? Mathf.Clamp(Mathf.Atan2(-towardPlayer.x, -towardPlayer.z) * Mathf.Rad2Deg, -30, 30) : Mathf.Sin(reactionTime * .65f) * 12;
         bossYaw = Mathf.LerpAngle(bossYaw, look, 1 - Mathf.Exp(-3 * Time.deltaTime));
         Boss.localRotation = Quaternion.Euler(speaking ? Mathf.Sin(reactionTime*9)*5 : Mathf.Sin(reactionTime*1.2f)*1.2f, bossYaw, Mathf.Sin(reactionTime*.8f)*1.3f) * bossRest;
         MusicPlayer music = AudioSystem.Music;
@@ -211,18 +211,27 @@ public sealed class BadShiftDemo : MonoBehaviour
     {
         HealthBar(new Rect(44,120,340,72),"YOU",battle.PlayerHealth,new Color(.26f,.75f,1));
         HealthBar(new Rect(w-584,120,540,72),"THE BREADSTICK WARDEN",battle.EnemyHealth,new Color(1,.25f,.29f));
-        Panel(new Rect(w*.5f-320,h-100,640,64),new Color(.035f,.045f,.075f,.90f));
+        if(!battle.Finished)Panel(new Rect(w*.5f-320,h-100,640,64),new Color(.035f,.045f,.075f,.90f));
         GUIStyle center=TextStyle(16,Color.white,true);center.alignment=TextAnchor.MiddleCenter;
-        GUI.Label(new Rect(w*.5f-300,h-90,600,44),battle.Status,center);
+        if(!battle.Finished)GUI.Label(new Rect(w*.5f-300,h-90,600,44),battle.Status,center);
         if(!string.IsNullOrEmpty(battle.EnemyTaunt)&&battle.Phase!=BadShiftBattlePhase.Intro)
         {
             float scale=Mathf.Min(Screen.width/1600f,Screen.height/900f);Vector3 point=Game.View.WorldToScreenPoint(Dancer.position+Vector3.up*3.1f)/scale;
             Rect quote=new Rect(Mathf.Clamp(point.x-200,24,w-424),Mathf.Clamp(h-point.y-65,205,h-205),400,64);
             Panel(quote,new Color(.04f,.07f,.13f,.88f));GUI.Label(new Rect(quote.x+12,quote.y+6,376,52),battle.EnemyTaunt,center);
         }
+        if(battle.Finished)
+        {
+            Rect card=new Rect(44,h-310,330,270);Panel(card,new Color(.035f,.045f,.075f,.92f));
+            GUI.Label(new Rect(card.x+14,card.y+10,302,24),"MR BROCCOLI",center);
+            Texture portrait=Game.GetComponent<BadShiftBattlePresentation>().BossPortrait;
+            if(portrait!=null)GUI.DrawTexture(new Rect(card.x+14,card.y+40,302,158),portrait,ScaleMode.ScaleAndCrop);
+            GUIStyle quote=TextStyle(14,new Color(.94f,.91f,.80f));quote.alignment=TextAnchor.MiddleCenter;
+            GUI.Label(new Rect(card.x+14,card.y+204,302,56),battle.BossOutcomeQuote,quote);
+        }
         if(battle.Phase==BadShiftBattlePhase.Intro||battle.Finished)
         {
-            Rect box=new Rect(w*.5f-280,h*.5f-110,560,220);Panel(box,new Color(.035f,.045f,.075f,.94f));
+            Rect box=battle.Finished?new Rect(w-604,h-260,560,220):new Rect(w*.5f-280,h*.5f-110,560,220);Panel(box,new Color(.035f,.045f,.075f,.94f));
             string title=battle.Phase==BadShiftBattlePhase.Intro?"LAST DANCE":battle.Phase==BadShiftBattlePhase.Victory?"VICTORY":"YOU LOST";
             GUIStyle heading=TextStyle(38,battle.Phase==BadShiftBattlePhase.Victory?new Color(.5f,1,.8f):new Color(1,.5f,.4f),true);heading.alignment=TextAnchor.MiddleCenter;
             GUI.Label(new Rect(box.x+20,box.y+24,520,52),title,heading);

@@ -24,7 +24,7 @@ public sealed class BadShiftCafeLife : MonoBehaviour
     private BadShiftUseTarget[] targets;
     private float nextReaction,quoteUntil,volumeBefore;
     private string quote;
-    private void Awake(){Demo=GetComponent<BadShiftDemo>();volumeBefore=AudioListener.volume;}
+    private void Awake(){Demo=GetComponent<BadShiftDemo>();volumeBefore=BadShiftSilentLaunch.Requested?1:AudioListener.volume;if(BadShiftSilentLaunch.Requested){Muted=true;AudioListener.volume=0;}}
     private void OnEnable(){BadShiftImpactProp.Reacted+=OnImpact;}
     private void OnDisable(){BadShiftImpactProp.Reacted-=OnImpact;}
     private void Start(){targets=FindObjectsByType<BadShiftUseTarget>(FindObjectsSortMode.None);PlayerStick.SetActive(false);EnemyStick.SetActive(false);}
@@ -85,5 +85,5 @@ public sealed class BadShiftCafeLife : MonoBehaviour
         if(Vector3.Distance(position,Demo.Dancer.position)<5)enemyReaction=Time.time+.5f;
         React(broken?"That plate comes out of your celery!":"Easy! This is a cafe, not a bowling alley.",broken);
     }
-    private void OnDestroy(){if(Muted)AudioListener.volume=volumeBefore;}
+    private void OnDestroy(){if(Muted)AudioListener.volume=BadShiftSilentLaunch.Requested?0:volumeBefore;}
 }

@@ -50,8 +50,8 @@ changed demo scene; don't reapply its old installation plan.
 
 ## Verification and boundaries
 
-250 PlayMode tests pass in Unity 6000.3.21f1, including sixty-three demo tests: five inherited gameplay/mix tests and
-fifty-eight BAD SHIFT checks (real clip selection, source/filter switching, listener
+253 PlayMode tests pass in Unity 6000.3.21f1, including sixty-six demo tests: five inherited gameplay/mix tests and
+sixty-one BAD SHIFT checks (real clip selection, source/filter switching, listener
 measurement, actual music/VO animation timing, collision, live character reactions and walkable routes). Collection tests move the character
 programmatically; they are not proof of complete human navigation/listening QA.
 
@@ -113,3 +113,11 @@ Battle controls: E challenges; LMB attacks; hold RMB to block; MMB orbits the ca
 Defeated characters fall before the result panel and its separate music theme.
 
 The clay combat polish adds body-led anticipation, elastic hit reactions, two-handed guarding, visual swing recovery and a supported squash-and-flop death. The existing controls and damage rules are unchanged. See BATTLE-ARENA.md for the sequence and validation details.
+
+## Quiet development and QA
+
+Automated batch editor runs in the marked BAD SHIFT project mute the editor audio output through BadShiftQuietBatch. Playback simulation, event records, music scheduling and game time remain active. Do not run audible development/visual QA sessions unless the user asks for listening.
+
+For standalone visual QA, launch the executable with -audiomw-silent. It starts with Sound off before scene playback and keeps that initial mute through scene resets. Sound on can still be selected explicitly. A normal launch without this argument retains the regular sound default.
+
+The result performance adds a winner-only hop, breadstick air guitar and bow, plus separate broccoli approval/facepalm gestures and timed captions. The live manager portrait and result controls leave the winning actor visible.

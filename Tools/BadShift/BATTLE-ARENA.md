@@ -33,7 +33,7 @@ Use the isolated prepared project with .bad-shift-demo. After CafeLifePass.Run, 
 
 ## Verification
 
-Unity 6000.3.21f1: 250/250 PlayMode tests passed, including 20 battle/cafe/melee/polish cases. Coverage includes the explicit challenge, pointer attack versus block, protected HUD clicks, visible-weapon contact, cooldown, knockback, grounded-state preservation, dodge timing, wall obstruction, pause, persistent outcomes, delayed fall-to-result transition, background music silencing, rematch and normal-lighting restoration. Previous audio, tour, door, locomotion and reset tests also passed.
+Unity 6000.3.21f1: 253/253 PlayMode tests passed, including 23 battle/cafe/melee/polish/outcome cases. Coverage includes the explicit challenge, pointer attack versus block, protected HUD clicks, visible-weapon contact, cooldown, knockback, grounded-state preservation, dodge timing, wall obstruction, pause, persistent outcomes, delayed fall-to-result transition, background music silencing, rematch and normal-lighting restoration. Previous audio, tour, door, locomotion and reset tests also passed.
 
 Post-pose Unity renders show the stick contacting the opponent and the completed fall. Audio clips are synthesized prototypes; no human listening sign-off or mobile qualification is claimed.
 
@@ -48,3 +48,13 @@ Death includes an initial squash and backward hesitation, a faster sideways flop
 Runtime changes work with the saved battle scene; no additional scene-authoring pass is required. The new pose tests sample after LateUpdate and cover both grips, one physical contact per swing, effect cleanup, squash, floor support, settling and rematch restoration. Close-ups are included as combat-*.png in the prepared project.
 
 Final polish regression: 250/250 PlayMode tests passed on 2026-11-10, including scene reset and guided-tour replay.
+
+## Outcome performances — 2026-11-10
+
+After the defeated skeleton finishes falling and the result theme starts, the winner performs a 4.6-second celebration: small squash-and-stretch hops, breadstick air guitar and a bow. Either skeleton can celebrate, according to the result. The winner turns visually toward the camera; the controller stays in place. Hand IK keeps the breadstick attached, the defeated character stays down, and attacks cannot resume during the result.
+
+Mr Broccoli acknowledges a player victory with an approving nod, raised arm and bouncing crown. On player defeat he shakes his head and covers his face. Two timed captions accompany each outcome. These are text reactions, not new recorded voice-over. The outcome clock pauses with the game, resets on rematch and does not start another music cue.
+
+The result panel sits in the lower-right corner so it does not cover the celebration. A small live portrait of the actual broccoli model sits in the lower-left corner, showing the distant manager's reaction alongside his caption. Its disabled camera renders only during results into one reusable 480x256 target; camera and target are disposed when the scene resets. No new art/audio assets or scene-authoring pass are required.
+
+Outcome verification: 253/253 PlayMode tests passed on 2026-11-10 with editor audio output muted. New coverage checks delayed celebration, winner selection, distinct captions, one result cue, pause-safe poses, rematch cleanup and portrait disposal on reset.
