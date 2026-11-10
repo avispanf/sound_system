@@ -51,7 +51,12 @@ public sealed class BadShiftOutcomeTests
         Transform winner=battle.Life.Demo.PlayerAnimator.transform.Find("Rig"),loser=battle.Life.Demo.DanceAnimator.transform.Find("Rig");
         Quaternion pose=Quaternion.identity,fallen=Quaternion.identity;
         probe.Capture=()=>{pose=winner.localRotation;fallen=loser.localRotation;Capture("outcome-victory-hop");};yield return null;
-        yield return new WaitForSeconds(1.4f);probe.Capture=()=>{Assert.Greater(Quaternion.Angle(pose,winner.localRotation),3);Assert.Less(Quaternion.Angle(fallen,loser.localRotation),.01f);Capture("outcome-victory-guitar");};yield return null;
+        float movement=0,fallenMovement=0,until=Time.time+1.4f;
+        while(Time.time<until)
+        {
+            probe.Capture=()=>{movement=Mathf.Max(movement,Quaternion.Angle(pose,winner.localRotation));fallenMovement=Mathf.Max(fallenMovement,Quaternion.Angle(fallen,loser.localRotation));};yield return null;
+        }
+        Assert.Greater(movement,3);Assert.Less(fallenMovement,.01f);probe.Capture=()=>Capture("outcome-victory-guitar");yield return null;
         yield return new WaitForSeconds(.7f);Assert.IsTrue(battle.BossOutcomeQuote.Contains("lunch break"));Assert.AreEqual(0,AudioSystem.Music.Volume);
         Assert.AreEqual(1,AudioSystem.Debugger.Records.Count(r=>r.EventName==battle.VictorySound.name&&r.Outcome==PlaybackOutcome.Played));
         Assert.IsFalse(AudioSystem.Debugger.Records.Any(r=>r.EventName==battle.DefeatSound.name));

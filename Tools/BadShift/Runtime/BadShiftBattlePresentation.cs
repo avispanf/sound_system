@@ -60,15 +60,15 @@ public sealed class BadShiftBattlePresentation : MonoBehaviour
     {
         if(guard==null)CreateAccents();
         Transform player=Battle.transform;
-        bool blocked=Time.time<Battle.PlayerBlockUntil;
-        guard.enabled=Battle.IsBlocking&&!Battle.Falling&&!Battle.Finished;
+        bool blocked=Battle.BlockFeedback>0;
+        guard.enabled=(Battle.IsBlocking||blocked)&&Battle.Phase==BadShiftBattlePhase.Fighting;
         Color cyan=new Color(.35f,.85f,1,blocked?.95f:.65f);guard.startColor=guard.endColor=cyan;
         Vector3 center=player.position+Vector3.up*1.55f+player.forward*.55f;
-        for(int i=0;i<25;i++){float angle=Mathf.Lerp(-2.1f,2.1f,i/24f);guard.SetPosition(i,center+(Battle.Life.Demo.Game.View.transform.right*Mathf.Sin(angle)+Battle.Life.Demo.Game.View.transform.up*Mathf.Cos(angle))*.57f);}
+        for(int i=0;i<25;i++){float angle=Mathf.Lerp(-2.1f,2.1f,i/24f);guard.SetPosition(i,center+(Battle.Life.Demo.Game.View.transform.right*Mathf.Sin(angle)+Battle.Life.Demo.Game.View.transform.up*Mathf.Cos(angle))*(.57f+(blocked?(1-Battle.BlockFeedback)*.22f:0)));}
         for(int a=0;a<2;a++)
         {
             Transform actor=a==0?player:Battle.EnemyBody.transform;
-            float amount=Mathf.Clamp01(((a==0&&blocked?Battle.PlayerBlockUntil:a==0?Battle.PlayerFlashUntil:Battle.EnemyFlashUntil)-Time.time)/.22f);
+            float amount=Mathf.Max(Mathf.Clamp01(((a==0?Battle.PlayerFlashUntil:Battle.EnemyFlashUntil)-Time.time)/.22f),a==0&&blocked?Battle.BlockFeedback:0);
             Vector3 impact=actor.position+Vector3.up*1.5f;
             Vector3 right=Battle.Life.Demo.Game.View.transform.right,up=Battle.Life.Demo.Game.View.transform.up;
             Color color=a==0&&blocked?cyan:new Color(1,.79f,.34f,amount);
@@ -101,8 +101,8 @@ public sealed class BadShiftBattlePresentation : MonoBehaviour
         foreach(var smoke in Smoke){var emission=smoke.emission;emission.enabled=Battle.Active;}
         for(int a=0;a<2;a++)
         {
-            bool blocked=a==0&&Time.time<Battle.PlayerBlockUntil;
-            float amount=Mathf.Clamp01(((blocked?Battle.PlayerBlockUntil:a==0?Battle.PlayerFlashUntil:Battle.EnemyFlashUntil)-Time.time)/.22f);
+            bool blocked=Battle.BlockFeedback>0&&(a==0||Time.time>=Battle.EnemyFlashUntil);
+            float amount=Mathf.Max(Mathf.Clamp01(((a==0?Battle.PlayerFlashUntil:Battle.EnemyFlashUntil)-Time.time)/.22f),blocked?Battle.BlockFeedback*(a==0?1:.45f):0);
             bool guarding=a==0&&Battle.IsBlocking;
             Color pulse=blocked||guarding?new Color(.2f,.7f,1):new Color(1,.34f,.24f);
             for(int i=0;i<actors[a].Length;i++)

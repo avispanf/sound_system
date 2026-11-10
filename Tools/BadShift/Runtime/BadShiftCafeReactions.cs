@@ -108,6 +108,14 @@ public sealed class BadShiftCafeReactions : MonoBehaviour
             pitch=guard?12+blocked*8:wind*-7+strike*9;
             stretch=1-(guard?.07f:0)-wind*.045f-reaction*.09f;
             headLag=-twist*.7f+recoil*16;
+            if(!enemy&&battle!=null&&battle.PlayerStrikeStep==2){twist=-twist;tilt-=strike*7;}
+            if(!enemy&&battle!=null&&battle.PlayerStrikeStep==3){pitch=-wind*16+strike*22;stretch-=wind*.06f;headLag+=wind*14;}
+            if(battle!=null&&battle.BlockFeedback>0)
+            {
+                float block=battle.BlockFeedback,wobble=Mathf.Sin((1-block)*Mathf.PI*4)*block;
+                if(enemy){pitch=-block*18;tilt+=wobble*17;headLag+=wobble*24;stretch-=block*.09f;}
+                else{stretch-=block*.07f;headLag+=wobble*9;}
+            }
         }
         rig.localRotation=rest*Quaternion.Euler(pitch,twist,tilt);
         rig.localPosition=position+Vector3.up*lift;

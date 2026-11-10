@@ -214,6 +214,12 @@ public sealed class BadShiftDemo : MonoBehaviour
         if(!battle.Finished)Panel(new Rect(w*.5f-320,h-100,640,64),new Color(.035f,.045f,.075f,.90f));
         GUIStyle center=TextStyle(16,Color.white,true);center.alignment=TextAnchor.MiddleCenter;
         if(!battle.Finished)GUI.Label(new Rect(w*.5f-300,h-90,600,44),battle.Status,center);
+        if(battle.ComboVisible)
+        {
+            GUIStyle combo=TextStyle(17,new Color(1,.85f,.48f),true);combo.alignment=TextAnchor.MiddleCenter;
+            string chain=battle.ComboHits==3?"3 / 3 · SOUP SMASH!":battle.PlayerStrikeStep+" / 3 · "+battle.StrikeName+(battle.AttackQueued?" · Next bonk queued":" · LMB to chain");
+            GUI.Label(new Rect(w*.5f-320,h-134,640,28),chain,combo);
+        }
         if(!string.IsNullOrEmpty(battle.EnemyTaunt)&&battle.Phase!=BadShiftBattlePhase.Intro)
         {
             float scale=Mathf.Min(Screen.width/1600f,Screen.height/900f);Vector3 point=Game.View.WorldToScreenPoint(Dancer.position+Vector3.up*3.1f)/scale;

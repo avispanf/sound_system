@@ -8,7 +8,7 @@ Approach the dancing employee. The invitation appears only when the employee is 
 
 Both actors start with 100 HP. Player swings last 0.35 seconds with a 0.65-second cooldown and deal 25 damage. The rival prepares a visible 0.7-second windup and deals 20 damage. The actual animated stick is swept through space using capsule queries; a hit requires contact with the opponent controller, a clear path and a valid facing/height. One swing can connect only once. The rival pursues inside the arena instead of chasing through the whole cafe.
 
-A frontal block prevents damage and plays a separate clack with a blue pulse and small recoil. The guard slows movement and cannot be raised during an active player swing. Arm IK keeps the hand attached to the visible stick during attacks and guarding. The normal combat stance faces the opponent.
+A frontal block prevents damage and plays a separate clack with an expanding cyan guard pulse, a braced player recoil and a comic backward rebound on the attacker. The rival is stunned for 0.55 seconds and cannot begin another attack for at least 1.05 seconds, leaving a readable counterattack window. The guard slows movement and cannot be raised during an active player swing. Arm IK keeps the hand attached to the visible stick during attacks and guarding. The normal combat stance faces the opponent.
 
 Hits apply a horizontal impulse, body flinch, warm colour pulse and light accent. Player knockback shares the same CharacterController.Move as gravity and locomotion; enemy movement also uses one controller move per frame. Controllers preserve collision and grounded state, including at very high frame rates.
 
@@ -33,7 +33,7 @@ Use the isolated prepared project with .bad-shift-demo. After CafeLifePass.Run, 
 
 ## Verification
 
-Unity 6000.3.21f1: 253/253 PlayMode tests passed, including 23 battle/cafe/melee/polish/outcome cases. Coverage includes the explicit challenge, pointer attack versus block, protected HUD clicks, visible-weapon contact, cooldown, knockback, grounded-state preservation, dodge timing, wall obstruction, pause, persistent outcomes, delayed fall-to-result transition, background music silencing, rematch and normal-lighting restoration. Previous audio, tour, door, locomotion and reset tests also passed.
+Unity 6000.3.21f1: 257/257 PlayMode tests passed, including 27 battle/cafe/melee/polish/outcome/combo cases. Coverage includes the explicit challenge, pointer attack versus block, protected HUD clicks, visible-weapon contact, cooldown, knockback, grounded-state preservation, dodge timing, wall obstruction, pause, persistent outcomes, delayed fall-to-result transition, background music silencing, rematch and normal-lighting restoration. Previous audio, tour, door, locomotion and reset tests also passed.
 
 Post-pose Unity renders show the stick contacting the opponent and the completed fall. Audio clips are synthesized prototypes; no human listening sign-off or mobile qualification is claimed.
 
@@ -58,3 +58,15 @@ Mr Broccoli acknowledges a player victory with an approving nod, raised arm and 
 The result panel sits in the lower-right corner so it does not cover the celebration. A small live portrait of the actual broccoli model sits in the lower-left corner, showing the distant manager's reaction alongside his caption. Its disabled camera renders only during results into one reusable 480x256 target; camera and target are disposed when the scene resets. No new art/audio assets or scene-authoring pass are required.
 
 Outcome verification: 253/253 PlayMode tests passed on 2026-11-10 with editor audio output muted. New coverage checks delayed celebration, winner selection, distinct captions, one result cue, pause-safe poses, rematch cleanup and portrait disposal on reset.
+
+## Breadstick combo and block rebound — 2026-11-10
+
+Three successive confirmed contacts form BONK → BACK-BONK → SOUP SMASH: a sideways cut, a mirrored backhand and a two-handed overhead chop. The torso twists with each cut; the final windup squashes and leans back before pitching forward. Both hands return smoothly to the ready pose. The third strike has a stronger horizontal push, while every strike still deals 25 damage through the swept visible weapon. No contact means no combo advance. The next chain starts at BONK after the finisher.
+
+Click LMB again within 1.05 seconds of the last contact to continue. A single next attack can be buffered in the final 0.22 seconds of recovery; repeated clicks do not queue a whole sequence. Follow-ups include a short collision-aware step to maintain reach after knockback. A miss, timeout, accepted guard, incoming damage or encounter reset clears the chain and buffered input. The small gold combat label shows the current strike and whether the next one is queued.
+
+A successful frontal block visibly throws the enemy's stick back, rocks its skull and ribs, compresses the player's guard and expands the cyan accent. The CLACK prompt invites releasing RMB and countering with LMB; the rival complains that its breadstick betrayed it. The block itself deals no damage. Rebound and combo clocks stop on pause, and all transient state clears on rematch or exit.
+
+Four additional PlayMode cases exercise three actual contacts without repositioning between strikes, single-slot buffering and guard cancellation, miss/timeout/rematch cleanup, and the no-damage block rebound followed by a counterattack. Post-pose close-ups are included as combo-*.png in the prepared project. Existing attack, hit and block SoundEvents remain distinct; no additional placeholder sounds are introduced.
+
+Combo regression: 257/257 PlayMode tests passed on 2026-11-10 with editor audio output muted. The outcome test now samples motion throughout its observation interval, avoiding phase aliasing between two snapshots while checking the defeated actor stays still.
