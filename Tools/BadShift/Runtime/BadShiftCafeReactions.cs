@@ -110,6 +110,16 @@ public sealed class BadShiftCafeReactions : MonoBehaviour
             headLag=-twist*.7f+recoil*16;
             if(!enemy&&battle!=null&&battle.PlayerStrikeStep==2){twist=-twist;tilt-=strike*7;}
             if(!enemy&&battle!=null&&battle.PlayerStrikeStep==3){pitch=-wind*16+strike*22;stretch-=wind*.06f;headLag+=wind*14;}
+            if(enemy&&battle!=null)
+            {
+                if(battle.EnemyAttack==BadShiftEnemyAttack.Backhand){twist=-twist;tilt-=strike*7;}
+                if(battle.EnemyAttack==BadShiftEnemyAttack.Overhead)
+                {
+                    pitch=-wind*18+strike*24;stretch-=wind*.08f;headLag+=wind*16;
+                    if(battle.EnemyWindingUp)tilt+=Mathf.Sin(battle.EnemyWindupProgress*18)*battle.EnemyWindupProgress*4;
+                }
+                if(battle.EnemyAttack==BadShiftEnemyAttack.Thrust){pitch=-wind*12+strike*20;twist=wind*12-strike*9;headLag+=wind*10;}
+            }
             if(battle!=null&&battle.BlockFeedback>0)
             {
                 float block=battle.BlockFeedback,wobble=Mathf.Sin((1-block)*Mathf.PI*4)*block;

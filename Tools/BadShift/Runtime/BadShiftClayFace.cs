@@ -1,7 +1,7 @@
 using AudioMW;
 using UnityEngine;
 
-[DefaultExecutionOrder(150)]
+[DefaultExecutionOrder(110)]
 public sealed class BadShiftClayFace : MonoBehaviour
 {
     public BadShiftDemo Demo;
@@ -22,6 +22,13 @@ public sealed class BadShiftClayFace : MonoBehaviour
     private void LateUpdate()
     {
         if(AudioListener.pause||AudioSystem.VoiceOver.IsSpeaking)return;
+        var life=Demo.Game.Life;
+        if(life!=null&&(Employee?life.EnemyDead:life.PlayerDead))
+        {
+            Head.localRotation=rest;Head.localScale=scale;
+            for(int i=0;i<Eyes.Length;i++)Eyes[i].localScale=Vector3.Scale(eyeScales[i],new Vector3(1,.12f,1));
+            return;
+        }
         clock+=Time.deltaTime;
         float pose=Mathf.Floor(clock*12)/12+(Employee?.7f:0);
         bool dance=Employee&&AudioSystem.Music.CurrentTrack!=null&&AudioSystem.Music.CurrentTrack.name=="Combat";

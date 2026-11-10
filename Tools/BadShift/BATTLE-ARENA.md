@@ -6,7 +6,7 @@ The employee and stage move to the open front-right kitchen floor at (7, -5) in 
 
 Approach the dancing employee. The invitation appears only when the employee is the nearest E target. E starts a 1.2-second introduction without dealing damage. In the fight, left click attacks, holding right click blocks, WASD moves and Shift runs. Middle-mouse drag orbits the camera during battle; right-mouse orbit remains available outside battle. Clicks on the top HUD and bottom control strip cannot trigger attacks.
 
-Both actors start with 100 HP. Player swings last 0.35 seconds with a 0.65-second cooldown and deal 25 damage. The rival prepares a visible 0.7-second windup and deals 20 damage. The actual animated stick is swept through space using capsule queries; a hit requires contact with the opponent controller, a clear path and a valid facing/height. One swing can connect only once. The rival pursues inside the arena instead of chasing through the whole cafe.
+Both actors start with 100 HP. Player swings last 0.35 seconds with a 0.65-second cooldown and deal 25 damage. The rival uses a two-hit sideways combination, an overhead chop and a straight thrust. Each hit has its own visible windup and deals 20 damage. The actual animated stick is swept through space using capsule queries; a hit requires contact with the opponent controller, a clear path and a valid facing/height. One swing can connect only once. The rival pursues inside the arena instead of chasing through the whole cafe.
 
 A frontal block prevents damage and plays a separate clack with an expanding cyan guard pulse, a braced player recoil and a comic backward rebound on the attacker. The rival is stunned for 0.55 seconds and cannot begin another attack for at least 1.05 seconds, leaving a readable counterattack window. The guard slows movement and cannot be raised during an active player swing. Arm IK keeps the hand attached to the visible stick during attacks and guarding. The normal combat stance faces the opponent.
 
@@ -33,7 +33,7 @@ Use the isolated prepared project with .bad-shift-demo. After CafeLifePass.Run, 
 
 ## Verification
 
-Unity 6000.3.21f1: 257/257 PlayMode tests passed, including 27 battle/cafe/melee/polish/outcome/combo cases. Coverage includes the explicit challenge, pointer attack versus block, protected HUD clicks, visible-weapon contact, cooldown, knockback, grounded-state preservation, dodge timing, wall obstruction, pause, persistent outcomes, delayed fall-to-result transition, background music silencing, rematch and normal-lighting restoration. Previous audio, tour, door, locomotion and reset tests also passed.
+Unity 6000.3.21f1: 262/262 PlayMode tests passed, including 32 battle/cafe/melee/polish/outcome/combo/enemy-pattern cases. Coverage includes the explicit challenge, pointer attack versus block, protected HUD clicks, visible-weapon contact, cooldown, knockback, grounded-state preservation, dodge timing, wall obstruction, pause, persistent outcomes, delayed fall-to-result transition, background music silencing, rematch and normal-lighting restoration. Previous audio, tour, door, locomotion and reset tests also passed.
 
 Post-pose Unity renders show the stick contacting the opponent and the completed fall. Audio clips are synthesized prototypes; no human listening sign-off or mobile qualification is claimed.
 
@@ -70,3 +70,17 @@ A successful frontal block visibly throws the enemy's stick back, rocks its skul
 Four additional PlayMode cases exercise three actual contacts without repositioning between strikes, single-slot buffering and guard cancellation, miss/timeout/rematch cleanup, and the no-damage block rebound followed by a counterattack. Post-pose close-ups are included as combo-*.png in the prepared project. Existing attack, hit and block SoundEvents remain distinct; no additional placeholder sounds are introduced.
 
 Combo regression: 257/257 PlayMode tests passed on 2026-11-10 with editor audio output muted. The outcome test now samples motion throughout its observation interval, avoiding phase aliasing between two snapshots while checking the defeated actor stays still.
+
+## Rival repertoire — 2026-11-10
+
+The rival cycles through three readable patterns. DOUBLE DIP is a right cut followed by a backhand: 0.70-second first windup, 0.35-second swing, a 0.24-second pause, then a separate 0.58-second backhand windup and a short step in the committed direction. SOUP HAMMER raises the breadstick with both hands, squashes the torso and rocks the head for 0.95 seconds before chopping down. BAGUETTE LUNGE draws the stick back at waist height for 0.80 seconds, then pokes forward with a small collision-aware step. Swings remain 0.35 seconds and every physical contact deals 20 damage once.
+
+The direction locks when a pattern starts and stays fixed through both DOUBLE DIP hits. The rival cannot steer an active swing toward a dodging player. Move sideways during each windup, or face the rival and hold RMB. Keep moving for the second helping: its short forward step can catch a player who stops near the edge of the first swing. The backhand fan extends farther to show that extra reach. A successful frontal block cancels the remaining combination and triggers the existing recoil/counter window. A player hit also interrupts a pending attack. After a completed combination or thrust the rival rests for 0.85 seconds; the overhead attack leaves 1.05 seconds of recovery. Rematch restarts with DOUBLE DIP.
+
+The windup label beneath the enemy HP bar names the pattern and shows preparation progress. A small amber fan marks the double's direction; coral and lavender lanes distinguish the overhead strike and thrust. These are anticipation cues: damage still requires the animated weapon to touch the player, with an unobstructed path. Cues hide when interrupted, released, reset or leaving battle, and freeze on pause. Each move has a short kitchen-themed caption.
+
+Five additional PlayMode scenarios cover all four swing poses and consecutive real contacts without repositioning the player between attacks, damage-free blocks of every pattern with cancellation of the follow-up, walking sideways out of the committed attacks, pause/interruption/rematch cleanup, and obstruction by a physical wall. Close-ups are saved as enemy-windup-*.png. Existing attack, hit and block events are reused; audio content remains placeholder material.
+
+The base face pose now runs before combat reactions and floor support. Defeated heads stop their idle animation; support bounds include the initially inactive breadstick, so the complete final pose stays above the floor.
+
+Rival repertoire regression: 262/262 PlayMode tests passed on 2026-11-10 with editor audio output muted. All new attack patterns, ordinary walking dodges, blocked combinations, natural consecutive hits and final-pose floor support passed.

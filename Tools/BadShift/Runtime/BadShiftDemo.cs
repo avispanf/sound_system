@@ -214,6 +214,13 @@ public sealed class BadShiftDemo : MonoBehaviour
         if(!battle.Finished)Panel(new Rect(w*.5f-320,h-100,640,64),new Color(.035f,.045f,.075f,.90f));
         GUIStyle center=TextStyle(16,Color.white,true);center.alignment=TextAnchor.MiddleCenter;
         if(!battle.Finished)GUI.Label(new Rect(w*.5f-300,h-90,600,44),battle.Status,center);
+        if(battle.EnemyWindingUp)
+        {
+            GUIStyle warning=TextStyle(15,new Color(1,.83f,.48f),true);warning.alignment=TextAnchor.MiddleRight;
+            GUI.Label(new Rect(w-584,198,540,26),battle.EnemyAttackName+" · Watch the windup",warning);
+            Rect track=new Rect(w-564,228,500,4);Panel(track,new Color(.16f,.18f,.24f,.8f));
+            Panel(new Rect(track.x,track.y,track.width*battle.EnemyWindupProgress,4),new Color(1,.72f,.3f));
+        }
         if(battle.ComboVisible)
         {
             GUIStyle combo=TextStyle(17,new Color(1,.85f,.48f),true);combo.alignment=TextAnchor.MiddleCenter;

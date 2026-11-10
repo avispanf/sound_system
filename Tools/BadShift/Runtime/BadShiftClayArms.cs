@@ -17,7 +17,7 @@ public sealed class BadShiftClayArms : MonoBehaviour
     private bool applied;
     private void Awake()
     {
-        var bones=GetComponentsInChildren<Transform>();rig=transform.Find("Rig");surfaces=GetComponentsInChildren<Renderer>();
+        var bones=GetComponentsInChildren<Transform>();rig=transform.Find("Rig");surfaces=GetComponentsInChildren<Renderer>(true);
         joints=new[]{"upperarm.l","lowerarm.l","hand.l","upperarm.r","lowerarm.r","hand.r"}.Select(n=>bones.First(t=>t.name==n)).ToArray();
         source=new Quaternion[6];offset=Enumerable.Repeat(Quaternion.identity,6).ToArray();gait=GetComponent<BadShiftClayGait>();life=Demo.Game.Life;
     }
@@ -75,28 +75,38 @@ public sealed class BadShiftClayArms : MonoBehaviour
         float follow=Mathf.Sin(Mathf.InverseLerp(.76f,1,swing)*Mathf.PI)*.12f;
         float wind=Employee&&life.Battle.EnemyWindingUp?windupWeight:remaining>0?1-cut:0;
         float recoil=!Employee?Mathf.Clamp01((life.Battle.PlayerBlockUntil-Time.time)/.22f):0;
-        int step=Employee?1:life.Battle.PlayerStrikeStep;
-        bool reverse=step==2&&(remaining>0||recovery>0),smash=step==3&&(remaining>0||recovery>0);
+        bool preparing=Employee&&life.Battle.EnemyWindingUp;
+        var attack=life.Battle.EnemyAttack;
+        int step=Employee?(attack==BadShiftEnemyAttack.Backhand?2:attack==BadShiftEnemyAttack.Overhead?3:1):life.Battle.PlayerStrikeStep;
+        bool variant=remaining>0||recovery>0||preparing;
+        bool reverse=step==2&&variant,smash=step==3&&variant,thrust=Employee&&attack==BadShiftEnemyAttack.Thrust&&variant;
         float rebound=Employee?life.Battle.BlockFeedback:0;
         Vector3 target=upper.position+body.forward*(block?.32f-recoil*.10f:.4f-wind*.23f)+body.right*(block?-.24f:Mathf.Lerp(.36f,-.12f,cut))+Vector3.up*(block?.13f:-.3f+wind*.32f-follow);
-        if(!block&&reverse)target=remaining>0?upper.position+body.forward*(.4f-wind*.15f)+body.right*Mathf.Lerp(-.28f,.3f,cut)+Vector3.up*(-.25f+wind*.1f):Vector3.Lerp(target,upper.position+body.forward*.4f+body.right*.3f-Vector3.up*.25f,recovery);
-        if(!block&&smash)target=remaining>0?upper.position+body.forward*(.32f+cut*.1f)+Vector3.up*Mathf.Lerp(.27f,-.3f,cut):Vector3.Lerp(target,upper.position+body.forward*.42f-Vector3.up*.3f,recovery);
+        if(!block&&reverse)target=remaining>0||preparing?upper.position+body.forward*(.4f-wind*.15f)+body.right*Mathf.Lerp(-.28f,.3f,cut)+Vector3.up*(-.25f+wind*.1f):Vector3.Lerp(target,upper.position+body.forward*.4f+body.right*.3f-Vector3.up*.25f,recovery);
+        if(!block&&smash)target=remaining>0||preparing?upper.position+body.forward*(.32f+cut*.1f)+Vector3.up*Mathf.Lerp(.27f,-.3f,cut):Vector3.Lerp(target,upper.position+body.forward*.42f-Vector3.up*.3f,recovery);
+        if(thrust)
+        {
+            Vector3 drawn=upper.position-body.forward*.14f+body.right*.08f-Vector3.up*.12f;
+            Vector3 extended=upper.position+body.forward*.62f+body.right*.04f-Vector3.up*.1f;
+            target=remaining>0||preparing?Vector3.Lerp(drawn,extended,cut):Vector3.Lerp(target,extended,recovery);
+        }
         if(rebound>0)target+=Vector3.up*(Mathf.Sin((1-rebound)*Mathf.PI)*.18f)-body.forward*rebound*.18f;
         SolveArm(3,target,body.right-Vector3.up*.5f);
         Vector3 blade=block?(Vector3.up-body.right*.48f-body.forward*recoil*.3f).normalized:remaining>0?Quaternion.AngleAxis(Mathf.Lerp(100,-78,cut),Vector3.up)*body.forward:Employee&&life.Battle.EnemyWindingUp?(-body.forward*.65f+Vector3.up).normalized:(body.forward*.35f+Vector3.up).normalized;
         Vector3 finish=Quaternion.AngleAxis(reverse?78:-78,Vector3.up)*body.forward;
-        if(!block&&reverse&&remaining>0)blade=Quaternion.AngleAxis(Mathf.Lerp(-100,78,cut),Vector3.up)*body.forward;
+        if(!block&&reverse&&(remaining>0||preparing))blade=Quaternion.AngleAxis(Mathf.Lerp(-100,78,cut),Vector3.up)*body.forward;
         if(smash)
         {
             finish=(body.forward-Vector3.up*.35f).normalized;
-            if(remaining>0)blade=Vector3.Slerp((Vector3.up-body.forward*.35f).normalized,finish,cut);
+            if(remaining>0||preparing)blade=Vector3.Slerp((Vector3.up-body.forward*.35f).normalized,finish,cut);
         }
+        if(thrust){finish=body.forward;if(remaining>0||preparing)blade=body.forward;}
         if(!block&&recovery>0)blade=Vector3.Slerp(blade,finish,recovery);
         if(rebound>0)blade=Vector3.Slerp(blade,(Vector3.up-body.forward*.7f+body.right*Mathf.Sin(rebound*18)*.35f).normalized,rebound);
         Transform stick=(Employee?life.EnemyStick:life.PlayerStick).transform;
         float length=stick.TransformVector(Vector3.up).magnitude;
         stick.SetPositionAndRotation(hand.position+blade*length*.44f,Quaternion.FromToRotation(Vector3.up,blade));
-        if(block||smash&&(remaining>0||recovery>0))SolveArm(0,hand.position+blade*(block?.28f:.18f),-body.right-Vector3.up*.4f);
+        if(block||smash&&(remaining>0||recovery>0||preparing))SolveArm(0,hand.position+blade*(block?.28f:.18f),-body.right-Vector3.up*.4f);
         else
         {
             joints[0].localRotation*=Quaternion.Euler(-wind*35,0,-wind*35-cut*18);

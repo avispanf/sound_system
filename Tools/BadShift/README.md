@@ -50,8 +50,8 @@ changed demo scene; don't reapply its old installation plan.
 
 ## Verification and boundaries
 
-257 PlayMode tests pass in Unity 6000.3.21f1, including seventy demo tests: five inherited gameplay/mix tests and
-sixty-five BAD SHIFT checks (real clip selection, source/filter switching, listener
+262 PlayMode tests pass in Unity 6000.3.21f1, including seventy-five demo tests: five inherited gameplay/mix tests and
+seventy BAD SHIFT checks (real clip selection, source/filter switching, listener
 measurement, actual music/VO animation timing, collision, live character reactions and walkable routes). Collection tests move the character
 programmatically; they are not proof of complete human navigation/listening QA.
 
@@ -124,3 +124,6 @@ The result performance adds a winner-only hop, breadstick air guitar and bow, pl
 
 
 The breadstick combo adds three contact-driven LMB strikes: BONK, BACK-BONK and the two-handed SOUP SMASH. Time another click after a hit to continue; one late click can be buffered. Holding RMB breaks the chain and raises guard. A successful block visibly rebounds and briefly stuns the rival, with a cyan CLACK prompt for a counterattack. See BATTLE-ARENA.md for timings and checks.
+
+
+The rival now alternates DOUBLE DIP (two separately telegraphed sideways swings), SOUP HAMMER (a slow overhead chop) and BAGUETTE LUNGE (a committed straight thrust). Read the pose and floor direction cue, walk sideways or hold RMB. A successful block stops the remaining combo; the longer recovery after heavy attacks gives time to counter.

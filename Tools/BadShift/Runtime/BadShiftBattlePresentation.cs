@@ -22,7 +22,7 @@ public sealed class BadShiftBattlePresentation : MonoBehaviour
     private Color[][] colors;
     private MaterialPropertyBlock[][] original;
     private MaterialPropertyBlock block;
-    private LineRenderer guard;
+    private LineRenderer guard,tell;
     private LineRenderer[][] sparks;
     private LineRenderer[] swishes;
     private readonly Vector3[] lastTips=new Vector3[2];
@@ -49,7 +49,7 @@ public sealed class BadShiftBattlePresentation : MonoBehaviour
     }
     private void CreateAccents()
     {
-        guard=Stroke("Guard accent",25,.08f);sparks=new LineRenderer[2][];swishes=new LineRenderer[2];
+        guard=Stroke("Guard accent",25,.08f);tell=Stroke("Enemy attack direction",19,.055f);sparks=new LineRenderer[2][];swishes=new LineRenderer[2];
         for(int a=0;a<2;a++)
         {
             sparks[a]=new LineRenderer[6];for(int i=0;i<6;i++)sparks[a][i]=Stroke("Bonk accent "+a+" "+i,2,.075f);
@@ -59,6 +59,7 @@ public sealed class BadShiftBattlePresentation : MonoBehaviour
     private void Accents()
     {
         if(guard==null)CreateAccents();
+        EnemyTelegraph();
         Transform player=Battle.transform;
         bool blocked=Battle.BlockFeedback>0;
         guard.enabled=(Battle.IsBlocking||blocked)&&Battle.Phase==BadShiftBattlePhase.Fighting;
@@ -87,6 +88,27 @@ public sealed class BadShiftBattlePresentation : MonoBehaviour
             swish.SetPosition(0,lastTips[a]);swish.SetPosition(1,Vector3.Lerp(lastTips[a],tip,.5f)+Vector3.up*.035f);swish.SetPosition(2,tip);
             swish.startColor=new Color(1,.87f,.63f,0);swish.endColor=new Color(1,.87f,.63f,.8f);
             lastTips[a]=tip;tracking[a]=swinging;
+        }
+    }
+    private void EnemyTelegraph()
+    {
+        tell.enabled=Battle.Phase==BadShiftBattlePhase.Fighting&&Battle.EnemyWindingUp;
+        if(!tell.enabled)return;
+        Vector3 origin=Battle.EnemyBody.transform.position+Vector3.up*.05f,forward=Battle.EnemyAim,right=Vector3.Cross(Vector3.up,forward);
+        float progress=Battle.EnemyWindupProgress;
+        bool wide=Battle.EnemyAttack==BadShiftEnemyAttack.Sweep||Battle.EnemyAttack==BadShiftEnemyAttack.Backhand;
+        Color color=Battle.EnemyAttack==BadShiftEnemyAttack.Overhead?new Color(1,.53f,.35f):Battle.EnemyAttack==BadShiftEnemyAttack.Thrust?new Color(.85f,.65f,1):new Color(1,.83f,.3f);
+        color.a=.35f+progress*.5f;tell.startColor=tell.endColor=color;tell.widthMultiplier=.045f+progress*.025f;
+        tell.positionCount=wide?19:5;
+        if(wide)
+        {
+            tell.SetPosition(0,origin);tell.SetPosition(18,origin);
+            for(int i=1;i<18;i++)tell.SetPosition(i,origin+Quaternion.AngleAxis(Mathf.Lerp(-65,65,(i-1)/16f),Vector3.up)*forward*(Battle.EnemyAttack==BadShiftEnemyAttack.Backhand?2.6f:2.15f));
+        }
+        else
+        {
+            float width=Battle.EnemyAttack==BadShiftEnemyAttack.Thrust?.3f:.5f,length=Battle.EnemyAttack==BadShiftEnemyAttack.Thrust?2.45f:2.15f;
+            tell.SetPosition(0,origin-right*width);tell.SetPosition(1,origin+forward*length-right*width);tell.SetPosition(2,origin+forward*length+right*width);tell.SetPosition(3,origin+right*width);tell.SetPosition(4,origin-right*width);
         }
     }
     private void LateUpdate()
@@ -136,6 +158,7 @@ public sealed class BadShiftBattlePresentation : MonoBehaviour
     private void OnDisable()
     {
         if(guard!=null)guard.enabled=false;
+        if(tell!=null)tell.enabled=false;
         if(sparks!=null)foreach(var group in sparks)foreach(var line in group)line.enabled=false;
         if(swishes!=null)foreach(var line in swishes)line.enabled=false;
         if(keys!=null){for(int i=0;i<keys.Length;i++)if(keys[i]!=null){keys[i].intensity=keyIntensities[i];keys[i].color=keyColors[i];}RenderSettings.ambientLight=ambient;}
