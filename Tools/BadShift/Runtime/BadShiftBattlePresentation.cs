@@ -11,13 +11,14 @@ public sealed class BadShiftBattlePresentation : MonoBehaviour
     public Light RedLight,BlueLight,PlayerHitLight,EnemyHitLight;
     public LineRenderer Ring;
     public float Weight { get; private set; }
+    public float OvertimeWeight { get; private set; }
     public Texture BossPortrait=>portraitTarget;
     private Camera portraitCamera;
     private RenderTexture portraitTarget;
     private Light[] keys;
     private float[] keyIntensities;
     private Color[] keyColors;
-    private Color background,ambient;
+    private Color background,ambient,redSource,blueSource;
     private Renderer[][] actors;
     private Color[][] colors;
     private MaterialPropertyBlock[][] original;
@@ -29,7 +30,7 @@ public sealed class BadShiftBattlePresentation : MonoBehaviour
     private readonly bool[] tracking=new bool[2];
     private void Start()
     {
-        var demo=Battle.Life.Demo;
+        var demo=Battle.Life.Demo;redSource=RedLight.color;blueSource=BlueLight.color;
         keys=FindObjectsByType<Light>(FindObjectsSortMode.None).Where(l=>l.type==LightType.Directional).ToArray();
         keyIntensities=keys.Select(l=>l.intensity).ToArray();keyColors=keys.Select(l=>l.color).ToArray();background=demo.Game.View.backgroundColor;ambient=RenderSettings.ambientLight;
         actors=new[]{demo.PlayerAnimator.GetComponentsInChildren<Renderer>(),demo.DanceAnimator.GetComponentsInChildren<Renderer>()};
@@ -103,11 +104,11 @@ public sealed class BadShiftBattlePresentation : MonoBehaviour
         if(wide)
         {
             tell.SetPosition(0,origin);tell.SetPosition(18,origin);
-            for(int i=1;i<18;i++)tell.SetPosition(i,origin+Quaternion.AngleAxis(Mathf.Lerp(-65,65,(i-1)/16f),Vector3.up)*forward*(Battle.EnemyAttack==BadShiftEnemyAttack.Backhand?2.6f:2.15f));
+            for(int i=1;i<18;i++)tell.SetPosition(i,origin+Quaternion.AngleAxis(Mathf.Lerp(-65,65,(i-1)/16f),Vector3.up)*forward*Battle.EnemyTelegraphReach);
         }
         else
         {
-            float width=Battle.EnemyAttack==BadShiftEnemyAttack.Thrust?.3f:.5f,length=Battle.EnemyAttack==BadShiftEnemyAttack.Thrust?2.45f:2.15f;
+            float width=Battle.EnemyAttack==BadShiftEnemyAttack.Thrust?.3f:.5f,length=Battle.EnemyTelegraphReach;
             tell.SetPosition(0,origin-right*width);tell.SetPosition(1,origin+forward*length-right*width);tell.SetPosition(2,origin+forward*length+right*width);tell.SetPosition(3,origin+right*width);tell.SetPosition(4,origin-right*width);
         }
     }
@@ -118,8 +119,10 @@ public sealed class BadShiftBattlePresentation : MonoBehaviour
         for(int i=0;i<keys.Length;i++){keys[i].intensity=Mathf.Lerp(keyIntensities[i],keyIntensities[i]*.4f,Weight);keys[i].color=Color.Lerp(keyColors[i],new Color(.57f,.65f,1),Weight);}
         RenderSettings.ambientLight=Color.Lerp(ambient,new Color(.12f,.15f,.25f),Weight);
         Battle.Life.Demo.Game.View.backgroundColor=Color.Lerp(background,new Color(.055f,.065f,.12f),Weight);
-        RedLight.intensity=Weight*4;BlueLight.intensity=Weight*5;
-        Ring.startColor=Ring.endColor=new Color(1,.14f,.27f,Weight*.7f);
+        OvertimeWeight=Mathf.MoveTowards(OvertimeWeight,Battle.Active&&Battle.SecondPhase?1:0,Time.deltaTime*2);
+        RedLight.color=Color.Lerp(redSource,new Color(1,.42f,.08f),OvertimeWeight);BlueLight.color=Color.Lerp(blueSource,new Color(.65f,.25f,1),OvertimeWeight);
+        RedLight.intensity=Weight*(4+OvertimeWeight);BlueLight.intensity=Weight*5;
+        Ring.startColor=Ring.endColor=new Color(1,Mathf.Lerp(.14f,.5f,OvertimeWeight),Mathf.Lerp(.27f,.08f,OvertimeWeight),Weight*.7f);
         foreach(var smoke in Smoke){var emission=smoke.emission;emission.enabled=Battle.Active;}
         for(int a=0;a<2;a++)
         {
@@ -164,6 +167,7 @@ public sealed class BadShiftBattlePresentation : MonoBehaviour
         if(keys!=null){for(int i=0;i<keys.Length;i++)if(keys[i]!=null){keys[i].intensity=keyIntensities[i];keys[i].color=keyColors[i];}RenderSettings.ambientLight=ambient;}
         if(Battle!=null&&Battle.Life!=null&&Battle.Life.Demo!=null&&Battle.Life.Demo.Game.View!=null)Battle.Life.Demo.Game.View.backgroundColor=background;
         if(Grade!=null)Grade.weight=0;
+        if(keys!=null){if(RedLight!=null)RedLight.color=redSource;if(BlueLight!=null)BlueLight.color=blueSource;}OvertimeWeight=0;
         if(actors!=null)for(int a=0;a<2;a++)for(int i=0;i<actors[a].Length;i++)if(actors[a][i]!=null)actors[a][i].SetPropertyBlock(original[a][i]);
     }
 }

@@ -59,7 +59,7 @@ public sealed class BadShiftClayArms : MonoBehaviour
         if(life!=null&&life.Duel)
         {
             bool dead=Employee?life.EnemyDead:life.PlayerDead;
-            if(dead)PoseFalling();else if(life.Battle.Celebrating(Employee))PoseCelebration();else PoseWeapon(remaining);
+            if(dead)PoseFalling();else if(life.Battle.Celebrating(Employee))PoseCelebration();else if(Employee&&life.Battle.PhaseTwoIntro)PoseOvertime();else PoseWeapon(remaining);
         }
         applied=true;
     }
@@ -113,6 +113,19 @@ public sealed class BadShiftClayArms : MonoBehaviour
             joints[1].localRotation*=Quaternion.Euler(-wind*25,0,cut*32);
             joints[2].localRotation*=Quaternion.Euler(0,0,Mathf.Sin(swing*Mathf.PI*2)*24);
         }
+    }
+    private void PoseOvertime()
+    {
+        Transform body=life.Battle.EnemyBody.transform;
+        float t=life.Battle.PhaseTwoIntroProgress,w=Mathf.Sin(t*Mathf.PI),shake=Mathf.Sin(t*38)*w;
+        Vector3 rest=joints[3].position+body.forward*.4f+body.right*.36f-Vector3.up*.3f;
+        Vector3 complaint=joints[3].position+body.forward*.25f+body.right*.12f+Vector3.up*(.32f+shake*.06f);
+        SolveArm(3,Vector3.Lerp(rest,complaint,w),body.right-Vector3.up*.3f);
+        Vector3 blade=(Vector3.up+body.right*shake*.3f+body.forward*.2f).normalized;
+        Transform stick=life.EnemyStick.transform;float length=stick.TransformVector(Vector3.up).magnitude;
+        stick.SetPositionAndRotation(joints[5].position+blade*length*.44f,Quaternion.FromToRotation(Vector3.up,blade));
+        Vector3 fist=joints[0].position-body.right*.26f+body.forward*.2f+Vector3.up*(.3f-shake*.08f);
+        SolveArm(0,Vector3.Lerp(joints[2].position,fist,w),-body.right-Vector3.up*.3f);
     }
     private void PoseCelebration()
     {

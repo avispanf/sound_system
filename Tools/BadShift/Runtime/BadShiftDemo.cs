@@ -210,16 +210,16 @@ public sealed class BadShiftDemo : MonoBehaviour
     private void BattleHUD(BadShiftBattle battle,float w,float h)
     {
         HealthBar(new Rect(44,120,340,72),"YOU",battle.PlayerHealth,new Color(.26f,.75f,1));
-        HealthBar(new Rect(w-584,120,540,72),"THE BREADSTICK WARDEN",battle.EnemyHealth,new Color(1,.25f,.29f));
+        HealthBar(new Rect(w-584,120,540,72),battle.SecondPhase?"THE WARDEN · OVERTIME":"THE BREADSTICK WARDEN",battle.EnemyHealth,new Color(1,.25f,.29f));
         if(!battle.Finished)Panel(new Rect(w*.5f-320,h-100,640,64),new Color(.035f,.045f,.075f,.90f));
         GUIStyle center=TextStyle(16,Color.white,true);center.alignment=TextAnchor.MiddleCenter;
         if(!battle.Finished)GUI.Label(new Rect(w*.5f-300,h-90,600,44),battle.Status,center);
-        if(battle.EnemyWindingUp)
+        if(battle.PhaseTwoIntro||battle.EnemyWindingUp)
         {
             GUIStyle warning=TextStyle(15,new Color(1,.83f,.48f),true);warning.alignment=TextAnchor.MiddleRight;
-            GUI.Label(new Rect(w-584,198,540,26),battle.EnemyAttackName+" · Watch the windup",warning);
+            GUI.Label(new Rect(w-584,198,540,26),battle.PhaseTwoIntro?"PHASE 2 · UNPAID OVERTIME!":battle.EnemyAttackName+" · Watch the windup",warning);
             Rect track=new Rect(w-564,228,500,4);Panel(track,new Color(.16f,.18f,.24f,.8f));
-            Panel(new Rect(track.x,track.y,track.width*battle.EnemyWindupProgress,4),new Color(1,.72f,.3f));
+            Panel(new Rect(track.x,track.y,track.width*(battle.PhaseTwoIntro?battle.PhaseTwoIntroProgress:battle.EnemyWindupProgress),4),new Color(1,.72f,.3f));
         }
         if(battle.ComboVisible)
         {

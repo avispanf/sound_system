@@ -94,6 +94,12 @@ public sealed class BadShiftCafeReactions : MonoBehaviour
             float facing=towardCamera.sqrMagnitude>.01f?Mathf.DeltaAngle(rig.parent.eulerAngles.y,Quaternion.LookRotation(towardCamera).eulerAngles.y):0;
             twist=(facing+Mathf.Sin(t*7)*14)*w;pitch=bow*28*w;headLag=-jig*9*w;
         }
+        else if(enemy&&battle!=null&&battle.PhaseTwoIntro)
+        {
+            float t=battle.PhaseTwoIntroProgress,w=Mathf.Sin(t*Mathf.PI),shake=Mathf.Sin(t*38)*w;
+            tilt=shake*9;twist=shake*18;pitch=-w*10;stretch=1-w*.10f+shake*.035f;
+            headLag=-shake*24;lift=Mathf.Abs(Mathf.Sin(t*18))*.035f*w;
+        }
         else
         {
             float swing=Mathf.Clamp01(((enemy?Life.EnemySwingUntil:Life.PlayerSwingUntil)-Time.time)/.35f);

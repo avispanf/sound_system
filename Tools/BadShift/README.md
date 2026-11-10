@@ -50,8 +50,8 @@ changed demo scene; don't reapply its old installation plan.
 
 ## Verification and boundaries
 
-262 PlayMode tests pass in Unity 6000.3.21f1, including seventy-five demo tests: five inherited gameplay/mix tests and
-seventy BAD SHIFT checks (real clip selection, source/filter switching, listener
+267 PlayMode tests pass in Unity 6000.3.21f1, including eighty demo tests: five inherited gameplay/mix tests and
+seventy-five BAD SHIFT checks (real clip selection, source/filter switching, listener
 measurement, actual music/VO animation timing, collision, live character reactions and walkable routes). Collection tests move the character
 programmatically; they are not proof of complete human navigation/listening QA.
 
@@ -127,3 +127,6 @@ The breadstick combo adds three contact-driven LMB strikes: BONK, BACK-BONK and 
 
 
 The rival now alternates DOUBLE DIP (two separately telegraphed sideways swings), SOUP HAMMER (a slow overhead chop) and BAGUETTE LUNGE (a committed straight thrust). Read the pose and floor direction cue, walk sideways or hold RMB. A successful block stops the remaining combo; the longer recovery after heavy attacks gives time to counter.
+
+
+At 50 HP the rival enters OVERTIME with a short elastic tantrum, amber/violet lighting and two new combinations: TRIPLE SERVING and RUSH ORDER. Each strike keeps its own readable windup and direction cue. Frontal blocks cancel the remaining series; the transition remains vulnerable. See BATTLE-ARENA.md for timings, reset behavior and verification.

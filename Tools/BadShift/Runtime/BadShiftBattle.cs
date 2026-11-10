@@ -39,24 +39,37 @@ public sealed class BadShiftBattle : MonoBehaviour
     public float BlockFeedback=>Mathf.Clamp01((EnemyRecoilUntil-Time.time)/.55f);
     public string StrikeName=>PlayerStrikeStep==3?"SOUP SMASH":PlayerStrikeStep==2?"BACK-BONK":"BONK";
     public bool ComboVisible=>Phase==BadShiftBattlePhase.Fighting&&(ComboHits>0||Time.time<PlayerSwingUntil);
+    public bool SecondPhase { get; private set; }
+    public bool PhaseTwoIntro=>Phase==BadShiftBattlePhase.Fighting&&SecondPhase&&Time.time<phaseTwoIntroUntil;
+    public float PhaseTwoIntroProgress=>PhaseTwoIntro?Mathf.Clamp01((Time.time-phaseTwoStarted)/1.35f):0;
+    public int EnemyComboLength=>enemyPattern==null?0:enemyPattern.Length;
+    public float EnemyAdvanceSpeed=>EnemyComboStep>1?(EnemyAttack==BadShiftEnemyAttack.Overhead?4.2f:3.3f):EnemyAttack==BadShiftEnemyAttack.Thrust?1.8f:0;
+    public float EnemyTelegraphReach=>EnemyAttack==BadShiftEnemyAttack.Thrust?2.45f:2.15f+EnemyAdvanceSpeed*EnemyAdvanceSpeed/(2*PushBrake);
     public bool EnemyWindingUp=>enemyHitAt>0;
     public BadShiftEnemyAttack EnemyAttack { get; private set; }
     public int EnemyComboStep { get; private set; }
     public Vector3 EnemyAim=>enemyAim;
     public float EnemyWindupProgress=>EnemyWindingUp?Mathf.Clamp01((Time.time-enemyWindupStarted)/enemyWindupDuration):0;
     public bool EnemyRecovering=>Phase==BadShiftBattlePhase.Fighting&&!EnemyWindingUp&&Time.time>=EnemySwingUntil&&Time.time<enemyRecoveryUntil;
-    public string EnemyAttackName=>EnemyAttack==BadShiftEnemyAttack.Overhead?"SOUP HAMMER":EnemyAttack==BadShiftEnemyAttack.Thrust?"BAGUETTE LUNGE":EnemyAttack==BadShiftEnemyAttack.Sweep||EnemyAttack==BadShiftEnemyAttack.Backhand?"DOUBLE DIP · "+EnemyComboStep+" / 2":"";
+    public string EnemyAttackName=>SecondPhase&&EnemyAttack!=BadShiftEnemyAttack.None?(enemyPattern==OvertimeTriple?"TRIPLE SERVING":"RUSH ORDER")+" · "+EnemyComboStep+" / "+EnemyComboLength:EnemyAttack==BadShiftEnemyAttack.Overhead?"SOUP HAMMER":EnemyAttack==BadShiftEnemyAttack.Thrust?"BAGUETTE LUNGE":EnemyAttack==BadShiftEnemyAttack.Sweep||EnemyAttack==BadShiftEnemyAttack.Backhand?"DOUBLE DIP · "+EnemyComboStep+" / 2":"";
     public float EnemySpeed { get; private set; }
     public bool CanInvite=>!Active&&!Life.Demo.Game.Tour.Running&&Life.Nearest()!=null&&Life.Nearest().Kind==BadShiftUseKind.Spar;
     public string EnemyTaunt=>!Finished&&Time.time<tauntUntil?taunt:"";
-    public string Status=>Phase==BadShiftBattlePhase.Intro?"THE BREADSTICK WARDEN · Get ready":Falling?"THE FINAL BONK":Phase==BadShiftBattlePhase.Victory?"VICTORY · The lunch break is yours":Phase==BadShiftBattlePhase.Defeat?"DEFEAT · The shift got you":BlockFeedback>0?"CLACK! · Release RMB and counter with LMB":IsBlocking?"BLOCKING · Release RMB to attack":EnemyWindingUp?EnemyAttackName+" · RMB block or step aside":EnemyRecovering?"Catch your breath? Not yet! · LMB to counter":"LMB attack · Hold RMB block · WASD move · MMB orbit";
+    public string Status=>Phase==BadShiftBattlePhase.Intro?"THE BREADSTICK WARDEN · Get ready":Falling?"THE FINAL BONK":Phase==BadShiftBattlePhase.Victory?"VICTORY · The lunch break is yours":Phase==BadShiftBattlePhase.Defeat?"DEFEAT · The shift got you":PhaseTwoIntro?"OVERTIME! · The tantrum is no shield":BlockFeedback>0?"CLACK! · Release RMB and counter with LMB":IsBlocking?"BLOCKING · Release RMB to attack":EnemyWindingUp?EnemyAttackName+" · RMB block or step aside":EnemyRecovering?"Catch your breath? Not yet! · LMB to counter":"LMB attack · Hold RMB block · WASD move · MMB orbit";
+    private const float PushBrake=12;
     private CharacterController player;
     private Vector3 playerSpawn,enemySpawn,enemyPush,enemyAim,enemyMotion;
     private Quaternion playerRotation,enemyRotation;
-    private float phaseUntil,nextAttack,nextEnemy,enemyHitAt,fallStarted,nextTaunt,tauntUntil,comboUntil,enemyWindupStarted,enemyWindupDuration,enemyRecoveryUntil;
+    private float phaseUntil,nextAttack,nextEnemy,enemyHitAt,fallStarted,nextTaunt,tauntUntil,comboUntil,enemyWindupStarted,enemyWindupDuration,enemyRecoveryUntil,phaseTwoStarted,phaseTwoIntroUntil;
     private bool playerConnected,enemyConnected;
     private string taunt;
-    private int tauntIndex,enemyPatternIndex;
+    private int tauntIndex,enemyPatternIndex,enemyStrikeIndex;
+    private BadShiftEnemyAttack[] enemyPattern;
+    private static readonly BadShiftEnemyAttack[] DoubleDip={BadShiftEnemyAttack.Sweep,BadShiftEnemyAttack.Backhand};
+    private static readonly BadShiftEnemyAttack[] SoupHammer={BadShiftEnemyAttack.Overhead};
+    private static readonly BadShiftEnemyAttack[] BaguetteLunge={BadShiftEnemyAttack.Thrust};
+    private static readonly BadShiftEnemyAttack[] OvertimeTriple={BadShiftEnemyAttack.Sweep,BadShiftEnemyAttack.Backhand,BadShiftEnemyAttack.Overhead};
+    private static readonly BadShiftEnemyAttack[] RushOrder={BadShiftEnemyAttack.Thrust,BadShiftEnemyAttack.Overhead};
     private SoundHandle resultTheme;
     private static readonly string[] Taunts={"Mr Broccoli said: defend the lunch break!","Prepare to get bonked!","Your bones look under-seasoned.","I trained in the cutlery drawer.","This is a five-star breadstick!","No refunds. Only ribs."};
     private void Awake()
@@ -69,7 +82,7 @@ public sealed class BadShiftBattle : MonoBehaviour
     {
         if(!CanInvite||AudioListener.pause||AudioSystem.VoiceOver.IsSpeaking)return;
         resultTheme.Stop();Life.Demo.Game.Tour.Stop();Phase=BadShiftBattlePhase.Intro;phaseUntil=Time.time+1.2f;
-        PlayerHealth=EnemyHealth=100;CancelEnemyAttack();enemyPatternIndex=0;enemyPush=Vector3.zero;IsBlocking=false;
+        PlayerHealth=EnemyHealth=100;ResetOvertime();CancelEnemyAttack();enemyPatternIndex=0;enemyPush=Vector3.zero;IsBlocking=false;
         Life.PlayerStick.SetActive(true);Life.EnemyStick.SetActive(true);Say(Taunts[tauntIndex++%Taunts.Length]);nextTaunt=Time.time+4;
         Life.Demo.Game.RequestMusic(true);Play(ChallengeSound,transform.position);
     }
@@ -136,38 +149,48 @@ public sealed class BadShiftBattle : MonoBehaviour
             enemyPush=away*(PlayerStrikeStep==3?4.6f:3.5f);ComboHits=PlayerStrikeStep;comboUntil=Time.time+1.05f;
             CancelEnemyAttack();nextEnemy=Mathf.Max(nextEnemy,Time.time+.55f);
             Say(PlayerStrikeStep==3?"I am not a soup ingredient!":PlayerStrikeStep==2?"That was my OTHER favourite rib!":"Ouch! My favourite rib!");
+            if(!SecondPhase&&EnemyHealth>0&&EnemyHealth<=50)EnterOvertime();
         }
         else{ClearCombo();PlayerHealth=Mathf.Max(0,PlayerHealth-20);PlayerHurtUntil=Time.time+.5f;PlayerFlashUntil=Time.time+.22f;Life.Demo.Game.AddImpulse(away*3.5f);}
         Play(HitSound,enemy?EnemyBody.transform.position:transform.position);
         if(PlayerHealth==0||EnemyHealth==0)
         {
             Phase=EnemyHealth==0?BadShiftBattlePhase.FallingVictory:BadShiftBattlePhase.FallingDefeat;fallStarted=Time.time;phaseUntil=Time.time+1.15f;
-            CancelEnemyAttack();PlayerSwingUntil=0;IsBlocking=false;ClearCombo();EnemyRecoilUntil=0;
+            CancelEnemyAttack();phaseTwoIntroUntil=0;PlayerSwingUntil=0;IsBlocking=false;ClearCombo();EnemyRecoilUntil=0;
             Say(EnemyHealth==0?"Fine. I needed a lie-down.":"Mr Broccoli will hear about this.");
         }
     }
+    private void ResetOvertime(){SecondPhase=false;phaseTwoStarted=phaseTwoIntroUntil=0;}
+    private void EnterOvertime()
+    {
+        SecondPhase=true;phaseTwoStarted=Time.time;phaseTwoIntroUntil=Time.time+1.35f;
+        CancelEnemyAttack();enemyPatternIndex=0;nextEnemy=phaseTwoIntroUntil+.2f;nextTaunt=phaseTwoIntroUntil+3;
+        Say("Unpaid overtime?! Now I am REALLY cross-boned!");Play(ChallengeSound,EnemyBody.transform.position);
+    }
     private void CancelEnemyAttack()
     {
-        enemyHitAt=enemyRecoveryUntil=EnemySwingUntil=0;EnemyComboStep=0;EnemyAttack=BadShiftEnemyAttack.None;
+        enemyHitAt=enemyRecoveryUntil=EnemySwingUntil=0;EnemyComboStep=0;EnemyAttack=BadShiftEnemyAttack.None;enemyPattern=null;enemyStrikeIndex=0;
     }
-    private void PrepareEnemyAttack(BadShiftEnemyAttack attack,int step,bool aim)
+    private void PrepareEnemyAttack(bool aim)
     {
-        EnemyAttack=attack;EnemyComboStep=step;
+        var attack=enemyPattern[enemyStrikeIndex];
+        EnemyAttack=attack;EnemyComboStep=enemyPattern.Length>1?enemyStrikeIndex+1:0;
         if(aim)
         {
             enemyAim=Vector3.ProjectOnPlane(transform.position-EnemyBody.transform.position,Vector3.up).normalized;
             if(enemyAim.sqrMagnitude>.01f)EnemyBody.transform.rotation=Quaternion.LookRotation(enemyAim);
         }
-        enemyWindupDuration=attack==BadShiftEnemyAttack.Overhead?.95f:attack==BadShiftEnemyAttack.Thrust?.8f:attack==BadShiftEnemyAttack.Backhand?.58f:.7f;
+        enemyWindupDuration=attack==BadShiftEnemyAttack.Overhead?(SecondPhase?1.05f:.95f):attack==BadShiftEnemyAttack.Thrust?.8f:attack==BadShiftEnemyAttack.Backhand?.58f:.7f;
         enemyWindupStarted=Time.time;enemyHitAt=Time.time+enemyWindupDuration;
-        Say(attack==BadShiftEnemyAttack.Overhead?"Time to tenderise the employee!":attack==BadShiftEnemyAttack.Thrust?"Express baguette delivery!":step==2?"And a second helping!":"One bonk. Two servings!");
+        Say(SecondPhase?(attack==BadShiftEnemyAttack.Overhead?"Chef insists on a dramatic finish!":attack==BadShiftEnemyAttack.Thrust?"One express order of BONK!":EnemyComboStep==2?"Second course. Still no tip!":"Three courses. Zero breaks!"):attack==BadShiftEnemyAttack.Overhead?"Time to tenderise the employee!":attack==BadShiftEnemyAttack.Thrust?"Express baguette delivery!":EnemyComboStep==2?"And a second helping!":"One bonk. Two servings!");
     }
     private void ReleaseEnemyAttack()
     {
         enemyHitAt=0;EnemySwingUntil=Time.time+.35f;enemyConnected=false;
-        enemyRecoveryUntil=EnemySwingUntil+(EnemyComboStep==1?.24f:EnemyAttack==BadShiftEnemyAttack.Overhead?1.05f:.85f);
+        bool follow=enemyStrikeIndex+1<EnemyComboLength;
+        enemyRecoveryUntil=EnemySwingUntil+(follow?(SecondPhase&&EnemyAttack!=BadShiftEnemyAttack.Sweep?.32f:.24f):EnemyAttack==BadShiftEnemyAttack.Overhead?(SecondPhase?1.2f:1.05f):.85f);
         nextEnemy=enemyRecoveryUntil;
-        if(EnemyAttack==BadShiftEnemyAttack.Thrust||EnemyAttack==BadShiftEnemyAttack.Backhand)enemyPush=enemyAim*(EnemyAttack==BadShiftEnemyAttack.Backhand?3.3f:1.8f);
+        if(EnemyAdvanceSpeed>0)enemyPush=enemyAim*EnemyAdvanceSpeed;
         Play(AttackSound,EnemyBody.transform.position);
     }
     private void Say(string line){taunt=line;tauntUntil=Time.time+2.6f;}
@@ -193,7 +216,7 @@ public sealed class BadShiftBattle : MonoBehaviour
         if(Time.time>comboUntil||(PlayerSwingUntil>0&&Time.time>=PlayerSwingUntil&&!playerConnected))ClearCombo();
         if(AttackQueued&&Time.time>=nextAttack&&!IsBlocking)StartAttack();
         if(Time.time>=PlayerSwingUntil+.18f&&ComboHits==0)PlayerStrikeStep=0;
-        if(Time.time<EnemyRecoilUntil){EnemySpeed=0;return;}
+        if(PhaseTwoIntro||Time.time<EnemyRecoilUntil){EnemySpeed=0;return;}
         if(Time.time>=nextTaunt){Say(Taunts[tauntIndex++%Taunts.Length]);nextTaunt=Time.time+4.2f;}
         Vector3 toward=Vector3.ProjectOnPlane(transform.position-EnemyBody.transform.position,Vector3.up);
         if(enemyHitAt>0)
@@ -203,25 +226,26 @@ public sealed class BadShiftBattle : MonoBehaviour
             return;
         }
         if(Time.time<EnemySwingUntil||Time.time<enemyRecoveryUntil){EnemySpeed=0;return;}
-        if(EnemyComboStep==1){PrepareEnemyAttack(BadShiftEnemyAttack.Backhand,2,false);return;}
+        if(enemyPattern!=null&&enemyStrikeIndex+1<enemyPattern.Length){enemyStrikeIndex++;PrepareEnemyAttack(false);return;}
         if(EnemyAttack!=BadShiftEnemyAttack.None)CancelEnemyAttack();
         if(toward.sqrMagnitude>.01f)EnemyBody.transform.rotation=Quaternion.Slerp(EnemyBody.transform.rotation,Quaternion.LookRotation(toward),1-Mathf.Exp(-7*dt));
         EnemySpeed=0;
         if(toward.magnitude>1.5f&&Time.time>=EnemyHurtUntil&&FlatDistance(transform.position,ArenaCenter)<4){enemyMotion=toward.normalized*1.9f;EnemySpeed=1.9f;}
         if(toward.magnitude<1.6f&&Time.time>=nextEnemy)
         {
-            int pattern=enemyPatternIndex++%3;
-            PrepareEnemyAttack(pattern==0?BadShiftEnemyAttack.Sweep:pattern==1?BadShiftEnemyAttack.Overhead:BadShiftEnemyAttack.Thrust,pattern==0?1:0,true);
+            int pattern=enemyPatternIndex++%(SecondPhase?2:3);
+            enemyPattern=SecondPhase?(pattern==0?OvertimeTriple:RushOrder):(pattern==0?DoubleDip:pattern==1?SoupHammer:BaguetteLunge);
+            enemyStrikeIndex=0;PrepareEnemyAttack(true);
         }
     }
     private void LateUpdate()
     {
         if(!Active||AudioListener.pause||AudioSystem.VoiceOver.IsSpeaking)return;
-        EnemyBody.Move((enemyMotion+enemyPush+Vector3.down*2)*Time.deltaTime);enemyPush=Vector3.MoveTowards(enemyPush,Vector3.zero,12*Time.deltaTime);
+        EnemyBody.Move((enemyMotion+enemyPush+Vector3.down*2)*Time.deltaTime);enemyPush=Vector3.MoveTowards(enemyPush,Vector3.zero,PushBrake*Time.deltaTime);
     }
     public void ReturnToCafe()
     {
-        resultTheme.Stop();OutcomeTime=0;ClearCombo();PlayerStrikeStep=0;EnemyRecoilUntil=0;Phase=BadShiftBattlePhase.Idle;PlayerHealth=EnemyHealth=100;CancelEnemyAttack();enemyPatternIndex=0;IsBlocking=false;tauntUntil=0;
+        resultTheme.Stop();OutcomeTime=0;ClearCombo();PlayerStrikeStep=0;EnemyRecoilUntil=0;Phase=BadShiftBattlePhase.Idle;PlayerHealth=EnemyHealth=100;ResetOvertime();CancelEnemyAttack();enemyPatternIndex=0;IsBlocking=false;tauntUntil=0;
         PlayerSwingUntil=EnemySwingUntil=PlayerHurtUntil=EnemyHurtUntil=PlayerFlashUntil=EnemyFlashUntil=PlayerBlockUntil=0;
         enemyPush=Vector3.zero;EnemySpeed=0;
         EnemyBody.enabled=false;EnemyBody.transform.SetPositionAndRotation(enemySpawn,enemyRotation);EnemyBody.enabled=true;

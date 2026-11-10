@@ -33,7 +33,7 @@ Use the isolated prepared project with .bad-shift-demo. After CafeLifePass.Run, 
 
 ## Verification
 
-Unity 6000.3.21f1: 262/262 PlayMode tests passed, including 32 battle/cafe/melee/polish/outcome/combo/enemy-pattern cases. Coverage includes the explicit challenge, pointer attack versus block, protected HUD clicks, visible-weapon contact, cooldown, knockback, grounded-state preservation, dodge timing, wall obstruction, pause, persistent outcomes, delayed fall-to-result transition, background music silencing, rematch and normal-lighting restoration. Previous audio, tour, door, locomotion and reset tests also passed.
+Unity 6000.3.21f1: 267/267 PlayMode tests passed, including 37 battle/cafe/melee/polish/outcome/combo/enemy-pattern/overtime cases. Coverage includes the explicit challenge, pointer attack versus block, protected HUD clicks, visible-weapon contact, cooldown, knockback, grounded-state preservation, dodge timing, wall obstruction, pause, persistent outcomes, delayed fall-to-result transition, background music silencing, rematch and normal-lighting restoration. Previous audio, tour, door, locomotion and reset tests also passed.
 
 Post-pose Unity renders show the stick contacting the opponent and the completed fall. Audio clips are synthesized prototypes; no human listening sign-off or mobile qualification is claimed.
 
@@ -84,3 +84,22 @@ Five additional PlayMode scenarios cover all four swing poses and consecutive re
 The base face pose now runs before combat reactions and floor support. Defeated heads stop their idle animation; support bounds include the initially inactive breadstick, so the complete final pose stays above the floor.
 
 Rival repertoire regression: 262/262 PlayMode tests passed on 2026-11-10 with editor audio output muted. All new attack patterns, ordinary walking dodges, blocked combinations, natural consecutive hits and final-pose floor support passed.
+
+## Phase two: unpaid overtime — 2026-11-10
+
+At 50 HP or below, the rival enters OVERTIME once per encounter. A 1.35-second elastic tantrum cancels its current attack: the skeleton shakes its fists and complains into its breadstick. The player can still move, block and damage it. There is no heal, invulnerability window or forced interruption of the player's combo. The existing challenge cue plays once, the arena shifts toward amber and violet, and the HP title announces OVERTIME. A phase banner replaces the attack preparation label during the transition.
+
+The second phase alternates two new combinations:
+
+- TRIPLE SERVING: sideways cut, backhand, then a two-handed overhead finish.
+- RUSH ORDER: straight thrust followed by the overhead finish.
+
+Every strike has a separate windup. Sideways and backhand preparation remain 0.70 and 0.58 seconds; the thrust remains 0.80 seconds, and the phase-two overhead gives 1.05 seconds of warning. Gaps between strikes are 0.24 seconds after a sideways cut and 0.32 seconds otherwise. An overhead finish leaves 1.20 seconds of recovery. Damage stays at 20 per real contact. Follow-up steps stay committed to the direction chosen at the beginning of the combination; the floor cue includes their extra reach. Keep moving sideways through the successive warnings or hold a frontal guard. A successful block at any step cancels the remaining sequence.
+
+The transition stops on pause, cannot trigger twice, and clears on death, rematch, exit or scene reset. The second-phase repertoire also uses the existing physical weapon sweep, occlusion checks, collision-aware motion, sound routing and result sequence. A player who keeps landing attacks can interrupt or finish the opponent during the transition.
+
+Five additional PlayMode scenarios cover threshold/one-shot cue/pause, five consecutive natural contacts across both combinations, blocking every possible position in either series, ordinary walking dodges through all five telegraphs, and vulnerability/death/reset cleanup. Six close-ups record the tantrum and each of the five phase-two windups as overtime-*.png.
+
+Overtime regression: 267/267 PlayMode tests passed on 2026-11-10 with editor audio output muted. The five new scenarios and all previous battle, cafe, tour, reset and audio checks passed.
+
+The rebuilt macOS player was checked with native automated input: two LMB hits triggered the 50 HP transition, the phase banner and TRIPLE SERVING windup were visible, and RMB produced CLACK feedback with the player still at 100 HP. R reset restored the cafe and kept Sound off. The first UI attachment opened an unflagged duplicate showing Sound on; it was closed before gameplay QA. All subsequent gameplay checks used the explicitly muted process.
