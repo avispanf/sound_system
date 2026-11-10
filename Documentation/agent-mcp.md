@@ -1,6 +1,6 @@
-# Local agent integration — preview.17
+# Local agent integration — preview.18
 
-AudioMW now has an optional local stdio MCP adapter for Claude Code and Codex. It proposes local audio imports and SoundEvent changes. The Unity Agent Review window is the only approval path exposed by this integration.
+AudioMW now has an optional local stdio MCP adapter for Claude Code and Codex. It proposes local audio imports, SoundEvent changes and adaptive music arrangements. See [agent-music-mcp.md](agent-music-mcp.md) for stems, musical states and mono/stereo behavior. The Unity Agent Review window is the only approval path exposed by this integration.
 
 ## Install and connect
 
@@ -31,7 +31,7 @@ Example prompt:
 
 > Inspect BAD SHIFT with AudioMW. Use these two attached WAV files as variations for the existing MicrowaveRandom event triggered by E. Preserve its routing, volume, selection and scene references. Prepare the integration plan and show it in Unity. Wait for me to approve there, then read the result. Do not play audio during automated verification.
 
-Tools: `audiomw_inspect`, `audiomw_propose`, `audiomw_show_review`, `audiomw_plan_status`. There is no approval, arbitrary C#, shell, code-generation or remote-play tool. For an equivalent deterministic SDK client:
+Tools: `audiomw_inspect`, `audiomw_propose`, `audiomw_propose_music`, `audiomw_show_review`, `audiomw_plan_status`. There is no approval, arbitrary C#, shell, code-generation or remote-play tool. For an equivalent deterministic SDK client:
 
 ```sh
 node client.mjs /absolute/UnityProject inspect
@@ -65,7 +65,7 @@ Generate a new 32-character lowercase hex request ID for a new proposal. Reuse t
 - New events require an explicit mixer group, use RandomNoRepeat, 3D logarithmic attenuation, 0 dB event gain and no loop. Their gameplay hooks remain unbound. The review states this prominently.
 - Destination must be an existing folder under Assets. Each plan creates its own import subfolder; existing files are never overwritten. Source hashes, target GUID/content, mixer dependency state, project/session and build target are rechecked at Apply. Unsaved target edits block application.
 - Staged copies are hashed before import. All clips must decode before events change. A caught apply failure restores touched existing events and removes the created import folder. Receipts with the reviewed plan live under Library/AudioMWAgent/receipts; an interrupted editor/process can leave a pending receipt or partial import that needs inspection. This is not a cross-process crash-atomic asset transaction or a Git commit.
-- Normal operations do not alter mixer gains, platform settings, scene/code hooks, MusicTracks or VoiceLines. The existing Project Setup and Mix Setup windows handle those separate reviewed workflows. Continuous master LUFS, automatic platform presets and Unreal remain future work.
+- Normal operations do not alter mixer gains, platform settings, scene/code hooks or VoiceLines. MusicTracks and state profiles use the separate reviewed music proposal. The existing Project Setup and Mix Setup windows handle those separate reviewed workflows. Continuous master LUFS, automatic platform presets and Unreal remain future work.
 
 ## Local trust boundary
 

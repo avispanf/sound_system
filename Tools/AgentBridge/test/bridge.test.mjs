@@ -33,13 +33,13 @@ async function service(f, callback) {
   }, 15);
   return async () => { clearInterval(timer); while (busy) await new Promise(r => setTimeout(r, 10)); };
 }
-test('real stdio SDK negotiation exposes only four review tools and no approval', async () => {
+test('real stdio SDK negotiation exposes only five review tools and no approval', async () => {
   const f = await fixture(); const stop = await service(f, request => ({ Ok: true, State: 'ready', Inventory: { Project: request.Project, Session: request.Session } }));
   const client = new Client({ name: 'audiomw-test', version: '1' });
   try {
     await client.connect(new StdioClientTransport({ command: process.execPath, args: [path.resolve('server.mjs'), '--project', f.project] }));
     const tools = (await client.listTools()).tools;
-    assert.deepEqual(tools.map(t => t.name).sort(), ['audiomw_inspect', 'audiomw_plan_status', 'audiomw_propose', 'audiomw_show_review']);
+    assert.deepEqual(tools.map(t => t.name).sort(), ['audiomw_inspect', 'audiomw_plan_status', 'audiomw_propose', 'audiomw_propose_music', 'audiomw_show_review']);
     const result = await client.callTool({ name: 'audiomw_inspect', arguments: {} });
     assert.equal(result.structuredContent.Inventory.Project, f.value.Project);
     const invalid = await client.callTool({ name: 'audiomw_propose', arguments: { events: [] } }); assert.equal(invalid.isError, true);
@@ -88,5 +88,17 @@ test('different clients cannot reuse one request ID for different drafts', async
     await a.request('propose', { Draft: { Intent: 'first' } }, id);
     await assert.rejects(b.request('propose', { Draft: { Intent: 'different' } }, id), /different content/);
     assert.equal((await b.request('propose', { Draft: { Intent: 'first' } }, id)).State, 'pending');
+  } finally { await stop(); await f.dispose(); }
+});
+
+test('music requests preserve explicit stems, channel choices and state transitions without approval', async () => {
+  const f = await fixture(); const bridge = new UnityBridge(f.project); let captured;
+  const stop = await service(f, request => { captured = request; return { Ok: true, State: 'pending' }; });
+  try {
+    await bridge.inspect(); const file = path.join(f.project, 'stem.wav'); await writeFile(file, 'fixture');
+    const input = { requestId: 'e'.repeat(32), intent: 'Adaptive music', tracks: [{ name: 'Explore', purpose: 'Cafe', tempo: 120, body: file, stems: [{ name: 'Pulse', file, parameterGuid: 'a'.repeat(32), lowWeight: 0, highWeight: 1, forceToMono: true }] }], profile: { name: 'Cafe', states: [{ name: 'Explore', track: 'Explore' }], transitions: [] } };
+    assert.equal((await bridge.proposeMusic(input)).State, 'pending');
+    assert.equal(captured.Operation, 'propose_music'); assert.equal(captured.MusicDraft.Tracks[0].Stems[0].ForceToMono, true); assert.equal(captured.MusicDraft.Tracks[0].Stems[0].LowWeight, 0); assert.equal(captured.MusicDraft.Profile.Quantization, 'Bar');
+    input.tracks[0].body = 'https://host/loop.wav'; await assert.rejects(bridge.proposeMusic(input), /absolute local/);
   } finally { await stop(); await f.dispose(); }
 });

@@ -31,6 +31,7 @@ namespace AudioMW.Editor
         public string Sha256;
         public long Bytes;
         public string Destination;
+        public bool ForceToMono;
     }
     [Serializable] public sealed class AudioAgentChange
     {
@@ -56,7 +57,10 @@ namespace AudioMW.Editor
         public string Folder;
         public string Unity;
         public string BuildTarget;
-        public AudioAgentChange[] Changes;
+        public AudioAgentChange[] Changes = new AudioAgentChange[0];
+        public AudioAgentMusicChange[] Music = new AudioAgentMusicChange[0];
+        public bool HasProfile;
+        public AudioAgentProfileChange Profile;
         public string[] Limitations;
     }
     public sealed class AudioAgentPlan
@@ -128,6 +132,8 @@ namespace AudioMW.Editor
                 if (review.Unity != Application.unityVersion || review.BuildTarget != EditorUserBuildSettings.activeBuildTarget.ToString()) throw new InvalidOperationException("Unity or build target changed. Propose again.");
                 AssetPath(review.Folder);
                 if (!AssetDatabase.IsValidFolder(Path.GetDirectoryName(review.Folder).Replace('\\', '/')) || Directory.Exists(review.Folder) || File.Exists(review.Folder) || File.Exists(review.Folder + ".meta")) throw new InvalidOperationException("The destination changed. Propose again.");
+                AudioAgentMusicPlanner.Check(review);
+                foreach (var file in Files(review)) if (InspectFile(file.Source).Sha256 != file.Sha256) throw new InvalidOperationException("An attachment changed. Propose again: " + file.Source);
                 foreach (var change in review.Changes)
                 {
                     if (!string.IsNullOrEmpty(change.ReplaceEventGuid))
@@ -147,13 +153,13 @@ namespace AudioMW.Editor
         {
             if (plan != null && plan.State == "applied") return;
             string problem = Check(plan, session); if (problem.Length != 0) throw new InvalidOperationException(problem);
-            var review = plan.Read(); string stage = Path.Combine("Library", "AudioMWAgentStage", review.Id); var touched = new List<AudioAgentChange>(); bool moved = false;
+            var review = plan.Read(); string stage = Path.Combine("Library", "AudioMWAgentStage", review.Id); var touched = new List<AudioAgentChange>(); var musicTouched = new List<AudioAgentTarget>(); bool moved = false;
             AudioAgentPlanner.NoLinks(Path.GetFullPath(stage));
             if (Directory.Exists(stage)) throw new InvalidOperationException("Staging exists from an interrupted operation. Inspect it before retrying.");
             try
             {
                 Directory.CreateDirectory(stage);
-                foreach (var change in review.Changes) foreach (var file in change.Files)
+                foreach (var file in Files(review))
                 {
                     string copy = Path.Combine(stage, Path.GetFileName(file.Destination)); File.Copy(file.Source, copy);
                     if (FileHash(copy) != file.Sha256) throw new InvalidOperationException("Attachment changed during copy.");
@@ -161,7 +167,13 @@ namespace AudioMW.Editor
                 problem = Check(plan, session); if (problem.Length != 0) throw new InvalidOperationException(problem);
                 Directory.Move(stage, review.Folder); moved = true;
                 AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
-                foreach (var change in review.Changes) foreach (var file in change.Files)
+                foreach (var file in Files(review))
+                {
+                    var importer = AssetImporter.GetAtPath(file.Destination) as AudioImporter;
+                    if (importer == null) throw new InvalidOperationException("Audio importer unavailable: " + file.Destination);
+                    if (importer.forceToMono != file.ForceToMono) { importer.forceToMono = file.ForceToMono; importer.SaveAndReimport(); }
+                }
+                foreach (var file in Files(review))
                 {
                     var clip = AssetDatabase.LoadAssetAtPath<AudioClip>(file.Destination);
                     if (clip == null || clip.samples <= 0 || clip.channels <= 0) throw new InvalidOperationException("Unity could not decode the audio: " + file.Source);
@@ -181,10 +193,13 @@ namespace AudioMW.Editor
                     else EditorUtility.SetDirty(sound);
                     AssetDatabase.SaveAssetIfDirty(sound);
                 }
-                plan.State = "applied"; plan.Result = "Imported " + review.Changes.Sum(change => change.Files.Length) + " clips and updated " + review.Changes.Length + " events. Verify their intended gameplay triggers; import success is not listening approval.";
+                AudioAgentMusicPlanner.Check(review);
+                AudioAgentMusicPlanner.Apply(review, musicTouched);
+                plan.State = "applied"; plan.Result = "Imported " + Files(review).Count() + " clips; updated " + review.Changes.Length + " events and " + review.Music.Length + " music tracks" + (review.HasProfile ? " with a state profile" : "") + ". Verify their intended gameplay triggers; import success is not listening approval.";
             }
             catch (Exception error)
             {
+                AudioAgentMusicPlanner.Rollback(musicTouched);
                 foreach (var change in touched.Where(item => !string.IsNullOrEmpty(item.ReplaceEventGuid)))
                 {
                     var sound = AssetDatabase.LoadAssetAtPath<SoundEvent>(change.EventPath); EditorJsonUtility.FromJsonOverwrite(change.BeforeJson, sound); EditorUtility.SetDirty(sound); AssetDatabase.SaveAssetIfDirty(sound);
@@ -194,6 +209,7 @@ namespace AudioMW.Editor
             }
             finally { if (Directory.Exists(stage)) Directory.Delete(stage, true); }
         }
+        internal static IEnumerable<AudioAgentFile> Files(AudioAgentReview review) => review.Changes.SelectMany(change => change.Files).Concat(review.Music.SelectMany(change => change.Files));
         internal static AudioMixerGroup ResolveGroup(string id)
         {
             if (string.IsNullOrEmpty(id)) return null;

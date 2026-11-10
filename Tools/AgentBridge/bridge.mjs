@@ -34,7 +34,7 @@ export class UnityBridge {
     return this.request('inspect', {});
   }
   async request(operation, payload, requestId = randomBytes(16).toString('hex')) {
-    if (!['inspect', 'propose', 'status', 'review'].includes(operation)) throw new Error('Unsupported operation. Approval is only available in Unity.');
+    if (!['inspect', 'propose', 'propose_music', 'status', 'review'].includes(operation)) throw new Error('Unsupported operation. Approval is only available in Unity.');
     if (!this.bound) throw new Error('Call audiomw_inspect first to bind the intended Unity project/session.');
     if (!idPattern.test(requestId)) throw new Error('requestId must contain 32 lowercase hex characters.');
     const current = await this.connection();
@@ -74,6 +74,22 @@ export class UnityBridge {
       } catch (e) { if (e.code !== 'ENOENT') throw e; }
     }
     throw new Error(`Unity timed out. Request ${requestId} may still be queued. Retry with the same requestId for proposals; do not assume assets changed.`);
+  }
+  async proposeMusic(input) {
+    const local = async file => {
+      if (!path.isAbsolute(file)) throw new Error('Supply absolute local attachment paths, not URLs or chat attachment IDs.');
+      return realpath(file);
+    };
+    const tracks = [];
+    for (const track of input.tracks) {
+      const stems = [];
+      for (const stem of track.stems || []) stems.push({ Name: stem.name, File: await local(stem.file), ParameterGuid: stem.parameterGuid || '', LowWeight: stem.lowWeight ?? 1, HighWeight: stem.highWeight ?? 1, FadeSeconds: stem.fadeSeconds ?? .25, ForceToMono: stem.forceToMono ?? false });
+      tracks.push({ Name: track.name, Purpose: track.purpose, ReplaceTrackGuid: track.replaceTrackGuid || '', MixerGroupId: track.mixerGroupId || '', Tempo: track.tempo, BeatsPerBar: track.beatsPerBar ?? 4, Intro: track.intro ? await local(track.intro) : '', Body: track.body ? await local(track.body) : '', ForceToMono: track.forceToMono ?? false, Stems: stems });
+    }
+    const transition = value => ({ Quantization: value.quantization ?? 'Bar', FadeSeconds: value.fadeSeconds ?? .5, Curve: value.curve ?? 'EqualPower' });
+    const p = input.profile;
+    const profile = p ? { Name: p.name, ReplaceProfileGuid: p.replaceProfileGuid || '', States: p.states.map(state => ({ Name: state.name, Track: state.track })), Transitions: (p.transitions || []).map(rule => ({ From: rule.from, To: rule.to, ...transition(rule) })), ...transition(p) } : null;
+    return this.request('propose_music', { MusicDraft: { Destination: input.destination ?? 'Assets', Intent: input.intent, Tracks: tracks, Profile: profile } }, input.requestId);
   }
   async propose(input) {
     const events = [];

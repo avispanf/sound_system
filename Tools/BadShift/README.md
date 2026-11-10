@@ -1,7 +1,7 @@
 # BAD SHIFT — AudioMW demo
 
 A separate visual/gameplay variant of Relay Field, originally based on AudioMW preview.16
-(commit c9cb351), now using preview.17 with the optional local MCP companion. Runtime and original Relay Field project are preserved. The
+(commit c9cb351), now using preview.18 with the optional local MCP companion. Runtime and original Relay Field project are preserved. The
 AudioMWPlayground.cs here is a demo-only integration snapshot: it hides the old HUD
 when BadShiftDemo exists and adds an audition music multiplier.
 
@@ -137,3 +137,5 @@ See FINAL-HANDOFF.md for the final gameplay freeze, sound replacement map, centr
 ## Agent integration
 
 Open Window > AudioMW > Agent Review and enable the local bridge for this editor session. The prepared project includes AgentBridge (run npm ci --ignore-scripts there) and Documentation/agent-mcp.md. Claude Code/Codex can propose local audio imports and existing SoundEvent clip replacements; changes require confirmation in Unity. The fixture helper BadShiftAgentReview.Open opens this window with editor audio muted. See AGENT-MCP-VERIFICATION.json for this separate editor integration pass. Gameplay and original placeholder clips are preserved.
+
+Preview.18 adds `audiomw_propose_music`: reviewed stems, Intensity bindings and Explore/Combat transition rules. See Documentation/agent-music-mcp.md and MUSIC-MCP-VERIFICATION.json. Original demo music is restored after silent acceptance.

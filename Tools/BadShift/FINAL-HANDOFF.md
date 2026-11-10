@@ -24,7 +24,7 @@ Use normal launch to listen. For visual development, launch through LaunchServic
 
 ## Remaining product work
 
-The Unity editor Design 02 and agent/mix audit is in Documentation/agent-and-mix-audit-2026-11-10.md in the source repository. The following preview.17 pass adds the local MCP bridge and confirmed SoundEvent import workflow; see Documentation/agent-mcp.md. Live rendered-master LUFS and the Unreal adapter remain unimplemented. Production audio, human listening and shipping platform qualification remain open.
+The Unity editor Design 02 and agent/mix audit is in Documentation/agent-and-mix-audit-2026-11-10.md in the source repository. The preview.17/18 passes add the local MCP bridge, confirmed SoundEvent imports and adaptive music/stem plans; see Documentation/agent-mcp.md and Documentation/agent-music-mcp.md. Live rendered-master LUFS and the Unreal adapter remain unimplemented. Production audio, human listening and shipping platform qualification remain open.
 
 ## Verification for this handoff
 

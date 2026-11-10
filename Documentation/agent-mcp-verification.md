@@ -24,3 +24,17 @@ Evidence in the development workspace: work/bad-shift/agent-final-edit.xml, agen
 ## Limits
 
 This verifies local files exposed by the chat client, not cloud binary upload/attachment APIs. New events still need gameplay bindings. Music stems, VoiceLine assets, runtime loudness/advice, Unreal and other operating systems were not added or certified. The bridge's approval flow does not sandbox unrelated shell or Unity-evaluation tools running as the same user. Read agent-mcp.md for the exact scope and local trust boundary.
+
+## Adaptive music follow-up — preview.18
+
+The SDK stdio client called `audiomw_propose_music` in the actual BAD SHIFT editor with five test WAV imports, replacements for Explore/Combat and the existing Music_States profile. Plan `868b4dc7ab684821ae21fe22b0bf1af3` was pending with all three original assets byte-identical and no import folder.
+
+The native review showed the previous contents and preserved −14.9 dB gain/MusicDuck route, 120 BPM, 4 beats/bar, per-file mono/source-layout choices, Intensity weights and Bar/0.3s/EqualPower transitions. The native confirmation dialog and subsequent applied state were observed. As with the prior pass, a Cancel automation attempt overlapped a changed native application state; native Cancel is not independently certified.
+
+All five imported WAV bytes matched the plan hashes. A separate PlayMode gameplay test passed 1/1: the existing BAD SHIFT RequestMusic hook selected Explore/Combat, Intensity changed layer weights, quantized transitions completed both ways, and the imported bass source was playing internally while editor audio output stayed muted. It verified a stereo bed, mono pulse, unchanged 0.18 track gain and shared original route. After acceptance, the exact original Explore/Combat/Music_States assets were restored and only the identified temporary imports/test were removed.
+
+The targeted agent suite passed 22/22 before the final constant-weight/intro case was added. The final complete EditMode suite passed 308/308, including 11 new music cases. Mono testing verified stereo → mono → stereo using the native AudioImporter, channel content, unchanged source bytes/GUID/sample count and retained track references. The 7/7 Node protocol/transport tests and 15/15 distribution tests also passed.
+
+The first targeted run exposed Unity JsonUtility's materialization of an empty optional nested profile. Added an explicit review presence flag; the repeated suite passed, including existing SoundEvent plans without music. No runtime music-player workaround was introduced.
+
+The final full PlayMode suite passed 272/272 with original music restored, and the macOS development build succeeded with zero errors. Final package parity and integrity results are in the prepared project's MUSIC-MCP-VERIFICATION.json. Evidence: work/bad-shift/music-agent-pending.json, music-agent-applied.json, music-agent-play.xml, music-agent-edit2.xml and music-release-*.xml/log. Full Claude chat acceptance is still subject to its prior authentication limitation; this pass used the shared official-SDK MCP transport.

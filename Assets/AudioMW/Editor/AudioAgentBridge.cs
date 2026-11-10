@@ -25,6 +25,7 @@ namespace AudioMW.Editor
         public string Operation;
         public string PlanId;
         public AudioAgentDraft Draft;
+        public AudioAgentMusicDraft MusicDraft;
     }
     [Serializable] public sealed class AudioAgentReply
     {
@@ -46,6 +47,9 @@ namespace AudioMW.Editor
         public string Platform;
         public AudioAgentAsset[] Events;
         public AudioAgentAsset[] Groups;
+        public AudioAgentAsset[] Tracks;
+        public AudioAgentAsset[] Profiles;
+        public AudioAgentAsset[] Parameters;
         public AudioAgentAsset[] Setups;
         public bool Truncated;
     }
@@ -134,10 +138,10 @@ namespace AudioMW.Editor
             if (!Enabled || request == null || request.SchemaVersion != 1 || request.Project != AudioProjectPlanner.ProjectIdentity() || request.Session != Session) throw new InvalidOperationException("Wrong project, protocol or editor session. Reconnect and propose again.");
             AudioAgentPlanner.Ready();
             if (request.Operation == "inspect") return new AudioAgentReply { Ok = true, Inventory = Inspect(), State = "ready" };
-            if (request.Operation == "propose")
+            if (request.Operation == "propose" || request.Operation == "propose_music")
             {
                 if (plans.Count >= 64) throw new InvalidOperationException("Review limit reached. Restart the bridge in Unity.");
-                var plan = AudioAgentPlanner.Prepare(request.Draft, Session); plans.Add(plan.Read().Id, plan); Changed?.Invoke(); return Reply(plan);
+                var plan = request.Operation == "propose_music" ? AudioAgentMusicPlanner.Prepare(request.MusicDraft, Session) : AudioAgentPlanner.Prepare(request.Draft, Session); plans.Add(plan.Read().Id, plan); Changed?.Invoke(); return Reply(plan);
             }
             if (request.Operation != "status" && request.Operation != "review") throw new ArgumentException("Unknown operation. Applying or approving through MCP is not supported.");
             if (string.IsNullOrEmpty(request.PlanId) || !plans.TryGetValue(request.PlanId, out var selected)) throw new ArgumentException("Plan unavailable in this editor session. Propose again.");
@@ -177,9 +181,13 @@ namespace AudioMW.Editor
                 Project = AudioProjectPlanner.ProjectIdentity(), ProjectPath = Path.GetDirectoryName(Application.dataPath), Session = Session, Unity = Application.unityVersion, Platform = EditorUserBuildSettings.activeBuildTarget.ToString(), Truncated = ids.Length > 256 || groups.Count > 256,
                 Events = ids.Take(256).Select(guid => { string path = AssetDatabase.GUIDToAssetPath(guid); var sound = AssetDatabase.LoadAssetAtPath<SoundEvent>(path); return new AudioAgentAsset { Name = sound.name, Id = guid, Path = path, Detail = sound.ContainerMode + " / " + sound.Clips.Length + " clips / " + (sound.MixerGroup != null ? sound.MixerGroup.name : "default output") }; }).ToArray(),
                 Groups = groups.Take(256).ToArray(),
+                Tracks = Assets<MusicTrack>("MusicTrack", track => JsonUtility.ToJson(track)),
+                Profiles = Assets<MusicStateProfile>("MusicStateProfile", profile => JsonUtility.ToJson(profile)),
+                Parameters = Assets<SoundParameter>("SoundParameter", parameter => JsonUtility.ToJson(parameter)),
                 Setups = AssetDatabase.FindAssets("t:AudioProjectSetup", new[] { "Assets" }).Take(16).Select(guid => { string path = AssetDatabase.GUIDToAssetPath(guid); var setup = AssetDatabase.LoadAssetAtPath<AudioProjectSetup>(path); return new AudioAgentAsset { Name = setup.name, Id = guid, Path = path, Detail = JsonUtility.ToJson(setup.Brief) }; }).ToArray()
             };
         }
+        private static AudioAgentAsset[] Assets<T>(string type, Func<T, string> detail) where T : UnityEngine.Object => AssetDatabase.FindAssets("t:" + type, new[] { "Assets" }).Take(256).Select(guid => { string path = AssetDatabase.GUIDToAssetPath(guid); var asset = AssetDatabase.LoadAssetAtPath<T>(path); return new AudioAgentAsset { Name = asset.name, Id = guid, Path = path, Detail = detail(asset) }; }).ToArray();
         private static void Write(string path, string json)
         {
             AudioAgentPlanner.NoLinks(path); string temp = path + ".tmp"; AudioAgentPlanner.NoLinks(temp); File.WriteAllText(temp, json);

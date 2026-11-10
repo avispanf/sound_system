@@ -6,7 +6,7 @@ metadata/library analysis and reviewed-profile workflow is implemented; see
 asset routing and VO ducking are implemented in [mix-setup.md](mix-setup.md).
 The local MCP adapter and Unity-approved SoundEvent import flow are now implemented;
 see [agent-mcp.md](agent-mcp.md) and its separate client acceptance results. The
-broader music/hook authoring, live master metering and spectral adviser below remain planned. The existing middleware remains
+reviewed stems and adaptive music plans are described in [agent-music-mcp.md](agent-music-mcp.md). Advanced music/hook authoring, live master metering and spectral adviser below remain planned. The existing middleware remains
 usable without an agent, cloud account or subscription.
 
 See [the 2026-11-10 source and target-profile audit](agent-and-mix-audit-2026-11-10.md)

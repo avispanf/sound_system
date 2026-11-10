@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0-preview.18 — Reviewed adaptive music imports
+
+- Added MCP music plans for synchronized stems, intensity weights and quantized MusicStateProfile transitions, confirmed in Unity.
+- Preserved existing track/profile GUIDs, routes, gains and state names; rejected stale inputs and mismatched musical timing with rollback.
+- Added explicit per-file Force To Mono choices and verified stereo/mono/stereo asset reimport.
+
 ## 0.5.0-preview.17 — Local agent review
 
 - Added an optional stdio MCP companion for local attachment-to-SoundEvent plans, shared by Claude Code and Codex.
