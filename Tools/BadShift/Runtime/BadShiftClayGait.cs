@@ -22,6 +22,9 @@ public sealed class BadShiftClayGait : MonoBehaviour
     private bool[] swinging=new bool[2];
     private bool applied,initialized,wasGrounded;
     private float lean;
+    private readonly float[] recovery=new float[2];
+    private readonly Vector3[] recoveryFrom=new Vector3[2];
+    private readonly bool[] recovering=new bool[2];
     private readonly RaycastHit[] hits=new RaycastHit[32];
     private void Awake()
     {
@@ -56,7 +59,7 @@ public sealed class BadShiftClayGait : MonoBehaviour
     {
         bool hold=AudioListener.pause||AudioSystem.VoiceOver.IsSpeaking;
         float distance=Vector3.ProjectOnPlane(transform.position-lastPosition,Vector3.up).magnitude;lastPosition=transform.position;
-        if(distance>1.5f){initialized=false;Cycle=0;swinging[0]=false;swinging[1]=false;}
+        if(distance>1.5f){initialized=false;Cycle=0;swinging[0]=false;swinging[1]=false;recovering[0]=recovering[1]=false;}
         bool grounded=Employee||Demo.Game.IsGrounded;
         if(grounded&&!wasGrounded)initialized=false;
         wasGrounded=grounded;
@@ -95,7 +98,21 @@ public sealed class BadShiftClayGait : MonoBehaviour
                         if(swinging[i]){anchors[i]=Ground(FootPositions[i]);Demo.Game.PlayFootstep();}
                         foot=anchors[i];FootPositions[i]=foot;
                     }
-                    swinging[i]=swing;Planted[i]=!swing;
+                    if(!IsWalking)
+                    {
+                        if(!recovering[i]&&Vector3.ProjectOnPlane(neutral-anchors[i],Vector3.up).magnitude>.34f)
+                        {recovering[i]=true;recovery[i]=0;recoveryFrom[i]=FootPositions[i];}
+                        if(recovering[i])
+                        {
+                            recovery[i]=Mathf.Min(1,recovery[i]+Time.deltaTime/.18f);
+                            Vector3 end=Ground(neutral);
+                            foot=Vector3.Lerp(recoveryFrom[i],end,Mathf.SmoothStep(0,1,recovery[i]))+Vector3.up*(Mathf.Sin(recovery[i]*Mathf.PI)*.10f);
+                            FootPositions[i]=foot;
+                            if(recovery[i]>=1){anchors[i]=end;recovering[i]=false;}
+                        }
+                    }
+                    else recovering[i]=false;
+                    swinging[i]=swing;Planted[i]=!swing&&!recovering[i];
                 }
                 else foot=FootPositions[i];
             }

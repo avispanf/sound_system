@@ -30,7 +30,7 @@ public sealed class BadShiftBattle : MonoBehaviour
     public float EnemySpeed { get; private set; }
     public bool CanInvite=>!Active&&!Life.Demo.Game.Tour.Running&&Life.Nearest()!=null&&Life.Nearest().Kind==BadShiftUseKind.Spar;
     public string EnemyTaunt=>!Finished&&Time.time<tauntUntil?taunt:"";
-    public string Status=>Phase==BadShiftBattlePhase.Intro?"THE BREADSTICK WARDEN · Get ready":Falling?"THE FINAL BONK":Phase==BadShiftBattlePhase.Victory?"VICTORY · The lunch break is yours":Phase==BadShiftBattlePhase.Defeat?"DEFEAT · The shift got you":EnemyWindingUp?"Incoming! Hold RMB to block · LMB attack":"LMB attack · Hold RMB block · WASD move · MMB orbit";
+    public string Status=>Phase==BadShiftBattlePhase.Intro?"THE BREADSTICK WARDEN · Get ready":Falling?"THE FINAL BONK":Phase==BadShiftBattlePhase.Victory?"VICTORY · The lunch break is yours":Phase==BadShiftBattlePhase.Defeat?"DEFEAT · The shift got you":IsBlocking?"BLOCKING · Release RMB to attack":EnemyWindingUp?"Incoming! Hold RMB to block · LMB attack":"LMB attack · Hold RMB block · WASD move · MMB orbit";
     private CharacterController player;
     private Vector3 playerSpawn,enemySpawn,enemyPush,enemyAim,enemyMotion;
     private Quaternion playerRotation,enemyRotation;

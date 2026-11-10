@@ -50,8 +50,8 @@ changed demo scene; don't reapply its old installation plan.
 
 ## Verification and boundaries
 
-247 PlayMode tests pass in Unity 6000.3.21f1, including sixty demo tests: five inherited gameplay/mix tests and
-fifty-five BAD SHIFT checks (real clip selection, source/filter switching, listener
+250 PlayMode tests pass in Unity 6000.3.21f1, including sixty-three demo tests: five inherited gameplay/mix tests and
+fifty-eight BAD SHIFT checks (real clip selection, source/filter switching, listener
 measurement, actual music/VO animation timing, collision, live character reactions and walkable routes). Collection tests move the character
 programmatically; they are not proof of complete human navigation/listening QA.
 
@@ -111,3 +111,5 @@ three-second sparring reset in the first cafe-life pass.
 
 Battle controls: E challenges; LMB attacks; hold RMB to block; MMB orbits the camera.
 Defeated characters fall before the result panel and its separate music theme.
+
+The clay combat polish adds body-led anticipation, elastic hit reactions, two-handed guarding, visual swing recovery and a supported squash-and-flop death. The existing controls and damage rules are unchanged. See BATTLE-ARENA.md for the sequence and validation details.

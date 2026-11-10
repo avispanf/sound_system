@@ -33,6 +33,18 @@ Use the isolated prepared project with .bad-shift-demo. After CafeLifePass.Run, 
 
 ## Verification
 
-Unity 6000.3.21f1: 247/247 PlayMode tests passed, including 17 battle/cafe/melee cases. Coverage includes the explicit challenge, pointer attack versus block, protected HUD clicks, visible-weapon contact, cooldown, knockback, grounded-state preservation, dodge timing, wall obstruction, pause, persistent outcomes, delayed fall-to-result transition, background music silencing, rematch and normal-lighting restoration. Previous audio, tour, door, locomotion and reset tests also passed.
+Unity 6000.3.21f1: 250/250 PlayMode tests passed, including 20 battle/cafe/melee/polish cases. Coverage includes the explicit challenge, pointer attack versus block, protected HUD clicks, visible-weapon contact, cooldown, knockback, grounded-state preservation, dodge timing, wall obstruction, pause, persistent outcomes, delayed fall-to-result transition, background music silencing, rematch and normal-lighting restoration. Previous audio, tour, door, locomotion and reset tests also passed.
 
 Post-pose Unity renders show the stick contacting the opponent and the completed fall. Audio clips are synthesized prototypes; no human listening sign-off or mobile qualification is claimed.
+
+## Clay combat polish — 2026-11-10
+
+Swings now have a short anticipation, accelerated cut, torso twist and a 0.18-second visual recovery within the existing attack cooldown. The head and free arm lag behind the torso. Weapon IK runs after the body reaction so the breadstick stays in the hand throughout the pose; the existing swept contact remains responsible for damage.
+
+Holding RMB raises a two-handed guard with a braced torso, a cyan accent and a BLOCKING prompt. Blocked contact adds recoil and a blue pulse. Successful hits add a short warm radial accent and elastic body/head recoil. A small breadstick swish follows the visible tip; these accents reuse the existing material and do not add audio events or authoring dependencies.
+
+Death includes an initial squash and backward hesitation, a faster sideways flop, loose arm/wrist follow-through, and a damped bounce. The visible body is supported above the controller's floor plane. Breathing stops on the defeated actor, and the pose settles before the existing delayed result panel. Rematch restores authored rig position, scale and rotation. Characters also take a short recovery step when knockback displaces their planted feet, preventing stretched legs after a hit.
+
+Runtime changes work with the saved battle scene; no additional scene-authoring pass is required. The new pose tests sample after LateUpdate and cover both grips, one physical contact per swing, effect cleanup, squash, floor support, settling and rematch restoration. Close-ups are included as combat-*.png in the prepared project.
+
+Final polish regression: 250/250 PlayMode tests passed on 2026-11-10, including scene reset and guided-tour replay.

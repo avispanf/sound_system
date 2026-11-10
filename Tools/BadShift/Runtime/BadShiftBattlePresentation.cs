@@ -19,6 +19,11 @@ public sealed class BadShiftBattlePresentation : MonoBehaviour
     private Color[][] colors;
     private MaterialPropertyBlock[][] original;
     private MaterialPropertyBlock block;
+    private LineRenderer guard;
+    private LineRenderer[][] sparks;
+    private LineRenderer[] swishes;
+    private readonly Vector3[] lastTips=new Vector3[2];
+    private readonly bool[] tracking=new bool[2];
     private void Start()
     {
         var demo=Battle.Life.Demo;
@@ -32,8 +37,58 @@ public sealed class BadShiftBattlePresentation : MonoBehaviour
             for(int i=0;i<actors[a].Length;i++){colors[a][i]=actors[a][i].sharedMaterial.color;original[a][i]=new MaterialPropertyBlock();actors[a][i].GetPropertyBlock(original[a][i]);}
         }
     }
+    private LineRenderer Stroke(string label,int points,float width)
+    {
+        var line=new GameObject(label).AddComponent<LineRenderer>();line.transform.SetParent(transform,false);
+        line.sharedMaterial=Ring.sharedMaterial;line.positionCount=points;line.widthMultiplier=width;line.useWorldSpace=true;
+        line.numCapVertices=3;line.enabled=false;line.shadowCastingMode=ShadowCastingMode.Off;line.receiveShadows=false;
+        return line;
+    }
+    private void CreateAccents()
+    {
+        guard=Stroke("Guard accent",25,.08f);sparks=new LineRenderer[2][];swishes=new LineRenderer[2];
+        for(int a=0;a<2;a++)
+        {
+            sparks[a]=new LineRenderer[6];for(int i=0;i<6;i++)sparks[a][i]=Stroke("Bonk accent "+a+" "+i,2,.075f);
+            swishes[a]=Stroke("Breadstick swish "+a,3,.055f);
+        }
+    }
+    private void Accents()
+    {
+        if(guard==null)CreateAccents();
+        Transform player=Battle.transform;
+        bool blocked=Time.time<Battle.PlayerBlockUntil;
+        guard.enabled=Battle.IsBlocking&&!Battle.Falling&&!Battle.Finished;
+        Color cyan=new Color(.35f,.85f,1,blocked?.95f:.65f);guard.startColor=guard.endColor=cyan;
+        Vector3 center=player.position+Vector3.up*1.55f+player.forward*.55f;
+        for(int i=0;i<25;i++){float angle=Mathf.Lerp(-2.1f,2.1f,i/24f);guard.SetPosition(i,center+(Battle.Life.Demo.Game.View.transform.right*Mathf.Sin(angle)+Battle.Life.Demo.Game.View.transform.up*Mathf.Cos(angle))*.57f);}
+        for(int a=0;a<2;a++)
+        {
+            Transform actor=a==0?player:Battle.EnemyBody.transform;
+            float amount=Mathf.Clamp01(((a==0&&blocked?Battle.PlayerBlockUntil:a==0?Battle.PlayerFlashUntil:Battle.EnemyFlashUntil)-Time.time)/.22f);
+            Vector3 impact=actor.position+Vector3.up*1.5f;
+            Vector3 right=Battle.Life.Demo.Game.View.transform.right,up=Battle.Life.Demo.Game.View.transform.up;
+            Color color=a==0&&blocked?cyan:new Color(1,.79f,.34f,amount);
+            for(int i=0;i<6;i++)
+            {
+                var line=sparks[a][i];line.enabled=Battle.Active&&amount>0;
+                float angle=(i+.15f)*Mathf.PI/3;Vector3 direction=right*Mathf.Cos(angle)+up*Mathf.Sin(angle);
+                float radius=.24f+(1-amount)*.65f;
+                line.SetPosition(0,impact+direction*radius);line.SetPosition(1,impact+direction*(radius+.25f*amount));
+                line.startColor=line.endColor=color;
+            }
+            Transform stick=(a==0?Battle.Life.PlayerStick:Battle.Life.EnemyStick).transform;
+            Vector3 tip=stick.TransformPoint(Vector3.up*.45f);
+            bool swinging=Battle.Phase==BadShiftBattlePhase.Fighting&&Time.time<(a==0?Battle.PlayerSwingUntil:Battle.EnemySwingUntil);
+            var swish=swishes[a];swish.enabled=swinging&&tracking[a]&&Vector3.Distance(tip,lastTips[a])>.015f;
+            swish.SetPosition(0,lastTips[a]);swish.SetPosition(1,Vector3.Lerp(lastTips[a],tip,.5f)+Vector3.up*.035f);swish.SetPosition(2,tip);
+            swish.startColor=new Color(1,.87f,.63f,0);swish.endColor=new Color(1,.87f,.63f,.8f);
+            lastTips[a]=tip;tracking[a]=swinging;
+        }
+    }
     private void LateUpdate()
     {
+        Accents();
         Weight=Mathf.MoveTowards(Weight,Battle.Active?1:0,Time.deltaTime*1.5f);Grade.weight=Weight;
         for(int i=0;i<keys.Length;i++){keys[i].intensity=Mathf.Lerp(keyIntensities[i],keyIntensities[i]*.4f,Weight);keys[i].color=Color.Lerp(keyColors[i],new Color(.57f,.65f,1),Weight);}
         RenderSettings.ambientLight=Color.Lerp(ambient,new Color(.12f,.15f,.25f),Weight);
@@ -45,17 +100,21 @@ public sealed class BadShiftBattlePresentation : MonoBehaviour
         {
             bool blocked=a==0&&Time.time<Battle.PlayerBlockUntil;
             float amount=Mathf.Clamp01(((blocked?Battle.PlayerBlockUntil:a==0?Battle.PlayerFlashUntil:Battle.EnemyFlashUntil)-Time.time)/.22f);
-            Color pulse=blocked?new Color(.2f,.7f,1):new Color(1,.34f,.24f);
+            bool guarding=a==0&&Battle.IsBlocking;
+            Color pulse=blocked||guarding?new Color(.2f,.7f,1):new Color(1,.34f,.24f);
             for(int i=0;i<actors[a].Length;i++)
             {
-                if(amount<=0){actors[a][i].SetPropertyBlock(original[a][i]);continue;}
-                actors[a][i].GetPropertyBlock(block);block.SetColor("_BaseColor",Color.Lerp(colors[a][i],pulse,amount*.8f));actors[a][i].SetPropertyBlock(block);
+                if(amount<=0&&!guarding){actors[a][i].SetPropertyBlock(original[a][i]);continue;}
+                actors[a][i].GetPropertyBlock(block);block.SetColor("_BaseColor",Color.Lerp(colors[a][i],pulse,Mathf.Max(amount*.8f,guarding?.24f:0)));actors[a][i].SetPropertyBlock(block);
             }
             Light flash=a==0?PlayerHitLight:EnemyHitLight;flash.intensity=amount*2.5f;flash.color=pulse;
         }
     }
     private void OnDisable()
     {
+        if(guard!=null)guard.enabled=false;
+        if(sparks!=null)foreach(var group in sparks)foreach(var line in group)line.enabled=false;
+        if(swishes!=null)foreach(var line in swishes)line.enabled=false;
         if(keys!=null){for(int i=0;i<keys.Length;i++)if(keys[i]!=null){keys[i].intensity=keyIntensities[i];keys[i].color=keyColors[i];}RenderSettings.ambientLight=ambient;}
         if(Battle!=null&&Battle.Life!=null&&Battle.Life.Demo!=null&&Battle.Life.Demo.Game.View!=null)Battle.Life.Demo.Game.View.backgroundColor=background;
         if(Grade!=null)Grade.weight=0;

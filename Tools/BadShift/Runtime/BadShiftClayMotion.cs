@@ -45,6 +45,10 @@ public sealed class BadShiftClayMotion : MonoBehaviour
         for (int i = 0; i < bodies.Length; i++)
         {
             if (speaking && i < 2) continue;
+            if(i<2&&Demo.Game.Life!=null&&(i==0?Demo.Game.Life.PlayerDead:Demo.Game.Life.EnemyDead))
+            {
+                bodies[i].localScale=scales[i];if(i==0)bodies[i].localRotation=playerRest;continue;
+            }
             float beat = Mathf.Floor(phase * 12) / 12;
             float amount = i == 0 ? (Demo.Game.MovementSpeed > .15f ? .055f : .018f) : i == 1 ? (dancing ? .11f : .025f) : speaking ? .065f : .02f;
             float rhythm = i == 1 && dancing ? (float)(AudioSystem.Music.Clock.GetBeat(AudioSettings.dspTime) * Mathf.PI * 2) : beat * (i == 0 ? 13 : speaking ? 11 : 3);
