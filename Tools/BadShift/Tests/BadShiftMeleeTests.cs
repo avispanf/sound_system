@@ -40,7 +40,7 @@ public sealed class BadShiftMeleeTests
         Place(battle.EnemyBody.transform.position+Vector3.left*1.5f);battle.Attack();yield return new WaitForSeconds(.25f);
         Assert.AreEqual(0,battle.EnemyHealth);Assert.IsTrue(battle.Falling);Assert.IsFalse(battle.Finished);Assert.Less(battle.FallProgress,.4f);
         Assert.IsFalse(AudioSystem.Debugger.Records.Any(r=>r.EventName==battle.VictorySound.name));Assert.Greater(AudioSystem.Music.Volume,0);
-        float deadline=Time.time+1.3f;while(!battle.Finished&&Time.time<deadline)yield return null;
+        float deadline=Time.time+2;while(!battle.Finished&&Time.time<deadline)yield return null;
         Assert.AreEqual(BadShiftBattlePhase.Victory,battle.Phase);Assert.AreEqual(1,battle.FallProgress);Assert.AreEqual(0,AudioSystem.Music.Volume);
         Assert.AreEqual(1,AudioSystem.Debugger.Records.Count(r=>r.EventName==battle.VictorySound.name&&r.Outcome==PlaybackOutcome.Played));
         battle.Rematch();yield return null;Assert.Greater(AudioSystem.Music.Volume,0);Assert.AreEqual(100,battle.EnemyHealth);

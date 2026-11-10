@@ -94,8 +94,9 @@ Selecting a record shows its captured reason, then Open event settings opens a
 native property editor at the relevant Playback limits/cooldown field. Unknown
 or destroyed event targets disable navigation. Gain details are collapsed and
 marked Captured; changing filters clears detail from records no longer present.
-The existing list is retained in this tranche; a richer Diagnostics table and the
-remaining Music screen refinements are subsequent work.
+Diagnostics now has Event, Outcome and Reason columns. Music shows Current and
+Pending, the scheduled boundary and crossfade settings, and cancellation only
+before the pending transition starts. These refinements are present in current source.
 
 ## Validation and boundaries
 

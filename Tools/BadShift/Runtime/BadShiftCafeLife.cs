@@ -22,13 +22,13 @@ public sealed class BadShiftCafeLife : MonoBehaviour
     public string ReactionQuote=>Time.time<quoteUntil?quote:"";
     public string CombatStatus=>Battle!=null?Battle.Status:"";
     private BadShiftUseTarget[] targets;
-    private float nextReaction,quoteUntil,volumeBefore;
+    private float nextReaction,quoteUntil;
     private string quote;
-    private void Awake(){Demo=GetComponent<BadShiftDemo>();volumeBefore=BadShiftSilentLaunch.Requested?1:AudioListener.volume;if(BadShiftSilentLaunch.Requested){Muted=true;AudioListener.volume=0;}}
+    private void Awake(){Demo=GetComponent<BadShiftDemo>();Muted=BadShiftSilentLaunch.Requested;AudioListener.volume=Muted?0:1;}
     private void OnEnable(){BadShiftImpactProp.Reacted+=OnImpact;}
     private void OnDisable(){BadShiftImpactProp.Reacted-=OnImpact;}
     private void Start(){targets=FindObjectsByType<BadShiftUseTarget>(FindObjectsSortMode.None);PlayerStick.SetActive(false);EnemyStick.SetActive(false);}
-    public void ToggleSound(){Muted=!Muted;AudioListener.volume=Muted?0:volumeBefore;}
+    public void ToggleSound(){Muted=!Muted;AudioListener.volume=Muted?0:1;}
     public BadShiftUseTarget Nearest()
     {
         if(targets==null)return null;
@@ -85,5 +85,5 @@ public sealed class BadShiftCafeLife : MonoBehaviour
         if(Vector3.Distance(position,Demo.Dancer.position)<5)enemyReaction=Time.time+.5f;
         React(broken?"That plate comes out of your celery!":"Easy! This is a cafe, not a bowling alley.",broken);
     }
-    private void OnDestroy(){if(Muted)AudioListener.volume=BadShiftSilentLaunch.Requested?0:volumeBefore;}
+    private void OnDestroy(){AudioListener.volume=BadShiftSilentLaunch.Requested?0:1;}
 }

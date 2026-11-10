@@ -21,7 +21,9 @@ public sealed class BadShiftBattle : MonoBehaviour
     public string BossOutcomeQuote=>!Finished?"":Phase==BadShiftBattlePhase.Victory?(OutcomeTime<2.3f?"Employee of the minute!":"Your reward: one unpaid lunch break."):(OutcomeTime<2.3f?"That was a very expensive nap.":"Stand up. The soup is getting cold.");
     public bool Falling=>Phase==BadShiftBattlePhase.FallingVictory||Phase==BadShiftBattlePhase.FallingDefeat;
     public bool LocksMovement=>Phase==BadShiftBattlePhase.Intro||Falling||Finished;
-    public float FallProgress=>Falling||Finished?Mathf.Clamp01((Time.time-fallStarted)/.85f):0;
+    public bool OvertimeFinish=>SecondPhase&&EnemyHealth==0&&(Falling||Finished);
+    public float FinishElapsed=>OvertimeFinish?Time.time-fallStarted:0;
+    public float FallProgress=>Falling||Finished?Mathf.Clamp01((Time.time-fallStarted)/(OvertimeFinish?1.35f:.85f)):0;
     public bool IsBlocking { get; private set; }
     public int PlayerHealth { get; private set; }=100;
     public int EnemyHealth { get; private set; }=100;
@@ -55,7 +57,7 @@ public sealed class BadShiftBattle : MonoBehaviour
     public float EnemySpeed { get; private set; }
     public bool CanInvite=>!Active&&!Life.Demo.Game.Tour.Running&&Life.Nearest()!=null&&Life.Nearest().Kind==BadShiftUseKind.Spar;
     public string EnemyTaunt=>!Finished&&Time.time<tauntUntil?taunt:"";
-    public string Status=>Phase==BadShiftBattlePhase.Intro?"THE BREADSTICK WARDEN · Get ready":Falling?"THE FINAL BONK":Phase==BadShiftBattlePhase.Victory?"VICTORY · The lunch break is yours":Phase==BadShiftBattlePhase.Defeat?"DEFEAT · The shift got you":PhaseTwoIntro?"OVERTIME! · The tantrum is no shield":BlockFeedback>0?"CLACK! · Release RMB and counter with LMB":IsBlocking?"BLOCKING · Release RMB to attack":EnemyWindingUp?EnemyAttackName+" · RMB block or step aside":EnemyRecovering?"Catch your breath? Not yet! · LMB to counter":"LMB attack · Hold RMB block · WASD move · MMB orbit";
+    public string Status=>Phase==BadShiftBattlePhase.Intro?"THE BREADSTICK WARDEN · Get ready":Falling?(OvertimeFinish?"FINAL BONK · Your shift has expired!":"THE FINAL BONK"):Phase==BadShiftBattlePhase.Victory?"VICTORY · The lunch break is yours":Phase==BadShiftBattlePhase.Defeat?"DEFEAT · The shift got you":PhaseTwoIntro?"OVERTIME! · The tantrum is no shield":BlockFeedback>0?"CLACK! · Release RMB and counter with LMB":IsBlocking?"BLOCKING · Release RMB to attack":EnemyWindingUp?EnemyAttackName+" · RMB block or step aside":EnemyRecovering?"Catch your breath? Not yet! · LMB to counter":"LMB attack · Hold RMB block · WASD move · MMB orbit";
     private const float PushBrake=12;
     private CharacterController player;
     private Vector3 playerSpawn,enemySpawn,enemyPush,enemyAim,enemyMotion;
@@ -155,7 +157,7 @@ public sealed class BadShiftBattle : MonoBehaviour
         Play(HitSound,enemy?EnemyBody.transform.position:transform.position);
         if(PlayerHealth==0||EnemyHealth==0)
         {
-            Phase=EnemyHealth==0?BadShiftBattlePhase.FallingVictory:BadShiftBattlePhase.FallingDefeat;fallStarted=Time.time;phaseUntil=Time.time+1.15f;
+            Phase=EnemyHealth==0?BadShiftBattlePhase.FallingVictory:BadShiftBattlePhase.FallingDefeat;fallStarted=Time.time;phaseUntil=Time.time+(EnemyHealth==0&&SecondPhase?1.65f:1.15f);
             CancelEnemyAttack();phaseTwoIntroUntil=0;PlayerSwingUntil=0;IsBlocking=false;ClearCombo();EnemyRecoilUntil=0;
             Say(EnemyHealth==0?"Fine. I needed a lie-down.":"Mr Broccoli will hear about this.");
         }

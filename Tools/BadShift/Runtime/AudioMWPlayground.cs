@@ -138,7 +138,7 @@ public sealed class AudioMWPlayground : MonoBehaviour
         if ((keys != null && keys.vKey.wasPressedThisFrame)) Speak();
         if ((keys != null && keys.lKey.wasPressedThisFrame)) StressLimit();
         if ((keys != null && keys.mKey.wasPressedThisFrame)) RequestMusic(!requestedCombat);
-        if (!complete && collected == Pickups.Length && Vector3.Distance(transform.position, Exit.position) < 2.5f)
+        if (!complete && collected == Pickups.Length && (GetComponent<BadShiftDemo>()!=null || Vector3.Distance(transform.position, Exit.position) < 2.5f))
         {
             complete = true; RequestMusic(false); AudioSystem.PlayStinger(Stinger, MusicQuantization.Bar, 0.3f); Tell("Route complete. Use R to replay, or continue audio tests.");
         }
@@ -223,7 +223,7 @@ public sealed class AudioMWPlayground : MonoBehaviour
         LastInteractionTime = Time.time;
         item.Collect(); collected++; AudioSystem.PlayTrackedAtPosition(Pickup, item.transform.position);
         AudioSystem.PlayStinger(Stinger, MusicQuantization.Beat, 0.2f);
-        Tell(collected == Pickups.Length ? "All ingredients collected. Reach the exit." : "Ingredient collected: " + collected + " / " + Pickups.Length);
+        Tell(collected == Pickups.Length ? GetComponent<BadShiftDemo>()!=null?"All ingredients collected. Continue exploring the audio playground.":"All ingredients collected. Reach the exit." : "Ingredient collected: " + collected + " / " + Pickups.Length);
         return true;
     }
 

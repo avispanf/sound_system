@@ -36,10 +36,10 @@ public sealed class BadShiftCafeLifeTests
     }
     [UnityTest] public IEnumerator BathroomDoorOpensWithPlayerAgainstIt()
     {
-        Place(new Vector3(-3,.05f,4.8f));Assert.AreEqual(BadShiftUseKind.Bathroom,life.Nearest().Kind);
+        Place(new Vector3(0,.05f,-.2f));Assert.AreEqual(BadShiftUseKind.Bathroom,life.Nearest().Kind);
         Vector3 start=game.transform.position;game.Interact();yield return new WaitForSeconds(1);
         Assert.IsTrue(game.Door.IsOpen);Assert.IsFalse(game.Door.IsMoving);Assert.IsFalse(game.Door.IsBlocked);
-        Assert.Greater(Vector3.Distance(start,game.transform.position),.05f);Capture("cafe-bathroom",new Vector3(-3,1.5f,6.5f),3);
+        Assert.Greater(Vector3.Distance(start,game.transform.position),.05f);Capture("cafe-bathroom",new Vector3(0,1.5f,1.5f),3);
         Assert.IsFalse(Physics.ComputePenetration(game.Door.Leaf,game.Door.Leaf.transform.position,game.Door.Leaf.transform.rotation,game.GetComponent<CharacterController>(),game.transform.position,game.transform.rotation,out _,out _));
     }
     [UnityTest] public IEnumerator FridgeDoorsOpenAtTouchingDistance()

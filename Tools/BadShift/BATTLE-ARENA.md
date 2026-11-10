@@ -12,7 +12,7 @@ A frontal block prevents damage and plays a separate clack with an expanding cya
 
 Hits apply a horizontal impulse, body flinch, warm colour pulse and light accent. Player knockback shares the same CharacterController.Move as gravity and locomotion; enemy movement also uses one controller move per frame. Controllers preserve collision and grounded state, including at very high frame rates.
 
-At zero HP, control and attacks stop. The defeated skeleton falls over for 0.85 seconds, then settles. The result overlay appears after 1.15 seconds. Only then do background music and musical ambience become silent and the outcome theme start. Victory and defeat remain until Fight again or Reset demo. Fight again restores HP and starting positions; Reset demo restores the entire cafe. Play yourself exits the fight and restores normal presentation. Pause stops timers; Sound on/off remains global.
+At zero HP, control and attacks stop. The defeated skeleton normally falls over for 0.85 seconds, then settles; the result appears after 1.15 seconds. An overtime victory instead uses a 1.35-second corkscrew clay finish and shows the result after 1.65 seconds. Only then do background music and musical ambience become silent and the outcome theme start. Victory and defeat remain until Fight again or Reset demo. Fight again restores HP and starting positions; Reset demo restores the entire cafe. Play yourself exits the fight and restores normal presentation. Pause stops timers; Sound on/off remains global.
 
 The opponent displays short timed taunts, including instructions from Mr Broccoli, cutlery bravado and reactions to hits or blocks. These are text captions; recorded spoken voice-over is still pending.
 
@@ -33,7 +33,7 @@ Use the isolated prepared project with .bad-shift-demo. After CafeLifePass.Run, 
 
 ## Verification
 
-Unity 6000.3.21f1: 267/267 PlayMode tests passed, including 37 battle/cafe/melee/polish/outcome/combo/enemy-pattern/overtime cases. Coverage includes the explicit challenge, pointer attack versus block, protected HUD clicks, visible-weapon contact, cooldown, knockback, grounded-state preservation, dodge timing, wall obstruction, pause, persistent outcomes, delayed fall-to-result transition, background music silencing, rematch and normal-lighting restoration. Previous audio, tour, door, locomotion and reset tests also passed.
+Unity 6000.3.21f1: 272/272 PlayMode tests passed, including 42 battle/cafe/melee/polish/outcome/combo/enemy-pattern/overtime/finale cases. Coverage includes the explicit challenge, pointer attack versus block, protected HUD clicks, visible-weapon contact, cooldown, knockback, grounded-state preservation, dodge timing, wall obstruction, pause, persistent outcomes, delayed fall-to-result transition, background music silencing, rematch and normal-lighting restoration. Previous audio, tour, door, locomotion and reset tests also passed.
 
 Post-pose Unity renders show the stick contacting the opponent and the completed fall. Audio clips are synthesized prototypes; no human listening sign-off or mobile qualification is claimed.
 
@@ -103,3 +103,10 @@ Five additional PlayMode scenarios cover threshold/one-shot cue/pause, five cons
 Overtime regression: 267/267 PlayMode tests passed on 2026-11-10 with editor audio output muted. The five new scenarios and all previous battle, cafe, tour, reset and audio checks passed.
 
 The rebuilt macOS player was checked with native automated input: two LMB hits triggered the 50 HP transition, the phase banner and TRIPLE SERVING windup were visible, and RMB produced CLACK feedback with the player still at 100 HP. R reset restored the cafe and kept Sound off. The first UI attachment opened an unflagged duplicate showing Sound on; it was closed before gameplay QA. All subsequent gameplay checks used the explicitly muted process.
+
+
+## Final overtime finish — 2026-11-10
+
+A lethal physical contact in the second phase produces a corkscrew fall with a small lift, elastic compression and dizzy accents. The longer fall settles before the victory UI and exclusive result theme begin. The winner hops higher, gold/mint lighting replaces the red/violet result presentation, smoke emission stops and a short confetti burst celebrates the win. Confetti and finishing state reset on rematch; pause freezes the sequence. The attack and damage still come from the actual animated weapon contact.
+
+See FINAL-HANDOFF.md for layout, physics and audio-map changes shipped together with this final demo pass.

@@ -81,6 +81,12 @@ public sealed class BadShiftCafeReactions : MonoBehaviour
             tilt=85*flop-Mathf.Sin(Mathf.Clamp01(p/.25f)*Mathf.PI)*10+bounce*12;
             stretch=1-Mathf.Sin(Mathf.Clamp01(p/.22f)*Mathf.PI)*.16f-Mathf.Sin(settle*Mathf.PI)*.13f;
             lift=Mathf.Sin(flop*Mathf.PI)*.06f;
+            if(enemy&&battle.OvertimeFinish)
+            {
+                float cork=Mathf.Sin(Mathf.Clamp01(p/.68f)*Mathf.PI);
+                twist=360*Mathf.SmoothStep(0,1,Mathf.InverseLerp(.08f,.68f,p));
+                lift+=cork*.28f;stretch-=cork*.09f;headLag+=Mathf.Sin(p*32)*cork*20;
+            }
             headLag=Mathf.Sin(p*19)*(1-p)*24;
         }
         else if(battle!=null&&battle.Celebrating(enemy))
@@ -90,6 +96,7 @@ public sealed class BadShiftCafeReactions : MonoBehaviour
             float bow=Mathf.Sin(Mathf.Clamp01((t-3.1f)/1)*Mathf.PI);
             lift=t<1.4f?Mathf.Abs(jig)*.17f*w:0;
             stretch=1+jig*.065f*w;tilt=jig*(t<1.4f?7:11)*w;
+            if(battle.OvertimeFinish){lift*=1.45f;stretch+=jig*.035f*w;}
             Vector3 towardCamera=Vector3.ProjectOnPlane(Life.Demo.Game.View.transform.position-rig.position,Vector3.up);
             float facing=towardCamera.sqrMagnitude>.01f?Mathf.DeltaAngle(rig.parent.eulerAngles.y,Quaternion.LookRotation(towardCamera).eulerAngles.y):0;
             twist=(facing+Mathf.Sin(t*7)*14)*w;pitch=bow*28*w;headLag=-jig*9*w;

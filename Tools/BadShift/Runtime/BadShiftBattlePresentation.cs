@@ -25,7 +25,7 @@ public sealed class BadShiftBattlePresentation : MonoBehaviour
     private MaterialPropertyBlock block;
     private LineRenderer guard,tell;
     private LineRenderer[][] sparks;
-    private LineRenderer[] swishes;
+    private LineRenderer[] swishes,finale;
     private readonly Vector3[] lastTips=new Vector3[2];
     private readonly bool[] tracking=new bool[2];
     private void Start()
@@ -115,7 +115,7 @@ public sealed class BadShiftBattlePresentation : MonoBehaviour
     private void LateUpdate()
     {
         Accents();
-        Weight=Mathf.MoveTowards(Weight,Battle.Active?1:0,Time.deltaTime*1.5f);Grade.weight=Weight;
+        Weight=Mathf.MoveTowards(Weight,Battle.Active?1:0,Time.deltaTime*1.5f);Grade.weight=Weight*(Battle.OvertimeFinish&&Battle.Finished?.55f:1);
         for(int i=0;i<keys.Length;i++){keys[i].intensity=Mathf.Lerp(keyIntensities[i],keyIntensities[i]*.4f,Weight);keys[i].color=Color.Lerp(keyColors[i],new Color(.57f,.65f,1),Weight);}
         RenderSettings.ambientLight=Color.Lerp(ambient,new Color(.12f,.15f,.25f),Weight);
         Battle.Life.Demo.Game.View.backgroundColor=Color.Lerp(background,new Color(.055f,.065f,.12f),Weight);
@@ -123,7 +123,7 @@ public sealed class BadShiftBattlePresentation : MonoBehaviour
         RedLight.color=Color.Lerp(redSource,new Color(1,.42f,.08f),OvertimeWeight);BlueLight.color=Color.Lerp(blueSource,new Color(.65f,.25f,1),OvertimeWeight);
         RedLight.intensity=Weight*(4+OvertimeWeight);BlueLight.intensity=Weight*5;
         Ring.startColor=Ring.endColor=new Color(1,Mathf.Lerp(.14f,.5f,OvertimeWeight),Mathf.Lerp(.27f,.08f,OvertimeWeight),Weight*.7f);
-        foreach(var smoke in Smoke){var emission=smoke.emission;emission.enabled=Battle.Active;}
+        foreach(var smoke in Smoke){var emission=smoke.emission;emission.enabled=Battle.Active&&!Battle.Finished;}
         for(int a=0;a<2;a++)
         {
             bool blocked=Battle.BlockFeedback>0&&(a==0||Time.time>=Battle.EnemyFlashUntil);
@@ -137,7 +137,33 @@ public sealed class BadShiftBattlePresentation : MonoBehaviour
             }
             Light flash=a==0?PlayerHitLight:EnemyHitLight;flash.intensity=amount*2.5f;flash.color=pulse;
         }
+        Finale();
         RenderBossPortrait();
+    }
+    private void Finale()
+    {
+        if(finale==null){finale=new LineRenderer[20];for(int i=0;i<finale.Length;i++)finale[i]=Stroke("Overtime confetti "+i,2,.065f);}
+        bool falling=Battle.OvertimeFinish&&Battle.Falling;
+        float t=Battle.Finished?Battle.OutcomeTime:Battle.FinishElapsed;
+        bool victory=Battle.OvertimeFinish&&Battle.Finished;
+        Vector3 center=(falling?Battle.EnemyBody.transform.position:Battle.transform.position)+Vector3.up*(falling?2.5f:2.2f);
+        for(int i=0;i<finale.Length;i++)
+        {
+            var line=finale[i];line.enabled=falling&&i<5||victory&&t<3.6f;
+            if(!line.enabled)continue;
+            float angle=i*Mathf.PI*2/(falling?5:20)+t*(falling?5:1.5f);
+            float radius=falling?.45f:.4f+t*(.35f+i%4*.12f);
+            Vector3 position=center+new Vector3(Mathf.Cos(angle)*radius,falling?Mathf.Sin(angle*2)*.08f:t*(1.9f+i%3*.25f)-.85f*t*t,Mathf.Sin(angle)*radius);
+            Vector3 tilt=new Vector3(Mathf.Cos(t*10+i),Mathf.Sin(t*10+i),.2f)*.12f;
+            line.SetPosition(0,position-tilt);line.SetPosition(1,position+tilt);
+            Color color=i%3==0?new Color(1,.77f,.2f):i%3==1?new Color(.45f,1,.75f):new Color(1,.48f,.32f);
+            color.a=falling?1:Mathf.Clamp01((3.6f-t)*2);line.startColor=line.endColor=color;
+        }
+        if(victory)
+        {
+            Ring.startColor=Ring.endColor=new Color(1,.8f,.3f,.65f);
+            RedLight.color=new Color(1,.72f,.3f);BlueLight.color=new Color(.4f,1,.75f);
+        }
     }
     private void RenderBossPortrait()
     {
@@ -160,6 +186,7 @@ public sealed class BadShiftBattlePresentation : MonoBehaviour
     }
     private void OnDisable()
     {
+        if(finale!=null)foreach(var line in finale)line.enabled=false;
         if(guard!=null)guard.enabled=false;
         if(tell!=null)tell.enabled=false;
         if(sparks!=null)foreach(var group in sparks)foreach(var line in group)line.enabled=false;

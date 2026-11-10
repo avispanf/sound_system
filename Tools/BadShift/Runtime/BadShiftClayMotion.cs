@@ -34,13 +34,14 @@ public sealed class BadShiftClayMotion : MonoBehaviour
         bool speaking = AudioSystem.VoiceOver.IsSpeaking;
         bool landed = !grounded && Demo.Game.IsGrounded;
         grounded = Demo.Game.IsGrounded;
-        if (landed) springVelocity -= 2.5f;
+        if (landed) springVelocity = -2.5f;
         float decay = Mathf.Exp(-6 * Time.deltaTime);
         float sine = Mathf.Sin(8 * Time.deltaTime);
         float cosine = Mathf.Cos(8 * Time.deltaTime);
         float nextSpring = decay * (spring * cosine + (springVelocity + 6 * spring) * sine / 8);
         springVelocity = decay * (springVelocity * cosine - (6 * springVelocity + 100 * spring) * sine / 8);
-        spring = nextSpring;
+        spring = Mathf.Clamp(nextSpring, -.22f, .16f);
+        if (spring != nextSpring) springVelocity = 0;
         bool dancing = Demo.EmployeeDancing;
         for (int i = 0; i < bodies.Length; i++)
         {

@@ -119,6 +119,12 @@ public sealed class BadShiftClayGait : MonoBehaviour
             else {Planted[i]=false;FootPositions[i]=foot;swinging[i]=false;}
             Vector3 hip=upper[i].position,ankle=foot+Vector3.up*.10f;
             Vector3 delta=ankle-hip;float length=delta.magnitude;
+            if(length>1.12f)
+            {
+                ankle=hip+delta/length*1.12f;foot=ankle-Vector3.up*.10f;delta=ankle-hip;length=1.12f;
+                FootPositions[i]=foot;Planted[i]=false;
+                if(!Employee&&grounded){anchors[i]=foot;takeoff[i]=foot;swinging[i]=false;recovering[i]=false;}
+            }
             Vector3 bend=Vector3.ProjectOnPlane(transform.forward,delta.normalized).normalized;
             Vector3 joint=(hip+ankle)*.5f+bend*Mathf.Sqrt(Mathf.Max(.015f,.56f*.56f-length*length*.25f));
             Segment(thigh[i],hip,joint);Segment(shin[i],joint,ankle);knee[i].position=joint;

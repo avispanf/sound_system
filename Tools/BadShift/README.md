@@ -9,7 +9,7 @@ when BadShiftDemo exists and adds an audition music multiplier.
 
 Open Assets/Playground/RelayField.unity in the prepared AudioMW-BadShift project
 using Unity 6000.3.21f1. Or launch Build/RelayField.app (window title BAD SHIFT).
-WASD / Shift / Space move. E uses the nearest object: microwave, boss, bathroom, lower fridge, loose props or the sparring skeleton. G operates the upper fridge door. Walk through three bananas; E collects the other four foods; reach the blue exit. R resets. Sound on/off mutes without pausing.
+WASD / Shift / Space move. E uses the nearest object: microwave, boss, bathroom, lower fridge, loose props or the sparring skeleton. G operates the upper fridge door. Walk through three bananas; E collects the other four foods; collect all seven to complete the ingredient route. R resets. Sound on/off mutes without pausing. Normal launch and Reset start with sound enabled; automated QA uses a separate silent flag.
 
 - Microwave: approach the coral appliance, E (or X) plays an actual AudioMW container;
   Q switches Random / ShuffleBag. HUD shows the actual debugger clip name.
@@ -18,7 +18,7 @@ WASD / Shift / Space move. E uses the nearest object: microwave, boss, bathroom,
 - Broccoli: approach the lectern, E (or X) queues VO; V also queues globally. Bus duck gain
   comes from the installed AudioMixer. The current clips are tones with subtitles.
 - Fridge: walk the right-hand lane. A fixed looping SoundEvent uses spatial
-  attenuation. HUD measures the real player AudioListener distance, never guessed dB.
+  attenuation. HUD measures the real player AudioListener distance. The optional audio map labels its distance-gain model separately from measured mixer values.
 - Bathroom: X plays the same impact, Q switches Dry / Echo / Reverb. Real Unity
   AudioEchoFilter and AudioReverbFilter act on one routed source; music is reduced
   while standing in this station. Echo delay 280 ms; reverb Bathroom preset.
@@ -50,8 +50,8 @@ changed demo scene; don't reapply its old installation plan.
 
 ## Verification and boundaries
 
-267 PlayMode tests pass in Unity 6000.3.21f1, including eighty demo tests: five inherited gameplay/mix tests and
-seventy-five BAD SHIFT checks (real clip selection, source/filter switching, listener
+272 PlayMode tests pass in Unity 6000.3.21f1, including eighty-five demo tests: five inherited gameplay/mix tests and
+eighty BAD SHIFT checks (real clip selection, source/filter switching, listener
 measurement, actual music/VO animation timing, collision, live character reactions and walkable routes). Collection tests move the character
 programmatically; they are not proof of complete human navigation/listening QA.
 
@@ -130,3 +130,6 @@ The rival now alternates DOUBLE DIP (two separately telegraphed sideways swings)
 
 
 At 50 HP the rival enters OVERTIME with a short elastic tantrum, amber/violet lighting and two new combinations: TRIPLE SERVING and RUSH ORDER. Each strike keeps its own readable windup and direction cue. Frontal blocks cancel the remaining series; the transition remains vulnerable. See BATTLE-ARENA.md for timings, reset behavior and verification.
+
+
+See FINAL-HANDOFF.md for the final gameplay freeze, sound replacement map, central bathroom, collision enclosure, bounded clay deformation, overtime finishing sequence and live audio explanation overlay. Tab or Audio map toggles the overlay; it hides during battle invitations and combat.

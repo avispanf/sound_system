@@ -38,7 +38,9 @@ public sealed class BadShiftDemo : MonoBehaviour
     private SoundHandle fridgeHandle;
     private bool bag = true;
     private int effect;
-    private bool details;
+    public bool AudioMapVisible { get; private set; } = true;
+    public SoundHandle FridgeHandle=>fridgeHandle;
+    private BadShiftAudioGuide guide;
     private string answer = "Ready for questionable cuisine";
     private Vector3 danceBase;
     private float dancePhase;
@@ -48,6 +50,7 @@ public sealed class BadShiftDemo : MonoBehaviour
     public float ListenerDistance => Vector3.Distance(Game.Listener.position, Fridge.position);
     private void Start()
     {
+        guide=GetComponent<BadShiftAudioGuide>();
         BadShiftImpactProp.ResetCounters();
         MicrowaveBag.ResetSelection(); MicrowaveRandom.ResetSelection();
         danceBase = Dancer.localPosition; dancerRest = Dancer.localRotation; bossRest = Boss.localRotation;
@@ -86,7 +89,7 @@ public sealed class BadShiftDemo : MonoBehaviour
         if (AudioListener.pause) return;
         if (k != null)
         {
-            if (k.tabKey.wasPressedThisFrame) details = !details;
+            if (k.tabKey.wasPressedThisFrame) AudioMapVisible = !AudioMapVisible;
             if (k.qKey.wasPressedThisFrame) { if (Station() == 1) ToggleSelection(); if (Station() == 3) SetEffect((effect + 1) % 3); }
             if (k.xKey.wasPressedThisFrame) { if (Station() == 1) PlayMicrowave(); if (Station() == 2) Game.Speak(); if (Station() == 3) PlayRoom(); }
         }
@@ -154,6 +157,7 @@ public sealed class BadShiftDemo : MonoBehaviour
         GUI.Label(new Rect(45,70,280,20),"AUDIOMW / AUDIO PLAYGROUND",TextStyle(11,muted));
         BadShiftTour tour=Game.Tour;bool watching=tour!=null&&tour.Running;
         if(Game.Life!=null&&Button(new Rect(w-586,42,124,40),Game.Life.Muted?"Sound off":"Sound on"))Game.Life.ToggleSound();
+        if(Button(new Rect(w-714,42,116,40),AudioMapVisible?"Audio map on":"Audio map off"))AudioMapVisible=!AudioMapVisible;
         if(Button(new Rect(w-450,42,140,40),"Play yourself",!watching)&&tour!=null){tour.Stop();if(Game.Life!=null&&Game.Life.Duel)Game.Life.Battle.ReturnToCafe();}
         if(Button(new Rect(w-298,42,140,40),watching?"Replay demo":"Watch demo",watching)&&tour!=null)tour.WatchFromStart();
         if(Button(new Rect(w-146,42,102,40),"Reset")){BadShiftTour.StartOnLoad=false;Game.ResetScene();}
@@ -167,6 +171,7 @@ public sealed class BadShiftDemo : MonoBehaviour
             GUI.Label(new Rect(invitation.x+18,invitation.y+36,384,24),"E / Leave the dance floor. Enter the fight.",TextStyle(14,muted));
         }
         float bottom=h-210;
+        if(guide!=null&&AudioMapVisible&&(battle==null||!battle.CanInvite))guide.Draw(w,h,bottom);
         Panel(new Rect(24,bottom,470,186),panel);
         GUI.Label(new Rect(44,bottom+16,430,26),tour!=null?tour.Heading:"Explore the cafe",TextStyle(17,white,true));
         GUI.Label(new Rect(44,bottom+48,430,86),Game.Life!=null&&(Game.Life.Duel||Game.Life.PlayerDead||Game.Life.EnemyDead)?Game.Life.CombatStatus:tour!=null?tour.Explanation:"WASD move / Shift run / Space jump",TextStyle(14,muted));
@@ -196,7 +201,7 @@ public sealed class BadShiftDemo : MonoBehaviour
         if(!string.IsNullOrEmpty(BossQuote))
         {
             Vector3 anchor=Game.View.WorldToScreenPoint(Boss.position+Vector3.up*4.9f)/scale;
-            if(anchor.z>0){Rect bubble=new Rect(Mathf.Clamp(anchor.x-160,24,w-344),Mathf.Clamp(h-anchor.y-82,112,bottom-90),320,76);Panel(bubble,new Color(.96f,.91f,.80f));GUIStyle quote=TextStyle(15,new Color(.12f,.15f,.18f));quote.alignment=TextAnchor.MiddleCenter;quote.padding=new RectOffset(14,14,8,8);GUI.Label(bubble,BossQuote,quote);}
+            if(anchor.z>0){Rect bubble=new Rect(Mathf.Clamp(anchor.x-160,24,w-344),Mathf.Clamp(h-anchor.y-82,AudioMapVisible?230:112,bottom-90),320,76);Panel(bubble,new Color(.96f,.91f,.80f));GUIStyle quote=TextStyle(15,new Color(.12f,.15f,.18f));quote.alignment=TextAnchor.MiddleCenter;quote.padding=new RectOffset(14,14,8,8);GUI.Label(bubble,BossQuote,quote);}
         }
         GUI.matrix=previous;
     }
@@ -248,7 +253,7 @@ public sealed class BadShiftDemo : MonoBehaviour
             string title=battle.Phase==BadShiftBattlePhase.Intro?"LAST DANCE":battle.Phase==BadShiftBattlePhase.Victory?"VICTORY":"YOU LOST";
             GUIStyle heading=TextStyle(38,battle.Phase==BadShiftBattlePhase.Victory?new Color(.5f,1,.8f):new Color(1,.5f,.4f),true);heading.alignment=TextAnchor.MiddleCenter;
             GUI.Label(new Rect(box.x+20,box.y+24,520,52),title,heading);
-            GUI.Label(new Rect(box.x+30,box.y+84,500,48),battle.Phase==BadShiftBattlePhase.Intro?"LMB attacks. Hold RMB to block.":battle.Phase==BadShiftBattlePhase.Victory?"The lunch break is yours.":"Out of bones. Ready for another shift?",center);
+            GUI.Label(new Rect(box.x+30,box.y+84,500,48),battle.Phase==BadShiftBattlePhase.Intro?"LMB attacks. Hold RMB to block.":battle.Phase==BadShiftBattlePhase.Victory?(battle.OvertimeFinish?"OVERTIME CANCELLED. Breadstick champion!":"The lunch break is yours."):"Out of bones. Ready for another shift?",center);
             if(battle.Finished)
             {
                 if(Button(new Rect(box.x+72,box.y+154,196,42),"Fight again",true))battle.Rematch();

@@ -42,7 +42,7 @@ public sealed class BadShiftTour : MonoBehaviour
         yield return new WaitForSeconds(2);
         Heading = "02 / Adaptive music";
         Explanation = "Crossing into the kitchen requests Combat. The music waits for a musical boundary; the employee dances only after the track changes.";
-        yield return WalkTo(new Vector3(1,0,4.3f)); if (!Running) yield break;
+        yield return WalkTo(new Vector3(3,0,5.25f)); if (!Running) yield break;
         float until = Time.time + 8;
         while (AudioSystem.Music.IsTransitionPending && Time.time < until) yield return null;
         yield return new WaitForSeconds(3);
@@ -65,7 +65,7 @@ public sealed class BadShiftTour : MonoBehaviour
             float doorDeadline = Time.time + 4;
             while (Game.Door.IsMoving && Time.time < doorDeadline) yield return null;
         }
-        yield return WalkTo(new Vector3(-3,0,6.5f)); if (!Running) yield break;
+        yield return WalkTo(Demo.Room.position+Vector3.back*.5f); if (!Running) yield break;
         for (int mode=0;mode<3;mode++) { Demo.SetEffect(mode); Demo.PlayRoom(); yield return new WaitForSeconds(3); }
         Heading = "06 / Distance attenuation";
         Explanation = "Move the listener near and far from the fixed fridge. Music is muted here. E / lower door, G / upper door. Camera zoom does not change audio distance.";

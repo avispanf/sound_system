@@ -7,6 +7,10 @@ asset routing and VO ducking are implemented in [mix-setup.md](mix-setup.md).
 The remaining work below is planned. No AudioMW MCP server or live spectral adviser is implemented. The existing middleware remains
 usable without an agent, cloud account or subscription.
 
+See [the 2026-11-10 source and target-profile audit](agent-and-mix-audit-2026-11-10.md)
+for current implementation boundaries, transport recommendation and sourced
+loudness-profile conditions.
+
 ## Customer workflow
 
 A developer gives their preferred coding agent a folder of music and sound files

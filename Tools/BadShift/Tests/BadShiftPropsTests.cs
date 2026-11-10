@@ -52,7 +52,7 @@ public sealed class BadShiftPropsTests
     [UnityTest] public IEnumerator NearbyInteractionOpensAndClosesTheDoor()
     {
         BadShiftDoor door=game.Door;Assert.IsNotNull(door);
-        Place(new Vector3(-.9f,.05f,4.8f));game.Interact();Assert.IsTrue(door.IsOpen);
+        Place(new Vector3(2.1f,.05f,-.2f));game.Interact();Assert.IsTrue(door.IsOpen);
         yield return new WaitForSeconds(.6f);Assert.IsFalse(door.IsMoving);Assert.Greater(Quaternion.Angle(door.transform.rotation,Quaternion.identity),90);
         game.Interact();Assert.IsFalse(door.IsOpen);
         yield return new WaitForSeconds(.6f);Assert.IsFalse(door.IsMoving);Assert.Less(Quaternion.Angle(door.transform.rotation,Quaternion.identity),1);
@@ -68,7 +68,7 @@ public sealed class BadShiftPropsTests
     }
     [UnityTest] public IEnumerator DoorStopsBeforeSweepingIntoThePlayer()
     {
-        BadShiftDoor door=game.Door;Place(new Vector3(-3.1f,.05f,4.8f));game.enabled=false;
+        BadShiftDoor door=game.Door;Place(new Vector3(-.1f,.05f,-.2f));game.enabled=false;
         door.SetOpen(true);yield return new WaitForSeconds(1.4f);
         Assert.IsTrue(door.IsMoving);Assert.Less(Quaternion.Angle(door.transform.rotation,Quaternion.identity),80);
         Place(new Vector3(2,.05f,-5));yield return new WaitForSeconds(1.4f);Assert.IsFalse(door.IsMoving);
