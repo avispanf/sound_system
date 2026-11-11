@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0-preview.23 — Dark workspace review
+
+- Readable two-line Diagnostics rows in narrow windows; restore columns when widened.
+- Consistent workspace headings and library insets.
+- Clear stale Diagnostics after Play Mode and refresh unavailable settings targets.
+
+
 ## 0.5.0-preview.22 — Editor polish
 
 - Separate captured Music scheduling and unavailable runtime states; scrollable narrow layout.

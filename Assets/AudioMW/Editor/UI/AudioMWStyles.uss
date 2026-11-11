@@ -154,3 +154,21 @@
     flex-shrink: 0;
 }
 .audiomw-runtime-card .unity-label { white-space: normal; }
+
+.audiomw-diagnostics > .audiomw-title, .audiomw-diagnostics > .audiomw-eyebrow {
+    margin-left: 8px;
+    margin-right: 8px;
+}
+.audiomw-diagnostics-narrow .audiomw-diagnostic-row { flex-wrap: wrap; }
+.audiomw-diagnostics-narrow .audiomw-diagnostic-reason {
+    flex-basis: 100%;
+    flex-shrink: 0;
+    min-width: 0;
+    margin-top: 0;
+    opacity: 0.85;
+    font-size: 11px;
+}
+.audiomw-diagnostics-narrow .audiomw-diagnostic-header .audiomw-diagnostic-reason { display: none; }
+.audiomw-diagnostic-row .audiomw-diagnostic-outcome { -unity-text-align: middle-right; }
+
+.audiomw-library-item { padding-left: 8px; padding-right: 6px; min-width: 0; width: 100%; flex-shrink: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; -unity-text-align: middle-left; }

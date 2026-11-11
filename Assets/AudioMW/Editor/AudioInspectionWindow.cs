@@ -56,7 +56,8 @@ namespace AudioMW.Editor
             var toggle = new ToolbarToggle { text = "Follow selection", value = follow }; toggle.RegisterValueChangedCallback(e => { follow = e.newValue; Follow(); }); bar.Add(toggle);
             bar.Add(new ToolbarButton(Refresh) { text = "Refresh" }); rootVisualElement.Add(bar);
             var split = new TwoPaneSplitView(0, 190, TwoPaneSplitViewOrientation.Horizontal); split.style.flexGrow = 1;
-            library = new ListView(visible, 24, () => new Label(), (v, i) => { var label = (Label)v; label.text = visible[i].name; label.tooltip = AssetDatabase.GetAssetPath(visible[i]); label.style.overflow = Overflow.Hidden; label.style.textOverflow = TextOverflow.Ellipsis; }) { selectionType = SelectionType.Single, name = "workspace-library" };
+            library = new ListView(visible, 24, () => { var label = new Label(); label.AddToClassList("audiomw-library-item"); return label; }, (v, i) => { var label = (Label)v; label.text = visible[i].name; label.tooltip = AssetDatabase.GetAssetPath(visible[i]); label.style.overflow = Overflow.Hidden; label.style.textOverflow = TextOverflow.Ellipsis; }) { selectionType = SelectionType.Single, name = "workspace-library" };
+            library.horizontalScrollingEnabled = false;
             library.style.minWidth = 150; library.AddToClassList("audiomw-list"); library.selectionChanged += items => { foreach (Object item in items) { SelectAsset(item); Selection.activeObject = item; break; } };
             detail = new ScrollView { name = "workspace-detail" }; detail.AddToClassList("audiomw-preview"); detail.AddToClassList("audiomw-inspection"); detail.style.minWidth = 260; split.Add(library); split.Add(detail); rootVisualElement.Add(split);
             status = new Label { name = "workspace-status" }; status.AddToClassList("audiomw-status"); rootVisualElement.Add(status); Refresh();
@@ -90,8 +91,8 @@ namespace AudioMW.Editor
                 detail.Add(new Button(() => { query = ""; rootVisualElement.Q<ToolbarSearchField>().SetValueWithoutNotify(""); Filter(); }) { text = "Reset search" }); return;
             }
             dirty = EditorUtility.GetDirtyCount(selected); dependencyDirty = selected is SoundEvent dependencyEvent && dependencyEvent.AttenuationPreset != null ? EditorUtility.GetDirtyCount(dependencyEvent.AttenuationPreset) : 0;
+            var eyebrow = new Label(workspace.ToString().ToUpperInvariant() + " / READ-ONLY OVERVIEW"); eyebrow.AddToClassList("audiomw-eyebrow"); detail.Add(eyebrow);
             var title = new Label(selected.name); title.AddToClassList("audiomw-title"); detail.Add(title);
-            Note(workspace.ToString().ToUpperInvariant() + " / READ-ONLY OVERVIEW");
             var actions = new VisualElement(); actions.style.flexDirection = FlexDirection.Row; actions.style.flexWrap = Wrap.Wrap;
             actions.Add(new Button(() => Selection.activeObject = selected) { text = "Show settings" }); actions.Add(new Button(() => AudioWorkspace.Pin(selected)) { text = "Pin native Inspector" }); detail.Add(actions);
             if (workspace == Workspace.Spatial) DrawSpatial(); else if (workspace == Workspace.Parameters) DrawParameter(); else DrawRouting();

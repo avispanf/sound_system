@@ -145,3 +145,5 @@ Preview.19 adds nearby, transient sound-event labels and distance-limited links.
 Preview.20 develops the native Events/Inspector workflow from the v1.1 editor guide: explicit dry/runtime audition, actual routing and parameter references, Review changes access and Mute with Undo. See Documentation/editor-ui-stage-one.md and EDITOR-UI-VERIFICATION.json. Screenshots are actual Unity captures.
 
 Preview.21 adds Spatial, Parameters and Routing workspaces. Native light/dark checks and 314 EditMode tests are recorded in SPATIAL-UI-VERIFICATION.json; see Documentation/editor-context-workspaces.md. Runtime and gameplay build remain unchanged.
+
+Preview.23 completes the Dark Music/Diagnostics review with real muted runtime requests, narrow two-line diagnostic rows and consistent workspace spacing. See DARK-UI-VERIFICATION.json: 315 EditMode, 32 targeted PlayMode and 16 runtime UI assertions passed. Light was excluded by the latest user decision. The native gameplay build was not rebuilt for these Editor-only changes.

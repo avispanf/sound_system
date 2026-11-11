@@ -10,6 +10,7 @@ namespace AudioMW.Editor
     {
         [SerializeField] private string search = "";
         [SerializeField] private bool rejectionsOnly;
+        private bool compact;
         private Label emptyLabel;
         private ListView listView;
         private ToolbarSearchField searchField;
@@ -34,12 +35,21 @@ namespace AudioMW.Editor
             window.Show();
         }
 
+        private void OnEnable() { EditorApplication.playModeStateChanged += OnPlayModeChanged; }
+        private void OnDisable() { EditorApplication.playModeStateChanged -= OnPlayModeChanged; }
+        private void OnPlayModeChanged(PlayModeStateChange state)
+        {
+            if (summaryLabel != null && (state == PlayModeStateChange.EnteredEditMode || state == PlayModeStateChange.EnteredPlayMode)) RebuildList();
+        }
+
         public void CreateGUI()
         {
+            rootVisualElement.UnregisterCallback<GeometryChangedEvent>(OnGeometryChanged);
             rootVisualElement.Clear();
             AudioWorkspace.Style(rootVisualElement);
             rootVisualElement.Add(AudioWorkspace.Navigation("Diagnostics"));
             rootVisualElement.AddToClassList("audiomw-inspection");
+            rootVisualElement.AddToClassList("audiomw-diagnostics");
             Label eyebrow = new Label("DIAGNOSTICS / CAPTURED REQUESTS");
             eyebrow.AddToClassList("audiomw-eyebrow"); rootVisualElement.Add(eyebrow);
             Label title = new Label("Why is it silent?");
@@ -76,11 +86,13 @@ namespace AudioMW.Editor
             rootVisualElement.Add(toolbar);
 
             listView = new ListView();
-            listView.fixedItemHeight = 28f;
+            listView.fixedItemHeight = compact ? 44f : 28f;
             listView.selectionType = SelectionType.Single;
             listView.style.flexGrow = 1f;
             listView.style.minHeight = 84f;
-            rootVisualElement.Add(MakeRow(true));
+            VisualElement header = MakeRow(true);
+            header.AddToClassList("audiomw-diagnostic-header");
+            rootVisualElement.Add(header);
             listView.makeItem = () => MakeRow(false);
             listView.bindItem = BindItem;
             listView.itemsSource = visible;
@@ -94,7 +106,7 @@ namespace AudioMW.Editor
             details.style.flexShrink = 1;
             details.AddToClassList("audiomw-runtime-card");
             rootVisualElement.Add(details);
-            detailLabel = new Label();
+            detailLabel = new Label { name = "captured-outcome" };
             detailLabel.style.whiteSpace = WhiteSpace.Normal;
             detailLabel.style.paddingLeft = 6f;
             detailLabel.style.paddingTop = 4f;
@@ -113,13 +125,24 @@ namespace AudioMW.Editor
             }) { text = "Open event settings", name = "open-event-settings" };
             openEvent.SetEnabled(false); details.Add(openEvent);
             Foldout gains = new Foldout { text = "Gain details · Captured", value = false };
-            gainLabel = new Label { style = { whiteSpace = WhiteSpace.Normal } }; gains.Add(gainLabel); details.Add(gains);
+            gainLabel = new Label { name = "captured-gain", style = { whiteSpace = WhiteSpace.Normal } }; gains.Add(gainLabel); details.Add(gains);
             summaryLabel = new Label { style = { whiteSpace = WhiteSpace.Normal } };
             summaryLabel.style.paddingLeft = 6f;
             summaryLabel.style.paddingBottom = 4f;
             rootVisualElement.Add(summaryLabel);
 
+            rootVisualElement.RegisterCallback<GeometryChangedEvent>(OnGeometryChanged);
+            SetCompact(position.width < 520);
             RebuildList();
+        }
+
+        private void OnGeometryChanged(GeometryChangedEvent evt) { SetCompact(evt.newRect.width < 520); }
+
+        private void SetCompact(bool value)
+        {
+            compact = value;
+            rootVisualElement.EnableInClassList("audiomw-diagnostics-narrow", compact);
+            if (listView != null) listView.fixedItemHeight = compact ? 44f : 28f;
         }
 
         private void OnInspectorUpdate()
@@ -214,12 +237,18 @@ namespace AudioMW.Editor
                         (record.Outcome == PlaybackOutcome.Played ? "Accepted" + (record.HasGainCapture && record.FinalVolume == 0 ? " · Source volume is zero" : "") : "Rejected · " + record.DescribeOutcome()) +
                         "\nCaptured at " + record.Time.ToString("0.00") + " s · " + (string.IsNullOrEmpty(record.ClipName) ? "No source clip captured" : record.ClipName);
                     gainLabel.text = record.Outcome == PlaybackOutcome.Played && record.HasGainCapture ? record.DescribeVolumeChain() + "\n" + record.DescribeVolumeDecibels() + "\nCaptured source gain only. Mixer, distance attenuation and master output are not measured here." : "No source-gain values captured for this record.";
-                    openEvent.SetEnabled(SettingsEvent(record) != null);
-                    openEvent.tooltip = SettingsEvent(record) != null ? "Select the captured event and reveal relevant settings." : "Unavailable: the captured event asset no longer exists.";
+                    UpdateSettingsAction();
                 }
 
                 break;
             }
+        }
+
+        private void UpdateSettingsAction()
+        {
+            bool available = hasSelectedRecord && SettingsEvent(selectedRecord) != null;
+            openEvent.SetEnabled(available);
+            openEvent.tooltip = available ? "Select the captured event and reveal relevant settings." : hasSelectedRecord ? "Unavailable: the captured event asset no longer exists." : "Select a captured record with an available event asset.";
         }
 
         private void RebuildList()
@@ -255,7 +284,7 @@ namespace AudioMW.Editor
                 listView.itemsSource = visible;
                 listView.Rebuild();
                 int selectedIndex = hasSelectedRecord ? visible.IndexOf(selectedRecord) : -1;
-                if (selectedIndex >= 0) listView.SetSelectionWithoutNotify(new[] { selectedIndex });
+                if (selectedIndex >= 0) { listView.SetSelectionWithoutNotify(new[] { selectedIndex }); UpdateSettingsAction(); }
                 else
                 {
                     hasSelectedRecord = false; selectedBanks.Clear(); UpdateBankState(); detailLabel.text = "Select a captured outcome to inspect its reason.";

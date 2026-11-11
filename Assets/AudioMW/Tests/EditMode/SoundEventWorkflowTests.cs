@@ -76,6 +76,26 @@ namespace AudioMW.Tests
             Assert.AreEqual(0, (int)ContainerMode.Simple); Assert.AreEqual(1, (int)ClipSelectionMode.RandomNoRepeat);
         }
 
+        [UnityTest]
+        public IEnumerator DiagnosticsReflowsReasonsWithoutLosingCapturedColumns()
+        {
+            var window = ScriptableObject.CreateInstance<EventDebuggerWindow>();
+            try
+            {
+                window.Show(); window.CreateGUI(); window.position = new Rect(100, 100, 360, 480);
+                yield return null; yield return null;
+                Assert.IsTrue(window.rootVisualElement.ClassListContains("audiomw-diagnostics-narrow"));
+                Assert.AreEqual(44, window.rootVisualElement.Q<ListView>().fixedItemHeight);
+                Assert.AreEqual(DisplayStyle.None, window.rootVisualElement.Q(className: "audiomw-diagnostic-header").Q<Label>("reason").resolvedStyle.display);
+                window.position = new Rect(100, 100, 620, 480);
+                yield return null; yield return null;
+                Assert.IsFalse(window.rootVisualElement.ClassListContains("audiomw-diagnostics-narrow"));
+                Assert.AreEqual(28, window.rootVisualElement.Q<ListView>().fixedItemHeight);
+                Assert.AreEqual(DisplayStyle.Flex, window.rootVisualElement.Q(className: "audiomw-diagnostic-header").Q<Label>("reason").resolvedStyle.display);
+            }
+            finally { window.Close(); }
+        }
+
         [Test]
         public void DiagnosticReasonsDistinguishAcceptedSilenceFromRejection()
         {
