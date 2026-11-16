@@ -151,3 +151,5 @@ Preview.23 completes the Dark Music/Diagnostics review with real muted runtime r
 Preview.24 polishes the native SoundEvent Inspector and Review changes in Dark. See INSPECTOR-REVIEW-VERIFICATION.json and Documentation/editor-context-workspaces.md. Proposal review does not apply or import anything; whole-plan application still requires human confirmation.
 
 Preview.25 refreshes shared dark workspace styling, the Events library, searchable Music profiles and music/profile review cards. Evidence and precise validation scope are recorded in DARK-UI-VERIFICATION.json; this editor-only update does not rebuild the native player.
+
+Preview.26 applies the reference library/overview/context composition to Spatial, Parameters and Routing, including narrow reflow and persistent selection. See DARK-UI-VERIFICATION.json for fresh checks and limitations. Runtime and native player remain unchanged.

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0-preview.26 — Spatial, parameter and routing composition
+
+- Separate project library, central overview and native-settings context across Spatial, Parameters and Routing.
+- Reflow context below the overview in narrow windows without changing selection or authored values.
+- Keep the actual distance curve above its preview control and show scene distance independently of curve availability.
+- Present authored routes as distinct cards; unavailable mixer topology and meters remain explicit.
+- Restore library highlighting when rebuilding a workspace.
+
 ## 0.5.0-preview.25 — Reference workspace composition
 
 - Apply shared graphite surfaces, teal selection and flat workspace navigation across the editor.

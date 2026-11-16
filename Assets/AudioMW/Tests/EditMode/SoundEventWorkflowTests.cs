@@ -53,6 +53,33 @@ namespace AudioMW.Tests
             finally { window.Close(); }
         }
 
+        [UnityTest] public IEnumerator InspectionContextsReflowWithoutEditingAssets()
+        {
+            var sound = Event("WorkspaceLayout", Clip("WorkspaceClip"));
+            var parameter = SoundParameter.CreateRuntime(0,1,.25f); AssetDatabase.CreateAsset(parameter,folder+"/LayoutParameter.asset");
+            foreach (AudioInspectionWindow.Workspace mode in System.Enum.GetValues(typeof(AudioInspectionWindow.Workspace)))
+            {
+                var window = AudioInspectionWindow.Open(mode);
+                Object item = mode == AudioInspectionWindow.Workspace.Parameters ? (Object)parameter : sound;
+                string before = JsonUtility.ToJson(item);
+                try
+                {
+                    window.position = new Rect(100,100,1200,650); window.SelectAsset(item);
+                    yield return null; yield return null; yield return null;
+                    var root = window.rootVisualElement; var detail = root.Q<ScrollView>("workspace-detail");
+                    Assert.IsFalse(detail.Contains(root.Q("inspection-context")));
+                    Assert.Greater(root.Q("inspection-context-host").worldBound.xMin, detail.worldBound.xMin);
+                    window.position = new Rect(100,100,620,500);
+                    yield return null; yield return null; yield return null;
+                    Assert.IsTrue(detail.Contains(root.Q("inspection-context")));
+                    Assert.AreEqual(before, JsonUtility.ToJson(item));
+                    window.CreateGUI();
+                    Assert.AreSame(item, window.rootVisualElement.Q<ListView>("workspace-library").selectedItem);
+                }
+                finally { window.Close(); }
+            }
+        }
+
         [Test]
         public void EventContextSeparatesDryPreviewFromUnavailableRuntime()
         {

@@ -256,3 +256,17 @@
 .audiomw-music .audiomw-music-narrow #music-context { margin-top: 12px; padding-top: 8px; border-top-width: 1px; border-top-color: rgb(61, 66, 67); }
 
 .audiomw-surface.audiomw-review .audiomw-proposal-selected, .audiomw-surface.audiomw-review .audiomw-review-apply { background-color: rgb(51, 78, 73); color: rgb(117, 202, 186); }
+
+.audiomw-workspace #inspection-layout { flex-direction: row; flex-grow: 1; min-height: 0; }
+.audiomw-workspace #inspection-library-panel { background-color: rgb(31, 34, 35); border-right-width: 1px; border-right-color: rgb(61, 66, 67); }
+.audiomw-workspace #inspection-library-panel .unity-toolbar { background-color: rgb(31, 34, 35); padding: 4px; height: auto; }
+.audiomw-workspace #inspection-context-host { width: 230px; flex-shrink: 0; padding: 12px; background-color: rgb(43, 47, 48); border-left-width: 1px; border-left-color: rgb(61, 66, 67); }
+.audiomw-workspace #inspection-context .unity-button { white-space: normal; height: auto; min-height: 24px; margin-top: 8px; }
+.audiomw-workspace #inspection-context .unity-base-field { margin-top: 8px; }
+.audiomw-workspace .audiomw-workspace-narrow #inspection-context-host { display: none; }
+.audiomw-workspace .audiomw-workspace-narrow #inspection-context { margin-top: 16px; padding-top: 8px; border-top-width: 1px; border-top-color: rgb(61, 66, 67); }
+.audiomw-route-card { margin-top: 12px; padding: 12px; background-color: rgb(31, 34, 35); border-left-width: 2px; border-left-color: rgb(117, 202, 186); }
+.audiomw-route-card .unity-button { margin-top: 8px; }
+
+.audiomw-workspace #inspection-context .unity-object-field { flex-direction: column; align-items: stretch; }
+.audiomw-workspace #inspection-context .unity-base-field__label { margin-bottom: 4px; }
