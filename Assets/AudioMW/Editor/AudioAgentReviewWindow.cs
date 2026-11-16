@@ -55,7 +55,7 @@ namespace AudioMW.Editor
             if (!string.IsNullOrEmpty(error)) scroll.Add(new HelpBox(error, HelpBoxMessageType.Error));
             foreach (var pending in AudioAgentBridge.Plans)
             {
-                var data = pending.Read(); var proposal = new Button(() => { selectedId = data.Id; error = null; CreateGUI(); }) { text = pending.State + " · " + (data.Changes.Length + data.Music.Length) + " asset(s) · " + data.Id.Substring(0, 8), tooltip = data.Intent }; proposal.EnableInClassList("audiomw-proposal-selected", data.Id == selectedId); proposals.Add(proposal);
+                var data = pending.Read(); var proposal = new Button(() => { selectedId = data.Id; error = null; CreateGUI(); }) { text = pending.State + " · " + (data.Changes.Length + data.Music.Length + (data.HasProfile ? 1 : 0)) + " asset(s) · " + data.Id.Substring(0, 8), tooltip = data.Intent }; proposal.EnableInClassList("audiomw-proposal-selected", data.Id == selectedId); proposals.Add(proposal);
             }
             var plan = AudioAgentBridge.Find(selectedId); if (plan == null) { scroll.Add(Text("Send files through your agent, then choose a proposal here. No assets are imported while preparing a plan.")); return; }
             var review = plan.Read();
@@ -85,20 +85,30 @@ namespace AudioMW.Editor
             foreach (var change in review.Music)
             {
                 var settings = change.Settings;
-                var item = new Foldout { text = "Music: " + settings.Name, value = true, viewDataKey = "AudioMW.Review.Music." + review.Id + settings.Name }; item.AddToClassList("audiomw-review-item"); scroll.Add(item);
-                item.Add(Text(change.Target.Path + "\nWhy: " + settings.Purpose + "\n" + change.Before));
-                item.Add(Text("After: " + settings.Tempo + " BPM · " + settings.BeatsPerBar + " beats/bar · loop on\nRoute: " + change.Route));
-                item.Add(Text("Intro: " + (string.IsNullOrEmpty(settings.Intro) ? "none" : settings.Intro) + "\nBody: " + (string.IsNullOrEmpty(settings.Body) ? "stems only" : settings.Body)));
-                foreach (var stem in settings.Stems) item.Add(Text("Stem " + stem.Name + " · " + (string.IsNullOrEmpty(stem.ParameterGuid) ? "constant weight " + stem.LowWeight : change.Parameters.First(p => p.Guid == stem.ParameterGuid).Path + " · normalized 0→1 maps to " + stem.LowWeight + "→" + stem.HighWeight) + " · fade " + stem.FadeSeconds + "s"));
+                var item = new VisualElement(); item.AddToClassList("audiomw-review-item"); scroll.Add(item);
+                var heading = Text(settings.Name); heading.AddToClassList("audiomw-review-heading"); item.Add(heading);
+                var kind = Text("Music track · " + settings.Stems.Length + " stems"); kind.AddToClassList("audiomw-eyebrow"); item.Add(kind);
+                item.Add(Text(change.Before));
+                item.Add(Text("After: " + settings.Tempo + " BPM · " + settings.BeatsPerBar + " beats/bar · loop on"));
+                item.Add(Text("Route: " + change.Route));
+                var why = new Foldout { text = "Why / exact change", value = false, viewDataKey = "AudioMW.Review.MusicWhy." + review.Id + settings.Name }; item.Add(why);
+                why.Add(Text(settings.Purpose + "\n" + change.Target.Path));
+                why.Add(Text("Intro: " + (string.IsNullOrEmpty(settings.Intro) ? "none" : settings.Intro) + "\nBody: " + (string.IsNullOrEmpty(settings.Body) ? "stems only" : settings.Body)));
+                foreach (var stem in settings.Stems) why.Add(Text("Stem " + stem.Name + " · " + (string.IsNullOrEmpty(stem.ParameterGuid) ? "constant weight " + stem.LowWeight : change.Parameters.First(p => p.Guid == stem.ParameterGuid).Path + " · normalized 0→1 maps to " + stem.LowWeight + "→" + stem.HighWeight) + " · fade " + stem.FadeSeconds + "s"));
                 var files = new Foldout { text = "File details · " + change.Files.Length, value = false, viewDataKey = "AudioMW.Review.MusicFiles." + review.Id + settings.Name }; item.Add(files);
                 foreach (var file in change.Files) files.Add(Text(file.Source + "\n→ " + file.Destination + "\nChannels: " + (file.ForceToMono ? "Force mono (Unity downmix)" : "Source layout (mono/stereo preserved)") + " · " + (file.Bytes / 1024f).ToString("0.0") + " KB · SHA256 " + file.Sha256.Substring(0, 12)));
             }
             if (review.HasProfile)
             {
-                var p = review.Profile; scroll.Add(Text("State profile: " + p.Target.Path + "\n" + p.Before));
-                foreach (var state in p.Settings.States) scroll.Add(Text(state.Name + " → " + state.Track));
-                scroll.Add(Text("Default transition: " + p.Settings.Quantization + " · " + p.Settings.FadeSeconds + "s · " + p.Settings.Curve));
-                foreach (var rule in p.Settings.Transitions) scroll.Add(Text(rule.From + " → " + rule.To + " · " + rule.Quantization + " · " + rule.FadeSeconds + "s · " + rule.Curve));
+                var p = review.Profile;
+                var item = new VisualElement(); item.AddToClassList("audiomw-review-item"); scroll.Add(item);
+                var heading = Text("State profile"); heading.AddToClassList("audiomw-review-heading"); item.Add(heading);
+                item.Add(Text(p.Target.Path + "\n" + p.Before));
+                item.Add(Text("After: " + p.Settings.States.Length + " states · " + p.Settings.Transitions.Length + " transition rules"));
+                var rules = new Foldout { text = "Exact states / transitions", value = false }; item.Add(rules);
+                foreach (var state in p.Settings.States) rules.Add(Text(state.Name + " → " + state.Track));
+                rules.Add(Text("Default transition: " + p.Settings.Quantization + " · " + p.Settings.FadeSeconds + "s · " + p.Settings.Curve));
+                foreach (var rule in p.Settings.Transitions) rules.Add(Text(rule.From + " → " + rule.To + " · " + rule.Quantization + " · " + rule.FadeSeconds + "s · " + rule.Curve));
             }
             var limitations = new Foldout { text = "Scope / limitations", value = false }; scroll.Add(limitations);
             foreach (string limit in review.Limitations) limitations.Add(Text(limit));

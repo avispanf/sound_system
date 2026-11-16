@@ -243,6 +243,31 @@ namespace AudioMW.Tests
             window.Close();
         }
 
+        [UnityTest] public IEnumerator MusicWorkspaceMovesContextWithoutLosingProfileOrControls()
+        {
+            var window = ScriptableObject.CreateInstance<MusicStatePreviewWindow>();
+            var profile = ScriptableObject.CreateInstance<MusicStateProfile>(); temporary.Add(profile);
+            try
+            {
+                profile.States = new[] { new MusicState { Name = "Explore" } };
+                window.Show(); window.position = new Rect(100,100,1100,650); window.CreateGUI();
+                window.rootVisualElement.Q<ObjectField>().value = profile;
+                yield return null; yield return null; yield return null;
+                var root = window.rootVisualElement;
+                var content = root.Q<ScrollView>("music-content");
+                Assert.IsFalse(content.Contains(root.Q("music-context")));
+                Assert.Greater(root.Q("music-context-host").worldBound.xMin, content.worldBound.xMin);
+                window.position = new Rect(100,100,360,480);
+                yield return null; yield return null; yield return null;
+                Assert.IsTrue(content.Contains(root.Q("music-context")));
+                Assert.AreSame(profile, root.Q<ObjectField>().value);
+                Assert.AreEqual(1, root.Query<Button>("request-state").ToList().Count);
+                Assert.IsFalse(root.Q<Button>("cancel-pending-music").enabledSelf);
+                Assert.IsFalse(root.Q<Button>("stop-scene-music").enabledSelf);
+            }
+            finally { window.Close(); }
+        }
+
         [UnityTest] public IEnumerator MusicRefreshTracksAddedRemovedRenamedAndReplacedStates()
         {
             MusicStatePreviewWindow window = ScriptableObject.CreateInstance<MusicStatePreviewWindow>();

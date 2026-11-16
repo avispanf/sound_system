@@ -53,16 +53,21 @@ namespace AudioMW.Editor
         public void CreateGUI()
         {
             rootVisualElement.Clear(); AudioWorkspace.Style(rootVisualElement);
+            rootVisualElement.AddToClassList("audiomw-events");
             rootVisualElement.Add(AudioWorkspace.Navigation("Events"));
+            var library = new VisualElement { name = "event-library" };
+            var heading = new Label("Project browser"); heading.AddToClassList("audiomw-panel-heading"); library.Add(heading);
             Toolbar toolbar = new Toolbar();
-            searchField = new ToolbarSearchField { name = "asset-search", tooltip = "Search audio assets by name." }; searchField.style.flexGrow = 1;
+            searchField = new ToolbarSearchField { name = "asset-search", tooltip = "Search audio assets by name." }; searchField.style.flexGrow = 1; searchField.style.flexShrink = 1; searchField.style.minWidth = 0; searchField.style.width = 0;
             searchField.SetValueWithoutNotify(query);
             searchField.RegisterValueChangedCallback(evt => { query = evt.newValue; Rebuild(); }); toolbar.Add(searchField);
-            toolbar.Add(new ToolbarButton(Refresh) { text = "Refresh" }); rootVisualElement.Add(toolbar);
-            chipRow = new VisualElement(); chipRow.AddToClassList("audiomw-chip-row"); rootVisualElement.Add(chipRow); BuildChips();
+            toolbar.Add(new ToolbarButton(Refresh) { text = "Refresh" }); library.Add(toolbar);
+            chipRow = new VisualElement(); chipRow.AddToClassList("audiomw-chip-row"); library.Add(chipRow); BuildChips();
             TwoPaneSplitView split = new TwoPaneSplitView(0, libraryWidth, TwoPaneSplitViewOrientation.Horizontal) { viewDataKey = "AudioMW.Browser.Split" };
             split.style.flexGrow = 1; rootVisualElement.Add(split);
             listView = new ListView { name = "asset-list", fixedItemHeight = 24, selectionType = SelectionType.Single };
+            listView.style.flexGrow = 1;
+            library.style.minWidth = 180;
             listView.style.minWidth = 180; listView.AddToClassList("audiomw-list");
             listView.makeItem = () => new Label();
             listView.bindItem = (element, i) =>
@@ -74,9 +79,9 @@ namespace AudioMW.Editor
                 label.style.paddingLeft = entry.IsHeader ? 6 : 16;
             };
             listView.itemsSource = visible; listView.selectionChanged += OnSelectionChanged;
-            listView.RegisterCallback<GeometryChangedEvent>(evt => { if (evt.newRect.width >= 180) libraryWidth = evt.newRect.width; });
+            library.RegisterCallback<GeometryChangedEvent>(evt => { if (evt.newRect.width >= 180) libraryWidth = evt.newRect.width; });
             listView.RegisterCallback<KeyDownEvent>(evt => { if (evt.keyCode == KeyCode.Return && selected != null) { Selection.activeObject = selected; evt.StopPropagation(); } });
-            split.Add(listView);
+            library.Add(listView); split.Add(library);
             preview = new ScrollView { name = "asset-overview" }; preview.style.minWidth = 280; preview.AddToClassList("audiomw-preview"); split.Add(preview);
             statusLabel = new Label { name = "browser-status" }; statusLabel.AddToClassList("audiomw-status"); rootVisualElement.Add(statusLabel);
             Refresh();

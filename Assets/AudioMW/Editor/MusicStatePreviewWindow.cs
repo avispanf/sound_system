@@ -13,6 +13,11 @@ namespace AudioMW.Editor
         private Label status;
         private Label timing;
         private HelpBox help;
+        private ScrollView library;
+        private VisualElement profileList;
+        [SerializeField] private string profileQuery = "";
+        private ObjectField profileField;
+        private Label profileTitle;
         private IVisualElementScheduledItem refresh;
 
         [MenuItem("Window/AudioMW/Music Transitions")]
@@ -28,6 +33,26 @@ namespace AudioMW.Editor
             window.Show();
         }
 
+        private void OnProjectChange() { RebuildLibrary(); }
+
+        private void RebuildLibrary()
+        {
+            if (profileList == null) return;
+            profileList.Clear();
+            int matches = 0;
+            string[] ids = AssetDatabase.FindAssets("t:MusicStateProfile");
+            System.Array.Sort(ids, (a, b) => string.Compare(AssetDatabase.GUIDToAssetPath(a), AssetDatabase.GUIDToAssetPath(b), System.StringComparison.OrdinalIgnoreCase));
+            foreach (string id in ids)
+            {
+                var item = AssetDatabase.LoadAssetAtPath<MusicStateProfile>(AssetDatabase.GUIDToAssetPath(id));
+                if (item == null || item.name.IndexOf(profileQuery, System.StringComparison.OrdinalIgnoreCase) < 0) continue;
+                matches++;
+                var button = new Button(() => { profileField.value = item; Selection.activeObject = item; }) { text = item.name, tooltip = AssetDatabase.GetAssetPath(item) };
+                button.EnableInClassList("audiomw-primary", profile == item); profileList.Add(button);
+            }
+            if (matches == 0) profileList.Add(new Label(ids.Length == 0 ? "No music state profiles in this project." : "No matching profiles. Clear the search to see all profiles.") { style = { whiteSpace = WhiteSpace.Normal } });
+        }
+
         public void CreateGUI()
         {
             VisualElement root = rootVisualElement;
@@ -36,23 +61,42 @@ namespace AudioMW.Editor
             AudioWorkspace.Style(root);
             root.Add(AudioWorkspace.Navigation("Music"));
             root.AddToClassList("audiomw-inspection");
+            root.AddToClassList("audiomw-music");
+            var layout = new VisualElement { name = "music-layout" }; root.Add(layout);
+            library = new ScrollView { name = "music-library" }; layout.Add(library);
+            var heading = new Label("Music profiles"); heading.AddToClassList("audiomw-panel-heading"); library.Add(heading);
+            var search = new ToolbarSearchField { name = "music-profile-search", tooltip = "Find a music state profile by name." };
+            search.style.minWidth = 0; search.style.width = Length.Percent(100); search.style.marginLeft = search.style.marginRight = 0;
+            search.SetValueWithoutNotify(profileQuery); search.RegisterValueChangedCallback(evt => { profileQuery = evt.newValue; RebuildLibrary(); }); library.Add(search);
+            profileList = new VisualElement(); library.Add(profileList);
             ScrollView content = new ScrollView { name = "music-content" };
             content.style.flexGrow = 1;
-            root.Add(content);
+            layout.Add(content);
+            var contextHost = new ScrollView { name = "music-context-host" }; layout.Add(contextHost);
+            var context = new VisualElement { name = "music-context" }; contextHost.Add(context);
+            var contextTitle = new Label("Transition settings"); contextTitle.AddToClassList("audiomw-panel-heading"); context.Add(contextTitle);
+            layout.RegisterCallback<GeometryChangedEvent>(evt =>
+            {
+                bool narrow = evt.newRect.width < 900;
+                if (layout.ClassListContains("audiomw-music-narrow") == narrow && (narrow ? context.parent == content.contentContainer : context.parent == contextHost.contentContainer)) return;
+                layout.EnableInClassList("audiomw-music-narrow", narrow);
+                if (narrow) content.Add(context); else contextHost.Add(context);
+            });
             root = content;
             Label eyebrow = new Label("ADAPTIVE MUSIC / SCENE RUNTIME");
             eyebrow.AddToClassList("audiomw-eyebrow"); root.Add(eyebrow);
             Label title = new Label("Music transitions");
-            title.AddToClassList("audiomw-title"); root.Add(title);
+            title.AddToClassList("audiomw-title"); root.Add(title); profileTitle = title;
             root.style.paddingLeft = root.style.paddingRight = 12;
             root.style.paddingTop = root.style.paddingBottom = 12;
             ObjectField field = new ObjectField("State profile") { objectType = typeof(MusicStateProfile), value = profile, allowSceneObjects = false };
-            field.RegisterValueChangedCallback(evt => { profile = evt.newValue as MusicStateProfile; Rebuild(); RefreshView(); });
+            profileField = field;
+            field.RegisterValueChangedCallback(evt => { profile = evt.newValue as MusicStateProfile; Rebuild(); RebuildLibrary(); RefreshView(); });
             root.Add(field);
             Button settings = new Button(() => { if (profile != null) Selection.activeObject = profile; }) { text = "Edit profile in Inspector" };
-            root.Add(settings);
+            context.Add(settings);
             help = new HelpBox("", HelpBoxMessageType.Info);
-            root.Add(help);
+            context.Add(help);
             status = new Label { name = "music-current-pending" };
             status.AddToClassList("audiomw-runtime-card");
             status.style.whiteSpace = WhiteSpace.Normal;
@@ -63,16 +107,17 @@ namespace AudioMW.Editor
             root.Add(timing);
             root.Add(new Label("Request state · Profile rules") { style = { unityFontStyleAndWeight = FontStyle.Bold } });
             stateButtons = new VisualElement { name = "music-states" };
-            stateButtons.style.flexGrow = 1;
+            stateButtons.style.flexDirection = FlexDirection.Row;
+            stateButtons.style.flexWrap = Wrap.Wrap;
             root.Add(stateButtons);
             Button stop = new Button(() => { if (EditorApplication.isPlaying && AudioRuntime.Exists) AudioSystem.StopMusic(); }) { text = "Stop music", name = "stop-scene-music" };
             stop.SetEnabled(false);
             Button cancel = new Button(() => { if (EditorApplication.isPlaying && AudioRuntime.Exists) AudioSystem.Music.CancelTransition(); }) { text = "Cancel pending transition", name = "cancel-pending-music", tooltip = "Cancel a transition before its scheduled boundary. A crossfade that has already started continues." };
             cancel.SetEnabled(false);
-            root.Add(cancel);
-            root.Add(stop);
+            context.Add(cancel);
+            context.Add(stop);
             refresh = root.schedule.Execute(() => { stop.SetEnabled(EditorApplication.isPlaying && AudioRuntime.Exists); cancel.SetEnabled(EditorApplication.isPlaying && AudioRuntime.Exists && AudioSystem.Music.IsTransitionPending && AudioSettings.dspTime < AudioSystem.Music.PendingStartDspTime); settings.SetEnabled(profile != null); RefreshView(); }).Every(100);
-            Rebuild(); RefreshView();
+            RebuildLibrary(); Rebuild(); RefreshView();
         }
 
         private void Rebuild()
@@ -102,6 +147,7 @@ namespace AudioMW.Editor
         private void UpdateStatus()
         {
             if (help == null) return;
+            profileTitle.text = profile != null ? profile.name : "Music transitions";
             string error = profile == null ? "Choose a music state profile." : profile.Validate();
             bool ready = string.IsNullOrEmpty(error) && EditorApplication.isPlaying;
             timing.text = "Timing · Unavailable outside Play Mode";

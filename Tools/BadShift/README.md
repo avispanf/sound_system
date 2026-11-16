@@ -149,3 +149,5 @@ Preview.21 adds Spatial, Parameters and Routing workspaces. Native light/dark ch
 Preview.23 completes the Dark Music/Diagnostics review with real muted runtime requests, narrow two-line diagnostic rows and consistent workspace spacing. See DARK-UI-VERIFICATION.json: 315 EditMode, 32 targeted PlayMode and 16 runtime UI assertions passed. Light was excluded by the latest user decision. The native gameplay build was not rebuilt for these Editor-only changes.
 
 Preview.24 polishes the native SoundEvent Inspector and Review changes in Dark. See INSPECTOR-REVIEW-VERIFICATION.json and Documentation/editor-context-workspaces.md. Proposal review does not apply or import anything; whole-plan application still requires human confirmation.
+
+Preview.25 refreshes shared dark workspace styling, the Events library, searchable Music profiles and music/profile review cards. Evidence and precise validation scope are recorded in DARK-UI-VERIFICATION.json; this editor-only update does not rebuild the native player.

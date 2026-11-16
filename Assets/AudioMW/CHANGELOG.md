@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0-preview.25 — Reference workspace composition
+
+- Apply shared graphite surfaces, teal selection and flat workspace navigation across the editor.
+- Move Events search and filters into the library column while preserving native selection and pin/follow.
+- Add a searchable project profile library and responsive transition context to Music; resizing preserves the selected profile and runtime controls.
+- Present music and state-profile proposals as distinct review cards, with exact settings available in foldouts.
+- Keep full container/selection names readable in a 300 px Inspector and count proposed state profiles in the asset total.
+
 ## 0.5.0-preview.24 — Inspector and review polish
 
 - Match Review composition to the reference with graphite proposal, change and context columns, narrow reflow and explicit whole-plan approval.

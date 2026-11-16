@@ -18,6 +18,7 @@ namespace AudioMW.Editor
 
         public static void Style(VisualElement root)
         {
+            root.AddToClassList("audiomw-surface");
             string[] scripts = AssetDatabase.FindAssets("AudioWorkspace t:MonoScript");
             if (scripts.Length == 0) return;
             string path = System.IO.Path.GetDirectoryName(AssetDatabase.GUIDToAssetPath(scripts[0])).Replace('\\', '/') + "/UI/AudioMWStyles.uss";
