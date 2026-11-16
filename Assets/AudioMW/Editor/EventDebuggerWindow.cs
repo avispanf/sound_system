@@ -12,6 +12,9 @@ namespace AudioMW.Editor
         [SerializeField] private bool rejectionsOnly;
         private bool compact;
         private Label emptyLabel;
+        private VisualElement workspace;
+        private VisualElement overview;
+        private ScrollView details;
         private ListView listView;
         private ToolbarSearchField searchField;
         private ToolbarToggle rejectionsToggle;
@@ -50,10 +53,13 @@ namespace AudioMW.Editor
             rootVisualElement.Add(AudioWorkspace.Navigation("Diagnostics"));
             rootVisualElement.AddToClassList("audiomw-inspection");
             rootVisualElement.AddToClassList("audiomw-diagnostics");
+            workspace = new VisualElement { name = "diagnostics-layout" };
+            overview = new VisualElement { name = "diagnostics-overview" };
+            rootVisualElement.Add(workspace); workspace.Add(overview);
             Label eyebrow = new Label("DIAGNOSTICS / CAPTURED REQUESTS");
-            eyebrow.AddToClassList("audiomw-eyebrow"); rootVisualElement.Add(eyebrow);
+            eyebrow.AddToClassList("audiomw-eyebrow"); overview.Add(eyebrow);
             Label title = new Label("Why is it silent?");
-            title.AddToClassList("audiomw-title"); rootVisualElement.Add(title);
+            title.AddToClassList("audiomw-title"); overview.Add(title);
             Toolbar toolbar = new Toolbar();
             toolbar.style.flexWrap = Wrap.Wrap;
             toolbar.style.height = StyleKeyword.Auto;
@@ -83,7 +89,7 @@ namespace AudioMW.Editor
             clearButton.text = "Clear";
             toolbar.Add(clearButton);
 
-            rootVisualElement.Add(toolbar);
+            overview.Add(toolbar);
 
             listView = new ListView();
             listView.fixedItemHeight = compact ? 44f : 28f;
@@ -92,20 +98,19 @@ namespace AudioMW.Editor
             listView.style.minHeight = 84f;
             VisualElement header = MakeRow(true);
             header.AddToClassList("audiomw-diagnostic-header");
-            rootVisualElement.Add(header);
+            overview.Add(header);
             listView.makeItem = () => MakeRow(false);
             listView.bindItem = BindItem;
             listView.itemsSource = visible;
             listView.selectionChanged += OnSelectionChanged;
-            rootVisualElement.Add(listView);
+            overview.Add(listView);
             emptyLabel = new Label { name = "diagnostics-empty", style = { whiteSpace = WhiteSpace.Normal, paddingLeft = 6, paddingBottom = 8 } };
-            rootVisualElement.Add(emptyLabel);
+            overview.Add(emptyLabel);
 
-            ScrollView details = new ScrollView { name = "diagnostics-details" };
-            details.style.maxHeight = Length.Percent(50);
-            details.style.flexShrink = 1;
+            details = new ScrollView { name = "diagnostics-details" };
             details.AddToClassList("audiomw-runtime-card");
-            rootVisualElement.Add(details);
+            workspace.Add(details);
+            var capturedHeading = new Label("Captured detail"); capturedHeading.AddToClassList("audiomw-panel-heading"); details.Add(capturedHeading);
             detailLabel = new Label { name = "captured-outcome" };
             detailLabel.style.whiteSpace = WhiteSpace.Normal;
             detailLabel.style.paddingLeft = 6f;
@@ -126,6 +131,7 @@ namespace AudioMW.Editor
             openEvent.SetEnabled(false); details.Add(openEvent);
             Foldout gains = new Foldout { text = "Gain details · Captured", value = false };
             gainLabel = new Label { name = "captured-gain", style = { whiteSpace = WhiteSpace.Normal } }; gains.Add(gainLabel); details.Add(gains);
+            var caveat = new Label("Historical request, not a live output meter. Editing asset settings does not rewrite this capture."); caveat.style.whiteSpace = WhiteSpace.Normal; caveat.AddToClassList("audiomw-capture-note"); details.Add(caveat);
             summaryLabel = new Label { style = { whiteSpace = WhiteSpace.Normal } };
             summaryLabel.style.paddingLeft = 6f;
             summaryLabel.style.paddingBottom = 4f;
@@ -138,9 +144,17 @@ namespace AudioMW.Editor
 
         private void OnGeometryChanged(GeometryChangedEvent evt) { SetCompact(evt.newRect.width < 520); }
 
+        private void ReflowDetails()
+        {
+            if (workspace == null || details == null) return;
+            bool stacked = position.width < 900;
+            workspace.EnableInClassList("audiomw-diagnostics-stacked", stacked);
+        }
+
         private void SetCompact(bool value)
         {
             compact = value;
+            ReflowDetails();
             rootVisualElement.EnableInClassList("audiomw-diagnostics-narrow", compact);
             if (listView != null) listView.fixedItemHeight = compact ? 44f : 28f;
         }
@@ -197,6 +211,8 @@ namespace AudioMW.Editor
             element.Q<Label>("event").text = string.IsNullOrEmpty(record.EventName) ? "(unnamed)" : record.EventName;
             element.Q<Label>("outcome").text = record.Outcome == PlaybackOutcome.Played ? "Accepted" : "Rejected";
             element.Q<Label>("reason").text = Reason(record);
+            element.EnableInClassList("audiomw-request-accepted", record.Outcome == PlaybackOutcome.Played);
+            element.EnableInClassList("audiomw-request-rejected", record.Outcome != PlaybackOutcome.Played);
             element.tooltip = record.EventName + "\n" + Reason(record) + "\nCaptured at " + record.Time.ToString("0.00") + " s";
         }
 

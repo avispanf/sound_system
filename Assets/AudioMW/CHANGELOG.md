@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0-preview.27 — Captured diagnostics and source rows
+
+- Move captured diagnostic detail beside the request overview in wide windows and below it in narrow windows.
+- Distinguish accepted and rejected outcomes with teal/amber while preserving explicit text and reasons.
+- Explain that historical request captures do not measure live output.
+- Show actual source duration and channel count in Events rows; missing clips remain unavailable.
+
 ## 0.5.0-preview.26 — Spatial, parameter and routing composition
 
 - Separate project library, central overview and native-settings context across Spatial, Parameters and Routing.

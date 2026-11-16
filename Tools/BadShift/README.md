@@ -153,3 +153,5 @@ Preview.24 polishes the native SoundEvent Inspector and Review changes in Dark. 
 Preview.25 refreshes shared dark workspace styling, the Events library, searchable Music profiles and music/profile review cards. Evidence and precise validation scope are recorded in DARK-UI-VERIFICATION.json; this editor-only update does not rebuild the native player.
 
 Preview.26 applies the reference library/overview/context composition to Spatial, Parameters and Routing, including narrow reflow and persistent selection. See DARK-UI-VERIFICATION.json for fresh checks and limitations. Runtime and native player remain unchanged.
+
+Preview.27 gives Diagnostics a responsive captured-detail column and Events an actual source duration/channel table. DARK-UI-VERIFICATION.json distinguishes fresh Editor checks from unperformed runtime/listening checks.

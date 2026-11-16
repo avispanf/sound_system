@@ -124,6 +124,39 @@ namespace AudioMW.Tests
         }
 
         [UnityTest]
+        public IEnumerator DiagnosticsPlacesCapturedDetailBesideWideOverview()
+        {
+            var window = ScriptableObject.CreateInstance<EventDebuggerWindow>();
+            try
+            {
+                window.Show(); window.CreateGUI(); window.position = new Rect(100,100,1200,650);
+                yield return null; yield return null; yield return null;
+                var overview = window.rootVisualElement.Q("diagnostics-overview");
+                var details = window.rootVisualElement.Q("diagnostics-details");
+                Assert.GreaterOrEqual(details.worldBound.xMin, overview.worldBound.xMax - 1);
+                Assert.Greater(details.worldBound.height, 100);
+                window.position = new Rect(100,100,360,650);
+                yield return null; yield return null; yield return null;
+                Assert.GreaterOrEqual(details.worldBound.yMin, overview.worldBound.yMax - 1);
+                Assert.LessOrEqual(details.worldBound.xMax, window.rootVisualElement.worldBound.xMax + 1);
+                Assert.IsFalse(window.rootVisualElement.Q<Button>("open-event-settings").enabledSelf);
+            }
+            finally { window.Close(); }
+        }
+
+        [Test]
+        public void SourceRowsShowActualFormatAndUnavailableWithoutInventingDuration()
+        {
+            var clip = AudioClip.Create("Stereo", 48000, 2, 48000, false);
+            try
+            {
+                Assert.AreEqual("1.00 s · 2 ch", AudioSourcePreviewPane.SourceFormat(clip));
+                Assert.AreEqual("Unavailable", AudioSourcePreviewPane.SourceFormat(null));
+            }
+            finally { Object.DestroyImmediate(clip); }
+        }
+
+        [UnityTest]
         public IEnumerator NarrowGainKeepsNumberResetAndMuteInsideTheInspector()
         {
             var item = Event("NarrowGain", Clip("Source"));

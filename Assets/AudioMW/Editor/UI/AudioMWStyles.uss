@@ -270,3 +270,18 @@
 
 .audiomw-workspace #inspection-context .unity-object-field { flex-direction: column; align-items: stretch; }
 .audiomw-workspace #inspection-context .unity-base-field__label { margin-bottom: 4px; }
+
+.audiomw-diagnostics #diagnostics-layout { flex-direction: row; flex-grow: 1; min-height: 0; }
+.audiomw-diagnostics #diagnostics-overview { flex-grow: 1; flex-shrink: 1; min-width: 0; padding: 12px; }
+.audiomw-diagnostics #diagnostics-details { width: 280px; flex-shrink: 0; margin: 0; padding: 12px; border-left-width: 1px; border-left-color: rgb(61, 66, 67); background-color: rgb(43, 47, 48); }
+.audiomw-diagnostics #diagnostics-details .unity-button { margin-top: 12px; min-height: 26px; white-space: normal; }
+.audiomw-diagnostics .audiomw-capture-note { margin-top: 16px; color: rgb(160, 167, 168); }
+.audiomw-diagnostics #diagnostics-layout.audiomw-diagnostics-stacked { flex-direction: column; }
+.audiomw-diagnostics .audiomw-diagnostics-stacked #diagnostics-details { width: auto; max-height: 45%; flex-shrink: 1; border-left-width: 0; border-top-width: 1px; border-top-color: rgb(61, 66, 67); }
+.audiomw-request-accepted .audiomw-diagnostic-outcome { color: rgb(117, 202, 186); }
+.audiomw-request-rejected .audiomw-diagnostic-outcome { color: rgb(224, 186, 116); }
+
+.audiomw-source-row { flex-direction: row; align-items: center; height: 24px; padding-left: 6px; padding-right: 6px; border-bottom-width: 1px; border-bottom-color: rgb(61, 66, 67); }
+.audiomw-source-row #clip-name { flex-grow: 1; flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.audiomw-source-row #clip-format { width: 130px; flex-shrink: 0; -unity-text-align: middle-right; color: rgb(160, 167, 168); }
+.audiomw-source-header { background-color: rgb(31, 34, 35); margin-top: 6px; }

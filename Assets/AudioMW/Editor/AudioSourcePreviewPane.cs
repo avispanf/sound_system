@@ -33,10 +33,15 @@ namespace AudioMW.Editor
                 Add(new HelpBox("No source clips. Add content in the Inspector.", HelpBoxMessageType.Info));
                 Index = -1; return;
             }
-            list = new ListView(sources, 24, () => new Label(), (element, i) =>
+            var header = MakeSourceRow(); header.AddToClassList("audiomw-source-header");
+            header.Q<Label>("clip-name").text = "Source";
+            header.Q<Label>("clip-format").text = "Duration / channels";
+            Add(header);
+            list = new ListView(sources, 24, MakeSourceRow, (element, i) =>
             {
-                Label label = (Label)element; label.text = sources[i].Name;
-                label.tooltip = sources[i].Name + "\n" + sources[i].Location;
+                element.Q<Label>("clip-name").text = sources[i].Name;
+                element.Q<Label>("clip-format").text = SourceFormat(sources[i].Clip);
+                element.tooltip = sources[i].Name + "\n" + sources[i].Location + "\n" + SourceFormat(sources[i].Clip);
             }) { name = "source-list", selectionType = SelectionType.Single };
             list.style.height = Math.Min(sources.Count, 5) * 24;
             list.style.minHeight = 24;
@@ -46,6 +51,18 @@ namespace AudioMW.Editor
             Index = Mathf.Clamp(index, 0, sources.Count - 1);
             list.SetSelectionWithoutNotify(new[] { Index });
             ShowCurrent();
+        }
+
+        public static string SourceFormat(AudioClip clip)
+        {
+            return clip == null ? "Unavailable" : string.Format("{0:0.00} s · {1} ch", clip.length, clip.channels);
+        }
+
+        private static VisualElement MakeSourceRow()
+        {
+            var row = new VisualElement(); row.AddToClassList("audiomw-source-row");
+            row.Add(new Label { name = "clip-name" }); row.Add(new Label { name = "clip-format" });
+            return row;
         }
 
         public void Select(int index)
