@@ -21,6 +21,7 @@ namespace AudioMW.Editor
         private Label summaryLabel;
         private Label detailLabel;
         private Label gainLabel;
+        private Label captureFacts;
         private Label bankLabel;
         private List<SoundBank> selectedBanks = new List<SoundBank>();
         private Button openEvent;
@@ -117,6 +118,7 @@ namespace AudioMW.Editor
             detailLabel.style.paddingTop = 4f;
             detailLabel.style.minHeight = 52f;
             details.Add(detailLabel);
+            captureFacts = new Label { name = "captured-facts", style = { whiteSpace = WhiteSpace.Normal, marginTop = 8, marginBottom = 8 } }; details.Add(captureFacts);
 
             bankLabel = new Label { name = "live-bank-state", style = { whiteSpace = WhiteSpace.Normal, paddingLeft = 6, paddingBottom = 6 } };
             details.Add(bankLabel);
@@ -140,6 +142,7 @@ namespace AudioMW.Editor
             rootVisualElement.RegisterCallback<GeometryChangedEvent>(OnGeometryChanged);
             SetCompact(position.width < 520);
             RebuildList();
+            if (hasSelectedRecord) OnSelectionChanged(new object[] { selectedRecord });
         }
 
         private void OnGeometryChanged(GeometryChangedEvent evt) { SetCompact(evt.newRect.width < 520); }
@@ -253,11 +256,22 @@ namespace AudioMW.Editor
                         (record.Outcome == PlaybackOutcome.Played ? "Accepted" + (record.HasGainCapture && record.FinalVolume == 0 ? " · Source volume is zero" : "") : "Rejected · " + record.DescribeOutcome()) +
                         "\nCaptured at " + record.Time.ToString("0.00") + " s · " + (string.IsNullOrEmpty(record.ClipName) ? "No source clip captured" : record.ClipName);
                     gainLabel.text = record.Outcome == PlaybackOutcome.Played && record.HasGainCapture ? record.DescribeVolumeChain() + "\n" + record.DescribeVolumeDecibels() + "\nCaptured source gain only. Mixer, distance attenuation and master output are not measured here." : "No source-gain values captured for this record.";
+                    captureFacts.text = DescribeCapturedFacts(record);
                     UpdateSettingsAction();
                 }
 
                 break;
             }
+        }
+
+        public static string DescribeCapturedFacts(EventDebugRecord record)
+        {
+            var capture = record.Rejection;
+            if (capture.HasInstanceLimit)
+                return "Scope · " + (string.IsNullOrEmpty(capture.Scope) ? "Unavailable" : capture.Scope) + "\nActual / limit · " + capture.CurrentCount + " / " + capture.Limit;
+            if (capture.HasCooldown) return "Cooldown remaining · " + capture.RemainingSeconds.ToString("0.###") + " s at capture";
+            if (capture.HasVoiceCapacity) return "Requested voices · " + capture.RequestedVoices + "\nAvailable / capacity · " + capture.AvailableVoices + " / " + capture.VoiceCapacity;
+            return record.Outcome == PlaybackOutcome.Played ? "Request accepted · Audibility is not verified by this capture." : "Additional limit context unavailable for this rejection.";
         }
 
         private void UpdateSettingsAction()
@@ -304,6 +318,7 @@ namespace AudioMW.Editor
                 else
                 {
                     hasSelectedRecord = false; selectedBanks.Clear(); UpdateBankState(); detailLabel.text = "Select a captured outcome to inspect its reason.";
+                    captureFacts.text = "No captured context selected.";
                     gainLabel.text = "No record selected."; openEvent.SetEnabled(false); openEvent.tooltip = "Select a captured record with an available event asset.";
                 }
             }

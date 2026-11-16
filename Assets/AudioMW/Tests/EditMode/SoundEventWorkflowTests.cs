@@ -156,6 +156,22 @@ namespace AudioMW.Tests
             finally { Object.DestroyImmediate(clip); }
         }
 
+        [Test]
+        public void DiagnosticFactsUseCapturedLimitsWithoutReadingCurrentAssetSettings()
+        {
+            var item = Event("CaptureContext", Clip("Source")); item.MaxInstances = 99;
+            var record = new EventDebugRecord { Event = item, Outcome = PlaybackOutcome.RejectedInstanceLimit,
+                Rejection = new PlaybackRejectionInfo { HasInstanceLimit = true, Scope = "emitter", CurrentCount = 2, Limit = 2 } };
+            StringAssert.Contains("emitter", EventDebuggerWindow.DescribeCapturedFacts(record));
+            StringAssert.Contains("2 / 2", EventDebuggerWindow.DescribeCapturedFacts(record));
+            item.MaxInstances = 1;
+            StringAssert.Contains("2 / 2", EventDebuggerWindow.DescribeCapturedFacts(record));
+            record.Rejection = default;
+            StringAssert.Contains("unavailable", EventDebuggerWindow.DescribeCapturedFacts(record));
+            record.Outcome = PlaybackOutcome.Played;
+            StringAssert.Contains("Audibility is not verified", EventDebuggerWindow.DescribeCapturedFacts(record));
+        }
+
         [UnityTest]
         public IEnumerator NarrowGainKeepsNumberResetAndMuteInsideTheInspector()
         {

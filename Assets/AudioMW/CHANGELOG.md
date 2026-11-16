@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0-preview.28 — Captured diagnostic context
+
+- Restore the selected captured detail when the Diagnostics visual tree is rebuilt.
+- Show captured scope and actual/limit counts, cooldown remaining or voice capacity separately from the narrative reason.
+- Keep missing context unavailable and distinguish accepted requests from verified audibility.
+
 ## 0.5.0-preview.27 — Captured diagnostics and source rows
 
 - Move captured diagnostic detail beside the request overview in wide windows and below it in narrow windows.

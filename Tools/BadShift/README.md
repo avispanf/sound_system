@@ -155,3 +155,5 @@ Preview.25 refreshes shared dark workspace styling, the Events library, searchab
 Preview.26 applies the reference library/overview/context composition to Spatial, Parameters and Routing, including narrow reflow and persistent selection. See DARK-UI-VERIFICATION.json for fresh checks and limitations. Runtime and native player remain unchanged.
 
 Preview.27 gives Diagnostics a responsive captured-detail column and Events an actual source duration/channel table. DARK-UI-VERIFICATION.json distinguishes fresh Editor checks from unperformed runtime/listening checks.
+
+Preview.28 restores selected diagnostic details after rebuilding and exposes actual captured limit/cooldown/voice context. Its muted normal-Editor runtime acceptance is recorded separately from EditMode and listening results in DARK-UI-VERIFICATION.json.
