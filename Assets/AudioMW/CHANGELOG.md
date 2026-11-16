@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0-preview.29 — Diagnostics project library
+
+- Add a searchable project Sound Event library beside captured requests and details.
+- Filter requests by event asset identity, preserving separate same-named events.
+- Select the actual event in the native Inspector from the library; keep requested-event scope and All requests available in narrow windows.
+- Preserve the event filter and selected rejection across visual-tree rebuilds.
+
 ## 0.5.0-preview.28 — Captured diagnostic context
 
 - Restore the selected captured detail when the Diagnostics visual tree is rebuilt.

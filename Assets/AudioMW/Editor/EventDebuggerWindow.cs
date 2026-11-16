@@ -10,6 +10,12 @@ namespace AudioMW.Editor
     {
         [SerializeField] private string search = "";
         [SerializeField] private bool rejectionsOnly;
+        [SerializeField] private SoundEvent eventFilter;
+        [SerializeField] private string librarySearch = "";
+        private readonly List<SoundEvent> projectEvents = new List<SoundEvent>();
+        private ListView projectLibrary;
+        private ObjectField eventFilterField;
+        public SoundEvent EventFilter { get { return eventFilter; } }
         private bool compact;
         private Label emptyLabel;
         private VisualElement workspace;
@@ -56,7 +62,7 @@ namespace AudioMW.Editor
             rootVisualElement.AddToClassList("audiomw-diagnostics");
             workspace = new VisualElement { name = "diagnostics-layout" };
             overview = new VisualElement { name = "diagnostics-overview" };
-            rootVisualElement.Add(workspace); workspace.Add(overview);
+            rootVisualElement.Add(workspace); BuildProjectLibrary(); workspace.Add(overview);
             Label eyebrow = new Label("DIAGNOSTICS / CAPTURED REQUESTS");
             eyebrow.AddToClassList("audiomw-eyebrow"); overview.Add(eyebrow);
             Label title = new Label("Why is it silent?");
@@ -91,8 +97,14 @@ namespace AudioMW.Editor
             toolbar.Add(clearButton);
 
             overview.Add(toolbar);
+            var filterRow = new VisualElement { name = "diagnostic-event-filter" };
+            eventFilterField = new ObjectField("Requested event") { objectType = typeof(SoundEvent), allowSceneObjects = false, value = eventFilter };
+            eventFilterField.RegisterValueChangedCallback(evt => SetEventFilter(evt.newValue as SoundEvent));
+            filterRow.Add(eventFilterField);
+            filterRow.Add(new Button(() => SetEventFilter(null)) { text = "All requests", name = "all-diagnostic-requests" });
+            overview.Add(filterRow);
 
-            listView = new ListView();
+            listView = new ListView { name = "diagnostic-records" };
             listView.fixedItemHeight = compact ? 44f : 28f;
             listView.selectionType = SelectionType.Single;
             listView.style.flexGrow = 1f;
@@ -145,6 +157,56 @@ namespace AudioMW.Editor
             if (hasSelectedRecord) OnSelectionChanged(new object[] { selectedRecord });
         }
 
+        private void BuildProjectLibrary()
+        {
+            var panel = new VisualElement { name = "diagnostic-project-library" };
+            var heading = new Label("Project browser"); heading.AddToClassList("audiomw-panel-heading"); panel.Add(heading);
+            var find = new ToolbarSearchField { value = librarySearch, name = "diagnostic-library-search" };
+            find.RegisterValueChangedCallback(evt => { librarySearch = evt.newValue; RefreshProjectLibrary(); }); panel.Add(find);
+            projectLibrary = new ListView(projectEvents, 26, () => new Label(), (row, i) =>
+            {
+                var label = (Label)row; var asset = projectEvents[i]; label.text = asset.name; label.tooltip = AssetDatabase.GetAssetPath(asset);
+            }) { name = "diagnostic-event-library", selectionType = SelectionType.Single };
+            projectLibrary.selectionChanged += selection =>
+            {
+                foreach (var item in selection) { var asset = item as SoundEvent; SetEventFilter(asset); if (asset != null) Selection.activeObject = asset; break; }
+            };
+            panel.Add(projectLibrary);
+            var note = new Label("Select an event to filter its requests and open native settings."); note.style.whiteSpace = WhiteSpace.Normal; panel.Add(note);
+            workspace.Add(panel); RefreshProjectLibrary();
+        }
+
+        private void RefreshProjectLibrary()
+        {
+            if (projectLibrary == null) return;
+            projectEvents.Clear();
+            foreach (var guid in AssetDatabase.FindAssets("t:SoundEvent"))
+            {
+                var asset = AssetDatabase.LoadAssetAtPath<SoundEvent>(AssetDatabase.GUIDToAssetPath(guid));
+                if (asset != null && (string.IsNullOrEmpty(librarySearch) || asset.name.IndexOf(librarySearch, System.StringComparison.OrdinalIgnoreCase) >= 0)) projectEvents.Add(asset);
+            }
+            projectEvents.Sort((a,b) => string.Compare(a.name,b.name,System.StringComparison.OrdinalIgnoreCase));
+            projectLibrary.Rebuild(); RestoreLibrarySelection();
+        }
+
+        private void RestoreLibrarySelection()
+        {
+            if (projectLibrary == null) return;
+            int index = projectEvents.IndexOf(eventFilter);
+            projectLibrary.SetSelectionWithoutNotify(index >= 0 ? new[] { index } : new int[0]);
+        }
+
+        public void SetEventFilter(SoundEvent asset)
+        {
+            eventFilter = asset; eventFilterField?.SetValueWithoutNotify(asset); RestoreLibrarySelection();
+            if (summaryLabel != null) RebuildList();
+        }
+
+        public static bool MatchesRequestedEvent(EventDebugRecord record, SoundEvent asset)
+        {
+            return asset == null || record.Event == asset;
+        }
+
         private void OnGeometryChanged(GeometryChangedEvent evt) { SetCompact(evt.newRect.width < 520); }
 
         private void ReflowDetails()
@@ -152,6 +214,7 @@ namespace AudioMW.Editor
             if (workspace == null || details == null) return;
             bool stacked = position.width < 900;
             workspace.EnableInClassList("audiomw-diagnostics-stacked", stacked);
+            workspace.EnableInClassList("audiomw-diagnostics-hide-library", position.width < 1100);
         }
 
         private void SetCompact(bool value)
@@ -173,6 +236,7 @@ namespace AudioMW.Editor
 
         private void OnProjectChange()
         {
+            RefreshProjectLibrary();
             if (!hasSelectedRecord || selectedRecord.Outcome != PlaybackOutcome.RejectedClipNotLoaded) return;
             selectedBanks = SettingsEvent(selectedRecord) != null ? AudioSourceCatalog.BanksFor(SettingsEvent(selectedRecord)) : new List<SoundBank>();
             UpdateBankState();
@@ -293,6 +357,7 @@ namespace AudioMW.Editor
                 EventDebugger debugger = AudioRuntime.Instance.Debugger;
                 visible = debugger.Filter(searchField != null ? searchField.value : null,
                     rejectionsToggle != null && rejectionsToggle.value);
+                visible.RemoveAll(record => !MatchesRequestedEvent(record, eventFilter));
 
                 summaryLabel.text = string.Format(
                     "{0} shown of {1} records   accepted {2}   rejected {3}",
@@ -304,7 +369,7 @@ namespace AudioMW.Editor
 
             if (emptyLabel != null)
             {
-                emptyLabel.text = !AudioRuntime.Exists ? "Enter Play Mode and trigger a Sound Event in the scene." : visible.Count == 0 ? "No matching records. Trigger an event or clear the search and rejection filter." : "";
+                emptyLabel.text = !AudioRuntime.Exists ? "Enter Play Mode and trigger a Sound Event in the scene." : visible.Count == 0 ? "No matching records. Trigger the requested event, choose All requests, or clear the search and rejection filter." : "";
                 emptyLabel.style.display = visible.Count == 0 ? DisplayStyle.Flex : DisplayStyle.None;
                 emptyLabel.style.flexGrow = visible.Count == 0 ? 1 : 0;
                 if (listView != null) listView.style.display = visible.Count == 0 ? DisplayStyle.None : DisplayStyle.Flex;

@@ -285,3 +285,12 @@
 .audiomw-source-row #clip-name { flex-grow: 1; flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .audiomw-source-row #clip-format { width: 130px; flex-shrink: 0; -unity-text-align: middle-right; color: rgb(160, 167, 168); }
 .audiomw-source-header { background-color: rgb(31, 34, 35); margin-top: 6px; }
+
+.audiomw-diagnostics #diagnostic-project-library { width: 190px; flex-shrink: 0; padding: 8px; background-color: rgb(31, 34, 35); border-right-width: 1px; border-right-color: rgb(61, 66, 67); }
+.audiomw-diagnostics #diagnostic-event-library { flex-grow: 1; min-height: 0; margin-top: 12px; margin-bottom: 12px; }
+.audiomw-diagnostics #diagnostic-event-library .unity-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-left: 6px; }
+.audiomw-diagnostics #diagnostic-library-search { min-width: 0; width: auto; }
+.audiomw-diagnostics .audiomw-diagnostics-hide-library #diagnostic-project-library { display: none; }
+.audiomw-diagnostics #diagnostic-event-filter { flex-direction: row; flex-wrap: wrap; margin-top: 8px; margin-bottom: 8px; }
+.audiomw-diagnostics #diagnostic-event-filter .unity-object-field { flex-grow: 1; min-width: 180px; flex-direction: column; align-items: stretch; }
+.audiomw-diagnostics #diagnostic-event-filter .unity-button { align-self: flex-end; min-height: 24px; }

@@ -157,3 +157,5 @@ Preview.26 applies the reference library/overview/context composition to Spatial
 Preview.27 gives Diagnostics a responsive captured-detail column and Events an actual source duration/channel table. DARK-UI-VERIFICATION.json distinguishes fresh Editor checks from unperformed runtime/listening checks.
 
 Preview.28 restores selected diagnostic details after rebuilding and exposes actual captured limit/cooldown/voice context. Its muted normal-Editor runtime acceptance is recorded separately from EditMode and listening results in DARK-UI-VERIFICATION.json.
+
+Preview.29 adds a real project-event library and identity-based request filtering to Diagnostics. Requested-event scope stays visible in narrow windows; native selection and captured detail are preserved. See DARK-UI-VERIFICATION.json for fresh runtime and Editor evidence.

@@ -112,12 +112,12 @@ namespace AudioMW.Tests
                 window.Show(); window.CreateGUI(); window.position = new Rect(100, 100, 360, 480);
                 yield return null; yield return null;
                 Assert.IsTrue(window.rootVisualElement.ClassListContains("audiomw-diagnostics-narrow"));
-                Assert.AreEqual(44, window.rootVisualElement.Q<ListView>().fixedItemHeight);
+                Assert.AreEqual(44, window.rootVisualElement.Q<ListView>("diagnostic-records").fixedItemHeight);
                 Assert.AreEqual(DisplayStyle.None, window.rootVisualElement.Q(className: "audiomw-diagnostic-header").Q<Label>("reason").resolvedStyle.display);
                 window.position = new Rect(100, 100, 620, 480);
                 yield return null; yield return null;
                 Assert.IsFalse(window.rootVisualElement.ClassListContains("audiomw-diagnostics-narrow"));
-                Assert.AreEqual(28, window.rootVisualElement.Q<ListView>().fixedItemHeight);
+                Assert.AreEqual(28, window.rootVisualElement.Q<ListView>("diagnostic-records").fixedItemHeight);
                 Assert.AreEqual(DisplayStyle.Flex, window.rootVisualElement.Q(className: "audiomw-diagnostic-header").Q<Label>("reason").resolvedStyle.display);
             }
             finally { window.Close(); }
@@ -170,6 +170,30 @@ namespace AudioMW.Tests
             StringAssert.Contains("unavailable", EventDebuggerWindow.DescribeCapturedFacts(record));
             record.Outcome = PlaybackOutcome.Played;
             StringAssert.Contains("Audibility is not verified", EventDebuggerWindow.DescribeCapturedFacts(record));
+        }
+
+        [UnityTest]
+        public IEnumerator DiagnosticLibraryFiltersByIdentityAndKeepsScopeVisibleWhenNarrow()
+        {
+            var first = Event("SameName", Clip("First")); var second = Event("SameName", Clip("Second"));
+            var record = new EventDebugRecord { Event = first, EventName = "SameName" };
+            Assert.IsTrue(EventDebuggerWindow.MatchesRequestedEvent(record, first));
+            Assert.IsFalse(EventDebuggerWindow.MatchesRequestedEvent(record, second));
+            Assert.IsTrue(EventDebuggerWindow.MatchesRequestedEvent(record, null));
+            var window = ScriptableObject.CreateInstance<EventDebuggerWindow>();
+            try
+            {
+                window.Show(); window.CreateGUI(); window.SetEventFilter(first); window.position = new Rect(100,100,1200,650);
+                yield return null; yield return null; yield return null;
+                Assert.AreEqual(DisplayStyle.Flex, window.rootVisualElement.Q("diagnostic-project-library").resolvedStyle.display);
+                window.position = new Rect(100,100,360,650);
+                yield return null; yield return null; yield return null;
+                Assert.AreEqual(DisplayStyle.None, window.rootVisualElement.Q("diagnostic-project-library").resolvedStyle.display);
+                Assert.AreSame(first, window.EventFilter);
+                Assert.AreSame(first, window.rootVisualElement.Q<ObjectField>().value);
+                window.SetEventFilter(null); Assert.IsNull(window.EventFilter);
+            }
+            finally { window.Close(); }
         }
 
         [UnityTest]
@@ -378,7 +402,7 @@ namespace AudioMW.Tests
             try
             {
                 window.CreateGUI();
-                Assert.AreEqual(DisplayStyle.None, window.rootVisualElement.Q<ListView>().style.display.value);
+                Assert.AreEqual(DisplayStyle.None, window.rootVisualElement.Q<ListView>("diagnostic-records").style.display.value);
                 StringAssert.Contains("Play Mode", window.rootVisualElement.Q<Label>("diagnostics-empty").text);
                 Assert.IsFalse(window.rootVisualElement.Q<Button>("open-event-settings").enabledSelf);
             }
