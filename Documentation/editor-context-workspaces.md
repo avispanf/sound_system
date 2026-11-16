@@ -35,3 +35,19 @@ The isolated BAD SHIFT fixture ran real AudioMW requests with editor master mute
 Native screenshots cover Music and populated Diagnostics at 360 logical pixels, and Events, Spatial, Parameters and Routing at 620. Diagnostics was also inspected after exiting Play Mode: records clear and unavailable guidance returns. The test fixture and package sources preserve runtime bytes. This is editor/runtime inspection with muted output, not a listening check or a new native player build.
 
 Fresh checks passed: 315/315 EditMode, 32/32 targeted PlayMode (music states/transitions/crossfades and debugger), 5/5 package tests and 16/16 real runtime UI assertions. Evidence is retained in work/bad-shift/review23-final-edit.xml, review23-play.xml, music-runtime-acceptance.txt and the outputs/audiomw-*-runtime-dark.png screenshots in the development workspace. The reproducible acceptance helper is archived in work/bad-shift/MusicRuntimeAcceptance.cs and excluded from the delivered project.
+
+## Native Inspector and Review changes (2026-11-16)
+
+Dark remains the visual target. Native SoundEvent Inspectors retain serialized binding, Undo and multi-edit. At narrow widths, collapsed section summaries occupy their own line and gain controls use a slider above the numeric/reset/mute row. No ranges, serialized values or playback semantics change.
+
+Review changes now supports a 360 px window, separates its confirmation actions from the scrollable proposal, shows the captured before state and proposed source filenames, and folds file paths/checksums away by default. Connection details are a separate foldout. Long item headings and buttons wrap. The existing human confirmation dialog and validation before apply are preserved. The backend still applies a whole plan; the UI explicitly explains that scope changes require a revised proposal. Per-item selection and partial application remain outside this UI batch.
+
+Fresh validation: 317/317 EditMode tests (including gain-control bounds at 300 px, Review action bounds at 360 px, pending plan inspection without import, existing Undo/multi-edit tests) and 5/5 package tests. Native screenshots and inspection are recorded separately in the delivery verification file. No listening test, new gameplay build or new PlayMode result is claimed for these editor-only changes. Temporary native acceptance proposals must remain pending and never be approved by automation.
+
+### Reference composition pass
+
+Review uses a graphite three-column layout: proposal list, change cards and review context. Below 900 px, proposal/context panels reflow into the content scroll while confirmation actions remain outside it. Event cards show captured source state, preserved settings and proposed filenames. Reasons, file hashes and limitations remain accessible in foldouts. The primary action keeps the existing human-only confirmation and whole-plan scope.
+
+The native Inspector uses reference dividers, graphite surfaces and a teal gain fader. Source clips collapse independently; serialized fields, multi-edit and Undo remain native. At narrow widths gain occupies the full column so Reset/Mute labels remain intact. Diagnostic navigation waits for section expansion layout before scrolling to the target field. Its test now uses a scrolling Inspector host and checks viewport bounds.
+
+Native evidence from Sound System: outputs/audiomw-inspector-300-dark.png, audiomw-review-wide-dark.png and audiomw-review-360-dark.png in the development workspace. One real pending proposal was inspected without importing or applying; the temporary bridge session was then disconnected. No scene was edited. BAD SHIFT is the isolated package test fixture. Remaining reference work includes common styling across Events/Music/Diagnostics and music/profile review cards; full visual parity is not claimed.

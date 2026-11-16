@@ -172,3 +172,50 @@
 .audiomw-diagnostic-row .audiomw-diagnostic-outcome { -unity-text-align: middle-right; }
 
 .audiomw-library-item { padding-left: 8px; padding-right: 6px; min-width: 0; width: 100%; flex-shrink: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; -unity-text-align: middle-left; }
+
+.audiomw-review > .audiomw-title { margin-left: 12px; margin-right: 12px; }
+.audiomw-review #review-actions { padding-left: 12px; padding-right: 12px; padding-bottom: 8px; flex-shrink: 0; }
+.audiomw-review .unity-foldout__text { white-space: normal; flex-shrink: 1; }
+.audiomw-review .unity-foldout__toggle { height: auto; min-height: 20px; }
+.audiomw-review-item { margin-top: 10px; padding-top: 6px; border-top-width: 1px; border-top-color: var(--unity-colors-app_toolbar-border); }
+.audiomw-inspector-narrow .audiomw-foldout-summary { flex-basis: 100%; -unity-text-align: middle-left; margin-left: 16px; font-size: 11px; }
+.audiomw-inspector-narrow > .unity-foldout > .unity-foldout__toggle { flex-wrap: wrap; height: auto; min-height: 20px; }
+.audiomw-gain-compact #gain-fader { min-height: 18px; }
+
+.audiomw-review { background-color: rgb(36, 39, 40); color: rgb(209, 214, 213); }
+.audiomw-review #workspace-navigation { padding-top: 6px; padding-bottom: 6px; flex-shrink: 0; background-color: rgb(36, 39, 40); }
+.audiomw-review #review-layout { flex-direction: row; flex-grow: 1; min-height: 0; }
+.audiomw-review #review-library { width: 200px; flex-shrink: 0; padding: 12px 10px; background-color: rgb(31, 34, 35); border-right-width: 1px; border-right-color: rgb(61, 66, 67); }
+.audiomw-review #review-center { flex-grow: 1; flex-shrink: 1; min-width: 0; }
+.audiomw-review #review-content { flex-grow: 1; padding: 16px 16px 8px 16px; }
+.audiomw-review #review-context-host { width: 230px; flex-shrink: 0; padding: 12px; background-color: rgb(43, 47, 48); border-left-width: 1px; border-left-color: rgb(61, 66, 67); }
+.audiomw-review #review-context .unity-label { color: rgb(161, 171, 170); }
+.audiomw-review #review-context .audiomw-review-heading { color: rgb(209, 214, 213); }
+.audiomw-review .audiomw-review-heading { font-size: 13px; -unity-font-style: bold; margin-top: 12px; }
+.audiomw-review .audiomw-review-item { padding-top: 4px; padding-bottom: 12px; border-top-width: 0; border-bottom-width: 1px; border-bottom-color: rgb(61, 66, 67); }
+.audiomw-review .unity-button { padding: 5px 8px; border-radius: 2px; background-color: rgb(43, 47, 48); border-width: 1px; border-color: rgb(61, 66, 67); }
+.audiomw-review .unity-button:hover { background-color: rgb(54, 61, 61); }
+.audiomw-review .unity-button:focus { border-color: rgb(117, 202, 186); }
+.audiomw-review .audiomw-proposal-selected, .audiomw-review .audiomw-review-apply { background-color: rgb(51, 78, 73); color: rgb(117, 202, 186); }
+.audiomw-review #review-actions { margin-top: 0; padding: 8px 16px 12px 16px; }
+.audiomw-review #review-action-buttons { flex-direction: row; flex-wrap: wrap; }
+.audiomw-review #review-action-buttons .unity-button { margin-left: 0; margin-right: 8px; }
+.audiomw-review .audiomw-review-confirmation { padding: 8px 10px; border-left-width: 3px; border-left-color: rgb(222, 180, 110); background-color: rgb(31, 34, 35); }
+.audiomw-review-narrow #review-library, .audiomw-review-narrow #review-context-host { display: none; }
+.audiomw-review-narrow #review-context { margin-top: 16px; padding-top: 8px; border-top-width: 1px; border-top-color: rgb(61, 66, 67); }
+.audiomw-review-narrow #review-proposals { margin-bottom: 12px; }
+
+#audiomw-event-inspector { background-color: rgb(43, 47, 48); color: rgb(209, 214, 213); padding-left: 8px; padding-right: 8px; }
+#audiomw-event-inspector .unity-base-field { margin-top: 5px; margin-bottom: 5px; }
+#audiomw-event-inspector > .unity-foldout { border-top-width: 1px; border-top-color: rgb(61, 66, 67); padding-top: 8px; padding-bottom: 4px; }
+#audiomw-event-inspector .audiomw-inspector-sound { margin-top: 8px; padding-top: 6px; }
+#audiomw-event-inspector .unity-button { background-color: rgb(43, 47, 48); border-color: rgb(61, 66, 67); border-radius: 2px; min-height: 22px; }
+#audiomw-event-inspector .unity-button:focus { border-color: rgb(117, 202, 186); }
+#audiomw-event-inspector .unity-base-slider__dragger { background-color: rgb(117, 202, 186); border-color: rgb(117, 202, 186); }
+#audiomw-event-inspector .audiomw-foldout-summary { color: rgb(161, 171, 170); }
+
+#audiomw-event-inspector .audiomw-gain-compact { flex-direction: column; align-items: stretch; }
+#audiomw-event-inspector .audiomw-gain-compact > .unity-base-field__label { margin-bottom: 4px; }
+#audiomw-event-inspector .audiomw-gain-compact .unity-button { white-space: nowrap; }
+.audiomw-review #workspace-navigation .unity-toolbar-button { padding: 4px 8px; border-width: 0; background-color: rgb(36, 39, 40); }
+.audiomw-review #workspace-navigation #review-changes { color: rgb(117, 202, 186); background-color: rgb(51, 78, 73); }

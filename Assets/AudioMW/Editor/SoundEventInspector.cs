@@ -19,15 +19,18 @@ namespace AudioMW.Editor
         {
             VisualElement root = new SoundEventInspectorView(target) { name = "audiomw-event-inspector" };
             AudioWorkspace.Style(root);
+            root.AddToClassList("audiomw-inspection");
+            root.RegisterCallback<GeometryChangedEvent>(evt => root.EnableInClassList("audiomw-inspector-narrow", evt.newRect.width < 380));
             root.style.paddingTop = 4;
             root.style.paddingBottom = 8;
             Field(root, "containerMode", "Container");
             VisualElement simple = new VisualElement();
-            Field(simple, "clips", "Audio clips");
-            Foldout references = Section(simple, "Addressed clips", false);
+            Field(simple, "selectionMode", "Selection");
+            Foldout sources = new Foldout { text = "Source clips", value = false, viewDataKey = "AudioMW.SourceClips" }; simple.Add(sources);
+            Field(sources, "clips", "Audio clips");
+            Foldout references = Section(sources, "Addressed clips", false);
             Field(references, "clipReferences", "Clip references");
             references.Add(new HelpBox("Assign addresses here and include this event in a Sound Bank. Load the bank before playback. Weights follow Audio clips first, then Clip references.", HelpBoxMessageType.Info));
-            Field(simple, "selectionMode", "Selection");
             simple.Add(new Label("One source per trigger · History shared per SoundEvent") { style = { whiteSpace = WhiteSpace.Normal }, tooltip = "Sequential advances on each trigger; it is not a continuous playlist." });
             VisualElement weighted = new VisualElement();
             weighted.Add(new ClipWeightEditor(serializedObject));
@@ -51,6 +54,7 @@ namespace AudioMW.Editor
             root.Add(diagnostics);
 
             VisualElement sound = new VisualElement();
+            sound.AddToClassList("audiomw-inspector-sound");
             sound.Add(new Label("Sound") { style = { unityFontStyleAndWeight = FontStyle.Bold, marginTop = 8, marginBottom = 4 } });
             root.Add(sound);
             DecibelGainField gain = new DecibelGainField("Gain") { name = "volume" };

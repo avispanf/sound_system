@@ -147,3 +147,5 @@ Preview.20 develops the native Events/Inspector workflow from the v1.1 editor gu
 Preview.21 adds Spatial, Parameters and Routing workspaces. Native light/dark checks and 314 EditMode tests are recorded in SPATIAL-UI-VERIFICATION.json; see Documentation/editor-context-workspaces.md. Runtime and gameplay build remain unchanged.
 
 Preview.23 completes the Dark Music/Diagnostics review with real muted runtime requests, narrow two-line diagnostic rows and consistent workspace spacing. See DARK-UI-VERIFICATION.json: 315 EditMode, 32 targeted PlayMode and 16 runtime UI assertions passed. Light was excluded by the latest user decision. The native gameplay build was not rebuilt for these Editor-only changes.
+
+Preview.24 polishes the native SoundEvent Inspector and Review changes in Dark. See INSPECTOR-REVIEW-VERIFICATION.json and Documentation/editor-context-workspaces.md. Proposal review does not apply or import anything; whole-plan application still requires human confirmation.

@@ -9,6 +9,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.Audio;
 using UnityEngine.TestTools;
+using UnityEngine.UIElements;
 using AudioMW.Editor;
 using Object = UnityEngine.Object;
 
@@ -42,6 +43,39 @@ namespace AudioMW.Tests
             catch (TargetInvocationException error) { ExceptionDispatchInfo.Capture(error.InnerException).Throw(); }
         }
         private static void Apply(AudioAgentPlan plan, string session = "test") => Internal(typeof(AudioAgentPlanner), "Apply", plan, session);
+        [UnityTest] public IEnumerator NarrowReviewKeepsConfirmationSeparateAndDoesNotApply()
+        {
+            AudioAgentBridge.Enable();
+            var reply = AudioAgentBridge.Execute(new AudioAgentRequest { SchemaVersion = 1, Id = Guid.NewGuid().ToString("N"), Project = AudioProjectPlanner.ProjectIdentity(), Session = AudioAgentBridge.Session, Operation = "propose", Draft = draft });
+            AudioAgentReviewWindow.ShowPlan(reply.Plan.Id);
+            var window = EditorWindow.GetWindow<AudioAgentReviewWindow>();
+            try
+            {
+                window.position = new Rect(100,100,360,420);
+                yield return null; yield return null;
+                var root = window.rootVisualElement;
+                var scroll = root.Q<ScrollView>("review-content");
+                var apply = root.Q<Button>("agent-approve");
+                Assert.IsNotNull(apply); Assert.IsTrue(apply.enabledSelf);
+                Assert.IsFalse(scroll.Contains(apply));
+                Assert.LessOrEqual(apply.worldBound.xMax, root.worldBound.xMax + 1);
+                Assert.LessOrEqual(apply.worldBound.yMax, root.worldBound.yMax + 1);
+                Assert.IsTrue(root.Query<Foldout>().ToList().Where(f => f.text.StartsWith("File details")).All(f => !f.value));
+                Assert.AreEqual("pending", AudioAgentBridge.Plans.Single().State);
+                Assert.IsFalse(Directory.Exists(reply.Plan.Folder));
+                Assert.AreEqual(.27f,sound.Volume);
+                Assert.IsTrue(scroll.Contains(root.Q("review-context")));
+                window.position = new Rect(100,100,1100,650);
+                yield return null; yield return null; yield return null;
+                Assert.IsFalse(scroll.Contains(root.Q("review-context")));
+                Assert.Greater(root.Q("review-context-host").worldBound.xMin, scroll.worldBound.xMin);
+                Assert.LessOrEqual(root.Q("review-library").worldBound.xMax, scroll.worldBound.xMin + 1);
+                Assert.AreEqual("pending", AudioAgentBridge.Plans.Single().State);
+                Assert.IsFalse(Directory.Exists(reply.Plan.Folder));
+            }
+            finally { window.Close(); }
+        }
+
         [Test] public void DraftAndRejectDoNotImportOrModifyAssets()
         {
             string before = File.ReadAllText(folder + "/Existing.asset"); var plan = AudioAgentPlanner.Prepare(draft, "test");

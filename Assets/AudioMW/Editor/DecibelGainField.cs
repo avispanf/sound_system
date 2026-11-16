@@ -15,7 +15,9 @@ namespace AudioMW.Editor
         private DecibelGainField(string label, VisualElement input) : base(label + " (dB)", input)
         {
             AddToClassList(alignedFieldUssClassName);
+            input.AddToClassList("audiomw-gain-input");
             input.style.flexDirection = FlexDirection.Row;
+            RegisterCallback<GeometryChangedEvent>(evt => { bool compact = evt.newRect.width < 340; EnableInClassList("audiomw-gain-compact", compact); input.style.flexDirection = compact ? FlexDirection.Column : FlexDirection.Row; });
             input.style.flexWrap = Wrap.Wrap;
             fader = new Slider(FaderMinimumDb, 0f) { name = "gain-fader" };
             fader.style.flexGrow = 1;
@@ -24,13 +26,14 @@ namespace AudioMW.Editor
             number.style.width = 56;
             number.style.flexShrink = 0;
             input.Add(fader);
-            input.Add(number);
+            var controls = new VisualElement(); controls.style.flexDirection = FlexDirection.Row; controls.style.flexWrap = Wrap.Wrap;
+            controls.Add(number); input.Add(controls);
             Button reset = new Button(() => value = 1f) { text = "Reset", name = "gain-reset", tooltip = "Reset gain to 0 dB." };
-            reset.style.width = 38;
+            reset.style.width = 52;
             reset.style.flexShrink = 0;
-            input.Add(reset);
+            controls.Add(reset);
             Button mute = new Button(() => value = 0f) { text = "Mute", name = "gain-mute", tooltip = "Set gain to silence (linear zero)." };
-            mute.style.width = 36; mute.style.flexShrink = 0; input.Add(mute);
+            mute.style.width = 48; mute.style.flexShrink = 0; controls.Add(mute);
             tooltip = "0 dB keeps the original level. Type -inf for silence. The fader spans -80 to 0 dB; lower levels can be typed.";
             fader.tooltip = number.tooltip = tooltip;
             fader.RegisterValueChangedCallback(evt =>

@@ -118,7 +118,7 @@ namespace AudioMW.Editor
                 change.Files = files.ToArray(); changes.Add(change);
             }
             review.Changes = changes.ToArray();
-            review.Limitations = new[] { "Replacements retain event GUIDs, routing, selection, gain and gameplay references. Only the direct clip list changes.", "New events use RandomNoRepeat, 3D logarithmic attenuation, gain 0 dB and no loop. They need a gameplay hook; this plan does not create code or scene bindings.", "No MusicTrack/stem or VoiceLine authoring, automatic normalization, mixer changes or listening certification. Use the existing specialist editors for these tasks." };
+            review.Limitations = new[] { "Replacements retain event GUIDs, routing, selection, gain and gameplay references. Only the direct clip list changes.", "New events use RandomNoRepeat, 3D logarithmic attenuation, gain 0 dB and no loop. They need a gameplay hook; this plan does not create code or scene bindings.", "Event changes do not author music or voice lines, normalize audio, change the mixer or certify listening. Music requires a separate music proposal." };
             return new AudioAgentPlan(review);
         }
         public static string Check(AudioAgentPlan plan, string session)

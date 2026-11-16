@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.0-preview.24 — Inspector and review polish
+
+- Match Review composition to the reference with graphite proposal, change and context columns, narrow reflow and explicit whole-plan approval.
+- Add native Inspector section dividers and compact gain controls without broken button labels.
+- Wait for expanded Inspector layout before diagnostic navigation scrolls to a field.
+
+- Compact native gain controls and readable collapsed section summaries.
+- Review changes supports narrow windows, collapsible file details and separate confirmation actions.
+- Captured before/proposed source summaries; explicit whole-plan scope without changing approval behavior.
+
+
 ## 0.5.0-preview.23 — Dark workspace review
 
 - Readable two-line Diagnostics rows in narrow windows; restore columns when widened.

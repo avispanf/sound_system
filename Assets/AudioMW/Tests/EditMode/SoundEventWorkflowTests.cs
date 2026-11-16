@@ -96,6 +96,29 @@ namespace AudioMW.Tests
             finally { window.Close(); }
         }
 
+        [UnityTest]
+        public IEnumerator NarrowGainKeepsNumberResetAndMuteInsideTheInspector()
+        {
+            var item = Event("NarrowGain", Clip("Source"));
+            var editor = UnityEditor.Editor.CreateEditor(item);
+            var window = ScriptableObject.CreateInstance<EditorWindow>();
+            try
+            {
+                window.Show(); window.position = new Rect(100,100,300,650);
+                var view = editor.CreateInspectorGUI(); window.rootVisualElement.Add(view); view.Bind(editor.serializedObject);
+                yield return null; yield return null;
+                var gain = view.Q<DecibelGainField>("volume");
+                foreach (string name in new[] { "gain-number", "gain-reset", "gain-mute" })
+                {
+                    var control = gain.Q(name);
+                    Assert.Greater(control.worldBound.width, 20);
+                    Assert.LessOrEqual(control.worldBound.xMax, window.rootVisualElement.worldBound.xMax + 1);
+                }
+                Assert.Less(gain.Q("gain-fader").worldBound.yMin, gain.Q("gain-number").worldBound.yMin);
+            }
+            finally { window.Close(); Object.DestroyImmediate(editor); }
+        }
+
         [Test]
         public void DiagnosticReasonsDistinguishAcceptedSilenceFromRejection()
         {
@@ -496,7 +519,9 @@ namespace AudioMW.Tests
             SoundEvent item = Event("Navigate", Clip("A"));
             UnityEditor.Editor editor = UnityEditor.Editor.CreateEditor(item); temporary.Add(editor);
             EditorWindow window = ScriptableObject.CreateInstance<EditorWindow>(); temporary.Add(window); window.Show();
-            VisualElement root = editor.CreateInspectorGUI(); window.rootVisualElement.Add(root); root.Bind(editor.serializedObject);
+            window.position = new Rect(100,100,300,600);
+            var scroll = new ScrollView(); scroll.style.flexGrow = 1; window.rootVisualElement.Add(scroll);
+            VisualElement root = editor.CreateInspectorGUI(); scroll.Add(root); root.Bind(editor.serializedObject);
             yield return null; yield return null;
             bool revealed = false; double until = EditorApplication.timeSinceStartup + 3;
             while (!revealed && EditorApplication.timeSinceStartup < until)
@@ -506,7 +531,11 @@ namespace AudioMW.Tests
             }
             Assert.IsTrue(revealed);
             Assert.IsTrue(root.Q<Foldout>("section-Playback limits").value);
-            Assert.IsNotNull(root.Q("cooldownSeconds").Q<FloatField>());
+            var input = root.Q("cooldownSeconds").Q<FloatField>();
+            Assert.IsNotNull(input);
+            yield return null;
+            Assert.GreaterOrEqual(input.worldBound.yMin, scroll.contentViewport.worldBound.yMin - 1);
+            Assert.LessOrEqual(input.worldBound.yMax, scroll.contentViewport.worldBound.yMax + 1);
             window.Close();
         }
         [Test] public void PreviewOwnershipEndsOnSourceChangeAndWindowClose()

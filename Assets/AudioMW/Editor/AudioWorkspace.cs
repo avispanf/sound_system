@@ -107,7 +107,7 @@ namespace AudioMW.Editor
             if (section == null) return true;
             Toggle header = section.Q<Toggle>();
             if (section.panel == null || header == null || !(header.layout.width > 0 && header.layout.height > 0)) return false;
-            section.value = true;
+            if (!section.value) { section.value = true; return false; }
             VisualElement field = string.IsNullOrEmpty(property) ? section : root.Q(property);
             if (field == null) return true;
             VisualElement input = field.Q<FloatField>() as VisualElement ?? field.Q<IntegerField>() as VisualElement ?? field.Q<ObjectField>();
