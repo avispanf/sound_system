@@ -87,10 +87,11 @@ namespace AudioMW.Tests
             {
                 window.CreateGUI();window.OpenDocument(eventAsset);
                 using(var state=new SerializedObject(window)){state.FindProperty("documents").GetArrayElementAtIndex(0).FindPropertyRelative("Zoom").floatValue=123;state.ApplyModifiedPropertiesWithoutUndo();}
-                window.SwitchBrowser(2);var browser=window.rootVisualElement.Q<ListView>("studio-v2-library");
-                for(int i=0;i<browser.itemsSource.Count;i++)if((Object)browser.itemsSource[i]==clip){browser.SetSelection(i);break;}
+                window.SwitchBrowser(2);var browser=window.rootVisualElement.Q<TreeView>("studio-v2-library");
+                int folderId=AssetDatabase.LoadAssetAtPath<Object>(folder).GetInstanceID();
+                browser.ExpandItem(folderId);browser.SetSelectionById(clip.GetInstanceID());
                 Assert.AreEqual(eventAsset,window.CurrentAsset);Assert.AreEqual(clip,window.DeckTarget);
-                window.SwitchBrowser(1);window.SwitchBrowser(3);window.SwitchBrowser(0);Assert.AreEqual(eventAsset,window.CurrentAsset);
+                window.SwitchBrowser(1);window.SwitchBrowser(3);window.SwitchBrowser(2);Assert.IsTrue(browser.IsExpanded(folderId));window.SwitchBrowser(0);Assert.AreEqual(eventAsset,window.CurrentAsset);
                 using(var state=new SerializedObject(window))Assert.AreEqual(123,state.FindProperty("documents").GetArrayElementAtIndex(0).FindPropertyRelative("Zoom").floatValue);
             }
             finally{Object.DestroyImmediate(window);AssetDatabase.DeleteAsset(folder);}

@@ -454,3 +454,11 @@
 .audiomw-event-editor-v2 #studio-v2-deck { padding: 6px 12px; }
 .audiomw-event-editor-v2 #studio-v2-deck > .unity-label { border-bottom-width: 1px; border-bottom-color: rgb(68,73,78); margin-bottom: 8px; padding-bottom: 5px; }
 .audiomw-event-editor-v2 #studio-v2-dock-tabs { background-color: rgb(32,34,37); }
+
+.audiomw-event-editor-v2 .studio-overview-row { flex-direction: row; min-height: 32px; align-items: center; border-bottom-width: 1px; border-bottom-color: rgb(49,53,57); }
+.audiomw-event-editor-v2 .studio-overview-row > .unity-label:first-child { width: 62px; flex-shrink: 0; color: rgb(174,182,188); }
+.audiomw-event-editor-v2 .studio-overview-row > .unity-label { margin: 0; flex-shrink: 1; }
+.audiomw-event-editor-v2 .studio-overview-row > .unity-button { flex-shrink: 1; flex-grow: 1; min-width: 0; -unity-text-align: middle-left; background-color: rgba(0,0,0,0); color: rgb(169,207,118); border-width: 0; }
+.audiomw-event-editor-v2 .studio-section-heading { font-size: 14px; -unity-font-style: bold; padding-bottom: 12px; }
+.audiomw-event-editor-v2 .studio-asset-path { font-size: 11px; color: rgb(174,182,188); margin-top: 16px; }
+.audiomw-event-editor-v2 .studio-browser-row { padding-left: 0; }

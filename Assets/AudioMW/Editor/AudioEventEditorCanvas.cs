@@ -38,24 +38,61 @@ namespace AudioMW.Editor
             }
             DrawContainer();
         }
+        private int containerSource=-1;
+        private string containerDocument="";
+        private Vector2 sourceScroll,structureScroll;
         private void DrawContainer()
         {
             var sources=AudioSourceCatalog.Collect(CurrentAsset);
-            EditorGUILayout.BeginHorizontal();if(GUILayout.Button(CurrentAsset.name,EditorStyles.toolbarButton)){selectedClips.Clear();selectedLane="";ShowDeck(CurrentAsset);}GUILayout.FlexibleSpace();EditorGUILayout.LabelField(CurrentAsset is SoundEvent item?(item.ContainerMode==ContainerMode.Simple?"Single / Random":item.ContainerMode.ToString())+" · "+AudioEventContextPane.SelectionLabel(item.SelectionMode):CurrentAsset.GetType().Name,GUILayout.Width(220));EditorGUILayout.EndHorizontal();
-            Rect area=new Rect(0,24,canvas.contentRect.width,Mathf.Max(100,canvas.contentRect.height-24));
+            string guid=CurrentDocument.Guid;if(containerDocument!=guid){containerDocument=guid;containerSource=sources.Count>0?0:-1;sourceScroll=Vector2.zero;structureScroll=Vector2.zero;}
+            containerSource=Mathf.Clamp(containerSource,-1,sources.Count-1);
+            Rect area=new Rect(0,0,canvas.contentRect.width,Mathf.Max(120,canvas.contentRect.height-4));
             HandleContainerDrop(area);
-            var doc=CurrentDocument;doc.Scroll=EditorGUILayout.BeginScrollView(doc.Scroll,GUILayout.ExpandWidth(true),GUILayout.ExpandHeight(true));
-            foreach(var source in sources)
+            float structureWidth=Mathf.Clamp(area.width*.30f,160,250);
+            Rect structure=new Rect(area.x+6,area.y+6,structureWidth-10,area.height-12);
+            Rect sheet=new Rect(area.x+structureWidth+4,area.y+6,area.width-structureWidth-10,area.height-12);
+            GUI.Box(structure,GUIContent.none,EditorStyles.helpBox);GUI.Box(sheet,GUIContent.none,EditorStyles.helpBox);
+            GUILayout.BeginArea(structure);structureScroll=GUILayout.BeginScrollView(structureScroll);
+            if(GUILayout.Button(CurrentAsset.name,EditorStyles.boldLabel)){ShowDeck(CurrentAsset);containerSource=-1;}
+            if(CurrentAsset is SoundEvent sound)
             {
-                EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
-                if(GUILayout.Button(source.Name,EditorStyles.label,GUILayout.MinWidth(150))){ShowDeck(source.Clip);}
-                EditorGUILayout.LabelField(source.Clip!=null?AudioSourcePreviewPane.SourceFormat(source.Clip):source.PreviewIssue,GUILayout.Width(170));
-                if(source.Clip!=null&&GUILayout.Button("Preview source (dry)",GUILayout.Width(150))){StopAudition();EditorAudioPreview.Play(source.Clip);}
-                EditorGUILayout.EndHorizontal();
-                if(source.Clip!=null&&deckTarget==source.Clip){var texture=WaveformCache.Get(source.Clip);Rect wave=GUILayoutUtility.GetRect(100,70,GUILayout.ExpandWidth(true));if(texture!=null)GUI.DrawTexture(wave,texture,ScaleMode.StretchToFill);else GUI.Label(wave,"Waveform unavailable");}
+                string kind=sound.ContainerMode==ContainerMode.Simple?"Single / Random":sound.ContainerMode.ToString();
+                if(GUILayout.Button("▾  "+kind,EditorStyles.miniButton)){ShowDeck(sound);deckSection="Sources";}
+                GUILayout.Label(AudioEventContextPane.SelectionLabel(sound.SelectionMode),EditorStyles.wordWrappedMiniLabel);
             }
-            if(sources.Count==0)EditorGUILayout.LabelField("No sources. Drop AudioClips here or edit the event in Deck.");
-            EditorGUILayout.EndScrollView();
+            for(int i=0;i<sources.Count;i++){int index=i;GUI.backgroundColor=index==containerSource?new Color(.55f,.7f,.4f):Color.white;if(GUILayout.Button(new GUIContent("   "+sources[i].Name,sources[i].Location),EditorStyles.miniButton)){containerSource=index;ShowDeck(CurrentAsset);}GUI.backgroundColor=Color.white;}
+            GUILayout.EndScrollView();GUILayout.EndArea();
+            float listHeight=Mathf.Clamp(sheet.height*.53f,90,260);
+            GUILayout.BeginArea(new Rect(sheet.x+8,sheet.y+6,sheet.width-16,listHeight));
+            EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);GUILayout.Label("Source",EditorStyles.boldLabel);GUILayout.Label("Length",GUILayout.Width(65));EditorGUILayout.EndHorizontal();
+            sourceScroll=GUILayout.BeginScrollView(sourceScroll);
+            for(int i=0;i<sources.Count;i++)
+            {
+                var source=sources[i];Rect row=GUILayoutUtility.GetRect(100,28,GUILayout.ExpandWidth(true));
+                EditorGUI.DrawRect(row,i==containerSource?new Color(.22f,.29f,.21f):i%2==0?new Color(.16f,.17f,.18f):new Color(.14f,.15f,.16f));
+                GUI.Label(new Rect(row.x+6,row.y,row.width-80,28),new GUIContent(source.Name,source.Location),EditorStyles.label);
+                GUI.Label(new Rect(row.xMax-70,row.y,65,28),source.Clip!=null?source.Clip.length.ToString("0.###")+" s":"—",EditorStyles.miniLabel);
+                if(Event.current.type==EventType.MouseDown&&row.Contains(Event.current.mousePosition)){containerSource=i;ShowDeck(CurrentAsset);Event.current.Use();}
+            }
+            if(sources.Count==0)GUILayout.Label("No sources. Drop AudioClips here.",EditorStyles.wordWrappedMiniLabel);
+            GUILayout.EndScrollView();GUILayout.EndArea();
+            Rect preview=new Rect(sheet.x+8,sheet.y+listHeight+14,sheet.width-16,Mathf.Max(60,sheet.height-listHeight-22));
+            GUILayout.BeginArea(preview);
+            if(containerSource>=0&&containerSource<sources.Count)
+            {
+                var source=sources[containerSource];EditorGUILayout.BeginHorizontal();GUILayout.Label(source.Name,EditorStyles.boldLabel);GUILayout.FlexibleSpace();
+                using(new EditorGUI.DisabledScope(source.Clip==null||source.PreviewIssue!=""))if(GUILayout.Button("Play source (dry)",GUILayout.Width(125))){StopAudition();EditorAudioPreview.Play(source.Clip);}
+                if(GUILayout.Button("Stop",GUILayout.Width(45)))EditorAudioPreview.Stop();EditorGUILayout.EndHorizontal();
+                if(source.PreviewIssue!="")EditorGUILayout.HelpBox(source.PreviewIssue,MessageType.Info);
+                if(source.Clip!=null)
+                {
+                    Rect wave=GUILayoutUtility.GetRect(100,Mathf.Max(40,preview.height-58),GUILayout.ExpandWidth(true));EditorGUI.DrawRect(wave,new Color(.10f,.12f,.13f));
+                    var texture=WaveformCache.Get(source.Clip);if(texture!=null)GUI.DrawTexture(wave,texture,ScaleMode.StretchToFill);else GUI.Label(wave,"Waveform unavailable: PCM not readable.");
+                    EditorGUILayout.BeginHorizontal();GUILayout.Label("0 s",EditorStyles.miniLabel);GUILayout.FlexibleSpace();GUILayout.Label(source.Clip.length.ToString("0.###")+" s",EditorStyles.miniLabel);EditorGUILayout.EndHorizontal();
+                }
+            }
+            else GUILayout.Label("Select a source to inspect its waveform.",EditorStyles.miniLabel);
+            GUILayout.EndArea();
         }
         private void HandleContainerDrop(Rect area)
         {
