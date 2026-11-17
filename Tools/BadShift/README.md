@@ -159,3 +159,5 @@ Preview.27 gives Diagnostics a responsive captured-detail column and Events an a
 Preview.28 restores selected diagnostic details after rebuilding and exposes actual captured limit/cooldown/voice context. Its muted normal-Editor runtime acceptance is recorded separately from EditMode and listening results in DARK-UI-VERIFICATION.json.
 
 Preview.29 adds a real project-event library and identity-based request filtering to Diagnostics. Requested-event scope stays visible in narrow windows; native selection and captured detail are preserved. See DARK-UI-VERIFICATION.json for fresh runtime and Editor evidence.
+
+Preview.30 separates Events source overview and asset context, with narrow reflow preserving source selection and audition controls. Native Inspector authoring and pin/follow remain unchanged. See DARK-UI-VERIFICATION.json for validation scope.

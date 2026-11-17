@@ -197,6 +197,29 @@ namespace AudioMW.Tests
         }
 
         [UnityTest]
+        public IEnumerator EventsReflowPreservesSelectedSourceAndAuditionControls()
+        {
+            var item = Event("ContextLayout", Clip("First"), Clip("Second"));
+            var window = Browser(); window.SelectAsset(item); window.position = new Rect(100,100,1200,650);
+            yield return null; yield return null; yield return null;
+            var sources = window.rootVisualElement.Q<AudioSourcePreviewPane>(); sources.Select(1);
+            var emitter = window.rootVisualElement.Q<ObjectField>("audition-emitter");
+            var context = window.rootVisualElement.Q("asset-context");
+            var before = EditorJsonUtility.ToJson(item);
+            window.position = new Rect(100,100,1200,650);
+            yield return null; yield return null; yield return null;
+            Assert.IsFalse(window.rootVisualElement.Q("asset-overview").Contains(context));
+            window.position = new Rect(100,100,620,650);
+            yield return null; yield return null; yield return null;
+            Assert.IsTrue(window.rootVisualElement.Q("asset-overview").Contains(context));
+            Assert.AreSame(sources.SelectedClip, window.SelectedSource);
+            Assert.AreEqual(1, sources.Index);
+            Assert.AreSame(emitter, window.rootVisualElement.Q<ObjectField>("audition-emitter"));
+            Assert.AreSame(item, Selection.activeObject);
+            Assert.AreEqual(before, EditorJsonUtility.ToJson(item));
+        }
+
+        [UnityTest]
         public IEnumerator NarrowGainKeepsNumberResetAndMuteInsideTheInspector()
         {
             var item = Event("NarrowGain", Clip("Source"));

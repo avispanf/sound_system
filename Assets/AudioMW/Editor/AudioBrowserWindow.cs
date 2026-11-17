@@ -23,6 +23,9 @@ namespace AudioMW.Editor
         private ToolbarSearchField searchField;
         private VisualElement chipRow;
         private VisualElement preview;
+        private VisualElement workspace;
+        private ScrollView contextHost;
+        private VisualElement assetContext;
         private Label statusLabel;
         private Label inspectorStatus;
         private Button followButton;
@@ -64,7 +67,8 @@ namespace AudioMW.Editor
             toolbar.Add(new ToolbarButton(Refresh) { text = "Refresh" }); library.Add(toolbar);
             chipRow = new VisualElement(); chipRow.AddToClassList("audiomw-chip-row"); library.Add(chipRow); BuildChips();
             TwoPaneSplitView split = new TwoPaneSplitView(0, libraryWidth, TwoPaneSplitViewOrientation.Horizontal) { viewDataKey = "AudioMW.Browser.Split" };
-            split.style.flexGrow = 1; rootVisualElement.Add(split);
+            workspace = new VisualElement { name = "events-layout" }; rootVisualElement.Add(workspace);
+            split.style.flexGrow = 1; split.style.minWidth = 0; workspace.Add(split);
             listView = new ListView { name = "asset-list", fixedItemHeight = 24, selectionType = SelectionType.Single };
             listView.style.flexGrow = 1;
             library.style.minWidth = 180;
@@ -83,8 +87,19 @@ namespace AudioMW.Editor
             listView.RegisterCallback<KeyDownEvent>(evt => { if (evt.keyCode == KeyCode.Return && selected != null) { Selection.activeObject = selected; evt.StopPropagation(); } });
             library.Add(listView); split.Add(library);
             preview = new ScrollView { name = "asset-overview" }; preview.style.minWidth = 280; preview.AddToClassList("audiomw-preview"); split.Add(preview);
+            contextHost = new ScrollView { name = "events-context-host" }; workspace.Add(contextHost);
+            workspace.RegisterCallback<GeometryChangedEvent>(_ => PlaceContext());
             statusLabel = new Label { name = "browser-status" }; statusLabel.AddToClassList("audiomw-status"); rootVisualElement.Add(statusLabel);
             Refresh();
+        }
+
+        private void PlaceContext()
+        {
+            if (workspace == null || assetContext == null) return;
+            bool narrow = workspace.layout.width < 1100;
+            workspace.EnableInClassList("audiomw-events-narrow", narrow);
+            if (narrow) { if (assetContext.parent != ((ScrollView)preview).contentContainer) preview.Add(assetContext); }
+            else if (assetContext.parent != contextHost.contentContainer) contextHost.Add(assetContext);
         }
 
         private void BuildChips()
@@ -146,7 +161,9 @@ namespace AudioMW.Editor
         private void BuildPreview()
         {
             if (preview == null) return;
-            preview.Clear(); sourcePane = null; inspectorStatus = null;
+            preview.Clear(); contextHost.Clear(); sourcePane = null; inspectorStatus = null;
+            assetContext = new VisualElement { name = "asset-context" };
+            var contextHeading = new Label("Asset context"); contextHeading.AddToClassList("audiomw-panel-heading"); assetContext.Add(contextHeading);
             if (selected == null)
             {
                 bool empty = visible.Count == 0;
@@ -157,9 +174,9 @@ namespace AudioMW.Editor
                 {
                     inspectorStatus = new Label { name = "inspector-status", style = { whiteSpace = WhiteSpace.Normal } };
                     followButton = new Button(FollowSelection) { text = "Follow selection", name = "follow-selection" };
-                    preview.Add(inspectorStatus); preview.Add(followButton); UpdateInspectorStatus();
+                    assetContext.Add(inspectorStatus); assetContext.Add(followButton); UpdateInspectorStatus();
                 }
-                return;
+                PlaceContext(); return;
             }
             selectedDirty = EditorUtility.GetDirtyCount(selected);
             Label context = new Label("READ-ONLY OVERVIEW · " + EntryKind(selected)) { name = "overview-context" }; context.AddToClassList("audiomw-eyebrow"); preview.Add(context);
@@ -168,20 +185,21 @@ namespace AudioMW.Editor
             preview.Add(new Label(DescribeAsset(entry)) { style = { whiteSpace = WhiteSpace.Normal } });
             VisualElement actions = new VisualElement(); actions.style.flexDirection = FlexDirection.Row; actions.style.flexWrap = Wrap.Wrap;
             actions.Add(new Button(() => Selection.activeObject = selected) { text = "Show settings", tooltip = "Show this asset in the standard Inspector." });
-            actions.Add(new Button(PinSelection) { text = "Pin Inspector", name = "pin-inspector", tooltip = "Open a separate native focused Inspector for this asset." }); preview.Add(actions);
-            inspectorStatus = new Label { name = "inspector-status", style = { whiteSpace = WhiteSpace.Normal } }; preview.Add(inspectorStatus);
-            followButton = new Button(FollowSelection) { text = "Follow selection", name = "follow-selection" }; preview.Add(followButton); UpdateInspectorStatus();
+            actions.Add(new Button(PinSelection) { text = "Pin Inspector", name = "pin-inspector", tooltip = "Open a separate native focused Inspector for this asset." }); assetContext.Add(actions);
+            inspectorStatus = new Label { name = "inspector-status", style = { whiteSpace = WhiteSpace.Normal } }; assetContext.Add(inspectorStatus);
+            followButton = new Button(FollowSelection) { text = "Follow selection", name = "follow-selection" }; assetContext.Add(followButton); UpdateInspectorStatus();
             if (selected is SoundEvent || selected is MusicTrack || selected is VoiceLine)
             {
                 sourcePane = new AudioSourcePreviewPane(selected, sourceIndex, index => sourceIndex = index); preview.Add(sourcePane);
-                if (selected is SoundEvent auditionEvent) preview.Add(new AudioEventContextPane(auditionEvent));
+                if (selected is SoundEvent auditionEvent) assetContext.Add(new AudioEventContextPane(auditionEvent));
             }
             SoundEvent soundEvent = selected as SoundEvent;
             if (soundEvent != null)
             {
                 string message = SoundEventValidation.Describe(soundEvent);
-                if (!string.IsNullOrEmpty(message)) preview.Add(new HelpBox(message, HelpBoxMessageType.Warning));
+                if (!string.IsNullOrEmpty(message)) assetContext.Add(new HelpBox(message, HelpBoxMessageType.Warning));
             }
+            PlaceContext();
         }
         private static string EntryKind(Object asset) { return asset is SoundEvent ? "SOUND EVENT" : ObjectNames.NicifyVariableName(asset.GetType().Name).ToUpperInvariant(); }
 

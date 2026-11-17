@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0-preview.30 — Events overview and context
+
+- Separate source inspection from native Inspector actions, routing, parameters and runtime audition in a right context column.
+- Move that same context beneath sources in narrow windows without rebuilding audition controls during resize.
+- Keep the browser read-only and preserve native Inspector pin/follow and source selection.
+
 ## 0.5.0-preview.29 — Diagnostics project library
 
 - Add a searchable project Sound Event library beside captured requests and details.
