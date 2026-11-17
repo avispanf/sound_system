@@ -585,6 +585,9 @@ namespace AudioMW.Tests
                 Assert.IsTrue(content.Contains(root.Q("music-context")));
                 Assert.AreSame(profile, root.Q<ObjectField>().value);
                 Assert.AreEqual(1, root.Query<Button>("request-state").ToList().Count);
+                Assert.AreEqual("Explore", root.Q<Button>("request-state").text);
+                Assert.Less(root.Q("music-states").worldBound.yMin, root.Q("music-current-pending").worldBound.yMin);
+                StringAssert.Contains("Explore → Start from silence", root.Q<Label>("music-rule-details").text);
                 Assert.IsFalse(root.Q<Button>("cancel-pending-music").enabledSelf);
                 Assert.IsFalse(root.Q<Button>("stop-scene-music").enabledSelf);
             }
@@ -605,7 +608,8 @@ namespace AudioMW.Tests
                 Assert.AreEqual(1, states.Query<Button>("request-state").ToList().Count);
                 Button first = states.Q<Button>("request-state");
                 profile.States[0].Name = "Explore"; window.RefreshView();
-                StringAssert.StartsWith("Explore", first.text);
+                Assert.AreEqual("Explore", first.text);
+                StringAssert.Contains("Explore → Start from silence", window.rootVisualElement.Q<Label>("music-rule-details").text);
                 profile.States = new[] { profile.States[0], new MusicState { Name = "Combat" } }; window.RefreshView();
                 Assert.AreEqual(2, states.Query<Button>("request-state").ToList().Count);
                 profile.States = new[] { new MusicState { Name = "Replacement" } }; window.RefreshView();

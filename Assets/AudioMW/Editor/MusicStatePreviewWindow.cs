@@ -12,6 +12,7 @@ namespace AudioMW.Editor
         private MusicState[] displayedStates = new MusicState[0];
         private Label status;
         private Label timing;
+        private Label ruleDetails;
         private HelpBox help;
         private ScrollView library;
         private VisualElement profileList;
@@ -97,6 +98,10 @@ namespace AudioMW.Editor
             context.Add(settings);
             help = new HelpBox("", HelpBoxMessageType.Info);
             context.Add(help);
+            ruleDetails = new Label { name = "music-rule-details" };
+            ruleDetails.style.whiteSpace = WhiteSpace.Normal;
+            ruleDetails.AddToClassList("audiomw-runtime-card");
+            context.Add(ruleDetails);
             status = new Label { name = "music-current-pending" };
             status.AddToClassList("audiomw-runtime-card");
             status.style.whiteSpace = WhiteSpace.Normal;
@@ -105,11 +110,14 @@ namespace AudioMW.Editor
             timing = new Label { name = "music-timing" };
             timing.AddToClassList("audiomw-runtime-card");
             root.Add(timing);
-            root.Add(new Label("Request state · Profile rules") { style = { unityFontStyleAndWeight = FontStyle.Bold } });
+            var stateHeading = new Label("Request state") { style = { unityFontStyleAndWeight = FontStyle.Bold } };
+            root.Add(stateHeading);
             stateButtons = new VisualElement { name = "music-states" };
             stateButtons.style.flexDirection = FlexDirection.Row;
             stateButtons.style.flexWrap = Wrap.Wrap;
             root.Add(stateButtons);
+            root.Insert(root.IndexOf(status), stateHeading);
+            root.Insert(root.IndexOf(status), stateButtons);
             Button stop = new Button(() => { if (EditorApplication.isPlaying && AudioRuntime.Exists) AudioSystem.StopMusic(); }) { text = "Stop music", name = "stop-scene-music" };
             stop.SetEnabled(false);
             Button cancel = new Button(() => { if (EditorApplication.isPlaying && AudioRuntime.Exists) AudioSystem.Music.CancelTransition(); }) { text = "Cancel pending transition", name = "cancel-pending-music", tooltip = "Cancel a transition before its scheduled boundary. A crossfade that has already started continues." };
@@ -168,8 +176,10 @@ namespace AudioMW.Editor
         }
         private void UpdateRules(MusicTrack current)
         {
-            if (profile == null) return;
+            if (profile == null) { ruleDetails.text = "Rules unavailable: choose a music state profile."; return; }
             string from = profile.StateFor(current);
+            var rules = new System.Text.StringBuilder();
+            rules.Append("Profile rules · ").Append(current == null ? "start from silence" : string.IsNullOrEmpty(from) ? "current track outside profile" : "from " + from);
             stateButtons.Query<Button>("request-state").ForEach(button =>
             {
                 MusicState state = button.userData as MusicState;
@@ -181,9 +191,11 @@ namespace AudioMW.Editor
                     if (rule != null && rule.From == from && rule.To == state.Name)
                     { boundary = rule.Quantization; seconds = rule.FadeSeconds; curve = rule.Curve; break; }
                 string timing = current == null ? "Start from silence" : boundary + " · " + seconds.ToString("0.##") + " s · " + curve;
-                button.text = state.Name + " · " + timing;
+                button.text = state.Name;
+                rules.Append("\n").Append(state.Name).Append(" → ").Append(timing);
                 button.tooltip = state.Track == null ? "Missing track" : state.Track.name + "\n" + timing;
             });
+            ruleDetails.text = rules.ToString();
         }
     }
 }

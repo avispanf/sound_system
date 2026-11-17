@@ -185,3 +185,7 @@ Review shows routing and channel handling before expanding details, with capture
 ### Editor UI preview.37
 
 Mixer binding headings show parameter → exposed target and explicit mixed/unassigned states. Fresh final 330/330 EditMode and 5/5 package checks, muted native expanded/collapsed 300 px QA captures. Runtime unchanged; no new gameplay build or listening test.
+
+### Editor UI preview.38
+
+Music uses compact state buttons and a separate profile-rule context. Fresh 330/330 EditMode, 5/5 package checks and 30/30 silent normal-Editor runtime assertions on BAD SHIFT. Main-editor screenshots at 1200/360 show QA edit-mode composition only. No new native player build or listening acceptance.

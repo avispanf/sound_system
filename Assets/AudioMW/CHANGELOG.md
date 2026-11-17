@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0-preview.38 — Compact music state controls
+
+- Place compact state-name controls before current/pending status, matching the Music reference hierarchy.
+- Keep per-destination profile timing visible in the context panel and tooltips, separate from captured queued-transition timing.
+
 ## 0.5.0-preview.37 — Readable mixer binding headings
 
 - Replace generic binding row headings with actual Sound Parameter → exposed mixer name, including explicit mixed and unassigned states.

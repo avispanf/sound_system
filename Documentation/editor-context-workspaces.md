@@ -145,3 +145,24 @@ Fresh 329/329 EditMode tests (review36-edit.xml) include expanded assertions for
 Mixer parameter bindings now show source parameter → exposed name even when collapsed, instead of Element 0. Mixed and unassigned references are explicit; labels identify sound parameter, response curve and output bounds without inventing output units. Fields remain native serialized PropertyFields, with an IMGUI fallback. Runtime mapping and ranges are unchanged.
 
 Fresh final 330/330 EditMode tests (review37-final-edit.xml) cover real pinned 300 px Inspector bindings, unchanged serialization on opening, target editing/Undo, title refresh and mixed-target headings. The first run exposed timing-sensitive title assertions in both music and routing tests: Undo data restores before UI Toolkit's tracked label refresh. Tests now check restored data separately and wait up to 3 seconds for the correct tracked label. No production delay/workaround was introduced. All 5 package checks pass. Native Sound System screenshots show expanded/collapsed 300 px QA routing bindings with actual parameter/mixer references; the temporary profile was removed, no mixer/scene changes. No new runtime probe, PlayMode suite, native gameplay build or listening check.
+
+## Music composition and evidence boundaries (preview.38, 2026-11-17)
+
+Music state buttons now show state names, above Current/Pending status, matching the reference hierarchy. The context column lists each destination's current profile rule; tooltips retain the track and timing. On narrow windows the same context moves beneath the overview. Captured pending timing stays distinct from editable profile rules. No fake timeline, layer meter or sampled waveform added.
+
+Fresh 330/330 EditMode tests (review38-edit.xml) verify compact labels, order, profile-state rename refresh and narrow context reflow. All 5 package tests pass. Fresh normal Unity Editor runtime probe on the isolated BAD SHIFT fixture passed 30/30 assertions (music-runtime-acceptance38-final.txt): real scheduling, repeated-click boundary preservation, compact Combat label, rule context showing an edited 9-second fade while the queued transition retains its captured 2 seconds, cancellation, DSP crossfade completion, actual diagnostics and narrow/wide geometry. The Editor and AudioListener were muted. Native main Sound System 1200/360 screenshots use a transient QA profile with an existing track outside Play Mode; they are not screenshots of the runtime probe. QA objects/helper were removed. No native player build or listening check.
+
+### Reference acceptance status at this checkpoint
+
+| Surface | Implemented | Remaining boundary |
+| --- | --- | --- |
+| Events | Library, sources, actual waveform/metadata, right context, separate source/runtime audition | Embedded context is read-only; native Inspector remains separate rather than duplicated inside the window |
+| Native Inspector | Event container labels, narrow controls, music and routing sections, route/binding headings | Full visual match depends on Unity docking; no new artwork assets or custom native editor shell |
+| Music | Profile library, compact states, Current/Pending, captured timing, visible profile rules | Reference beat timeline and live layer meters are not implemented |
+| Spatial | Actual distance-response graph, authored settings and context | Custom curves without authored data remain unavailable |
+| Parameters | Authored references, response information and global runtime scope | Dynamic code references and per-instance overrides are not exhaustively inventoried |
+| Routing | Actual output assignments and binding authoring, native mixer navigation | Parent topology, sends, snapshots and bus meters remain unavailable here |
+| Diagnostics | Event library, captured requests, selected details and reasons | Captured state is historical; it does not certify audibility |
+| Review | Proposal library, actual changes, context, visible route/channel policy and fixed human confirmation | Approval applies the whole plan; partial-selection mock controls intentionally absent |
+
+This is a scope checklist based on current source plus the dated evidence above, not a claim that every window was freshly retested in this block. Earlier screenshots/tests retain their original dates. Unreal remains a future native plugin design, not a shipped implementation.
