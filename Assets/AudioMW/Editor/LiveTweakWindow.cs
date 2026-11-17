@@ -12,7 +12,7 @@ namespace AudioMW.Editor
         private Button revertAll, keepAll;
         private List<string> guids = new List<string>();
 
-        [MenuItem("Window/AudioMW/Live Tweaks")]
+        [MenuItem("Window/AudioMW/Panels/Diagnostics/Live Tweaks")]
         public static void Open()
         {
             LiveTweakWindow window = GetWindow<LiveTweakWindow>();

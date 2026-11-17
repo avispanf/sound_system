@@ -31,16 +31,16 @@ namespace AudioMW.Editor
         private Label status;
         private int dirty;
         private int dependencyDirty;
-        [MenuItem("Window/AudioMW/Spatial")]
+        [MenuItem("Window/AudioMW/Panels/Authoring/Spatial")]
         public static void Spatial() { Open(Workspace.Spatial); }
-        [MenuItem("Window/AudioMW/Parameters")]
+        [MenuItem("Window/AudioMW/Panels/Authoring/Parameters")]
         public static void Parameters() { Open(Workspace.Parameters); }
-        [MenuItem("Window/AudioMW/Routing")]
+        [MenuItem("Window/AudioMW/Panels/Authoring/Routing")]
         public static void Routing() { Open(Workspace.Routing); }
         public static AudioInspectionWindow Open(Workspace mode)
         {
             var window = Resources.FindObjectsOfTypeAll<AudioInspectionWindow>().FirstOrDefault(w => w.workspace == mode);
-            if (window == null) { window = CreateInstance<AudioInspectionWindow>(); window.workspace = mode; }
+            if (window == null) { window = CreateWindow<AudioInspectionWindow>(); window.workspace = mode; }
             window.titleContent = new GUIContent(mode.ToString()); window.minSize = new Vector2(360, 360); window.Show(); window.CreateGUI(); window.Focus(); return window;
         }
         private void OnEnable() { Selection.selectionChanged += Follow; Undo.undoRedoPerformed += Refresh; }

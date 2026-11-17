@@ -13,7 +13,7 @@ namespace AudioMW.Editor
         private Label selection;
         private Button create;
 
-        [MenuItem("Window/AudioMW/Create Sound Event")]
+        [MenuItem("Window/AudioMW/Panels/Authoring/Create Sound Event")]
         public static void Open()
         {
             SoundEventSetupWindow window = GetWindow<SoundEventSetupWindow>();
@@ -24,7 +24,7 @@ namespace AudioMW.Editor
         public void CreateGUI()
         {
             VisualElement root = rootVisualElement;
-            root.Clear();
+            root.Clear(); AudioWorkspace.Style(root); root.Add(AudioWorkspace.Navigation("Create event"));
             root.style.paddingLeft = root.style.paddingRight = 12;
             root.style.paddingTop = root.style.paddingBottom = 12;
             root.Add(new Label("Create a playable event") { style = { unityFontStyleAndWeight = FontStyle.Bold, marginBottom = 8 } });

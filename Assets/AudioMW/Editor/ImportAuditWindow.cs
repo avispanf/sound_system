@@ -20,19 +20,24 @@ namespace AudioMW.Editor
         private Toggle issuesOnly;
         private List<Row> visible = new List<Row>();
 
-        [MenuItem("Window/AudioMW/Import Auditor")]
+        [MenuItem("Window/AudioMW/Panels/Diagnostics/Import Auditor")]
         public static void Open()
         {
             ImportAuditWindow window = GetWindow<ImportAuditWindow>();
             window.titleContent = new GUIContent("Import Auditor");
-            window.minSize = new Vector2(560f, 300f);
+            window.minSize = new Vector2(380f, 300f);
             window.Show();
         }
 
         public void CreateGUI()
         {
+            rootVisualElement.Clear(); AudioWorkspace.Style(rootVisualElement);
+            rootVisualElement.Add(AudioWorkspace.Navigation("Import Audit"));
+            rootVisualElement.AddToClassList("audiomw-audit");
             VisualElement controls = new VisualElement();
             controls.style.flexDirection = FlexDirection.Row;
+            controls.style.flexWrap = Wrap.Wrap;
+            controls.AddToClassList("audiomw-audit-controls");
             controls.style.paddingLeft = 6f;
             controls.style.paddingTop = 6f;
 
@@ -52,17 +57,20 @@ namespace AudioMW.Editor
             rootVisualElement.Add(controls);
 
             listView = new ListView();
-            listView.fixedItemHeight = 20f;
+            listView.fixedItemHeight = 46f;
+            listView.horizontalScrollingEnabled = false;
             listView.style.flexGrow = 1f;
-            listView.makeItem = () => new Label();
+            listView.makeItem = () => { var row = new VisualElement(); row.Add(new Label { name = "audit-name" }); row.Add(new Label { name = "audit-details" }); return row; };
             listView.bindItem = BindItem;
             listView.itemsSource = visible;
             listView.selectionChanged += OnSelectionChanged;
             rootVisualElement.Add(listView);
 
-            summaryLabel = new Label("nothing scanned yet");
+            summaryLabel = new Label("No scan yet · choose Scan project or select clips first.");
             summaryLabel.style.paddingLeft = 6f;
             summaryLabel.style.paddingBottom = 6f;
+            summaryLabel.style.paddingRight = 12f;
+            summaryLabel.style.flexShrink = 0;
             summaryLabel.style.whiteSpace = WhiteSpace.Normal;
             rootVisualElement.Add(summaryLabel);
         }
@@ -172,15 +180,15 @@ namespace AudioMW.Editor
             }
 
             Row row = visible[index];
-            Label label = (Label)element;
+            element.Q<Label>("audit-name").text = row.Info.Name; element.tooltip = row.Info.AssetPath;
+            Label label = element.Q<Label>("audit-details");
 
             string issueText = row.Issues.Count == 0
                 ? "ok"
                 : row.Issues[0].Message + (row.Issues.Count > 1 ? "  (+" + (row.Issues.Count - 1) + " more)" : string.Empty);
 
             label.text = string.Format(
-                "{0,-28} {1,6:F1}s  {2,-18} {3,7}  {4}",
-                Truncate(row.Info.Name, 28),
+                "{0:F1} s · {1} · {2} · {3}",
                 row.Info.LengthSeconds,
                 row.Info.LoadType,
                 FormatBytes(row.Info.EstimatedMemoryBytes),

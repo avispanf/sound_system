@@ -55,6 +55,50 @@ namespace AudioMW.Tests
             Assert.AreEqual("1.5,3,2,32,0,0,0,,4.2,",sample.CsvRow());
         }
         [UnityTest]
+        public IEnumerator StudioEmbedsNativeAuthoringAndPreservesUndo()
+        {
+            string path = "Assets/AudioMWStudioTest_" + System.Guid.NewGuid().ToString("N") + ".asset";
+            var item = ScriptableObject.CreateInstance<SoundEvent>(); item.VolumeDb = -12;
+            AssetDatabase.CreateAsset(item,path);
+            var previous = Selection.activeObject;
+            var window = ScriptableObject.CreateInstance<AudioBrowserWindow>(); window.ShowUtility(); window.CreateGUI();
+            try
+            {
+                Assert.IsTrue(window.SelectAsset(item));
+                yield return null; yield return null;
+                Assert.AreEqual(item,Selection.activeObject);
+                Assert.NotNull(window.rootVisualElement.Q<UnityEditor.UIElements.InspectorElement>());
+                Assert.NotNull(window.rootVisualElement.Q("studio-container"));
+                Assert.AreEqual(4,window.rootVisualElement.Q("studio-browser-tabs").Query<Button>().ToList().Count);
+                var gain = window.rootVisualElement.Q<DecibelGainField>();
+                Assert.NotNull(gain);
+                Undo.IncrementCurrentGroup();
+                var reset = gain.Q<Button>("gain-reset");
+                using (var submit = NavigationSubmitEvent.GetPooled()) { submit.target = reset; reset.SendEvent(submit); }
+                yield return null;
+                Undo.FlushUndoRecordObjects(); Assert.AreEqual(0,item.VolumeDb,.01f);
+                Undo.PerformUndo(); yield return null; yield return null;
+                Assert.AreEqual(-12,item.VolumeDb,.01f);
+                window.FilterMask = 8;
+                Assert.IsNull(window.rootVisualElement.Q<UnityEditor.UIElements.InspectorElement>());
+                window.FilterMask = 0; Assert.IsTrue(window.SelectAsset(item));
+                Assert.NotNull(window.rootVisualElement.Q<UnityEditor.UIElements.InspectorElement>());
+            }
+            finally { window.Close(); Selection.activeObject = previous; AssetDatabase.DeleteAsset(path); }
+        }
+        [Test]
+        public void AudioBinCollectsDirectClipWithoutChangingImport()
+        {
+            var clip = AudioClip.Create("Audio Bin",100,2,44100,false);
+            try
+            {
+                var sources = AudioSourceCatalog.Collect(clip);
+                Assert.AreEqual(1,sources.Count); Assert.AreSame(clip,sources[0].Clip);
+                Assert.AreEqual(2,clip.channels);
+            }
+            finally { Object.DestroyImmediate(clip); }
+        }
+        [UnityTest]
         public IEnumerator ParameterWorkspaceStacksLibraryAt380()
         {
             var window = AudioInspectionWindow.Open(AudioInspectionWindow.Workspace.Parameters);

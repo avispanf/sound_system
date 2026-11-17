@@ -15,7 +15,7 @@ namespace AudioMW.Editor
         private HelpBox status;
         private Button save;
 
-        [MenuItem("Window/AudioMW/Project Setup")]
+        [MenuItem("Window/AudioMW/Panels/Authoring/Project Setup")]
         public static void Open()
         {
             AudioProjectSetupWindow window = GetWindow<AudioProjectSetupWindow>();
@@ -34,6 +34,8 @@ namespace AudioMW.Editor
             if (string.IsNullOrEmpty(draft.Platforms)) draft.Platforms = EditorUserBuildSettings.activeBuildTarget.ToString();
             plan = null;
             rootVisualElement.Clear(); AudioWorkspace.Style(rootVisualElement);
+            rootVisualElement.Add(AudioWorkspace.Navigation("Project setup"));
+            rootVisualElement.AddToClassList("audiomw-setup");
             ScrollView scroll = new ScrollView(); scroll.style.flexGrow = 1; rootVisualElement.Add(scroll);
             Label title = new Label("Project Setup"); title.style.unityFontStyleAndWeight = FontStyle.Bold; scroll.Add(title);
             scroll.Add(new Button(AudioMixSetupWindow.Open) { text = "Configure routing and ducking", tooltip = "Prepare a separate executable mix plan using a saved setup profile." });

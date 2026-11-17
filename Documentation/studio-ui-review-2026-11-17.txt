@@ -1,0 +1,34 @@
+AudioMW Studio UI review — 17 November 2026
+
+Primary window: Window > AudioMW > Studio.
+Events (music and voice included), Banks, Assets and Parameters share one browser.
+Container source selection, dry source deck and native Inspector now share Studio.
+Routing/scene audition is a contextual tab. Mixer opens native Unity Audio Mixer.
+Native selection, pin/follow, serialization and Undo remain in use. Legacy
+FilterMask=0 still means all asset categories; the Events tab uses mask 19.
+
+Observed and fixed in this block:
+- Replaced the rejected native dock-tab grouping with a real unified Studio.
+- Removed the many-button navigation strip; specialist panels remain in menus.
+- Source rows show selected-source highlight and real waveform/metadata.
+- Bank members navigate to real Sound Events.
+- Asset imports show actual mono state and retain native Apply/Revert workflow.
+- Properties move below source content at narrow widths, without destructive rebinding.
+- Import/loudness audit rows no longer align columns using padded proportional text.
+- Unity 2022.3 mixer-binding titles refresh from current serialized values after edits.
+
+Evidence: workspace work/bad-shift/review46-gallery.html and review46-*.png.
+Fresh EditMode results: review46-delivery.xml / review46-delivery-2022.xml.
+Python packaging checks: 15 passed. Editor master mute stayed enabled.
+Runtime source files were not changed in this block.
+
+Limits:
+- Mixer is the existing native Unity tool, not a custom FMOD-style mixer backend.
+- Specialist Music runtime, spatial, diagnostics/audits and approval tools remain
+  available as separate advanced panels; this is the completed core authoring
+  migration, not removal or embedding of every legacy tool.
+- Screens cover Studio sections, narrow layout, native Mixer, Diagnostics and
+  empty Review; they are not acceptance evidence for every advanced panel.
+- No runtime PlayMode suite, native build or listening repeated for this UI block.
+- No generated imports/plans were approved. No real audio assets or scenes changed.
+- BAD SHIFT gameplay binary is unchanged; preview.46 is an editor package delivery.

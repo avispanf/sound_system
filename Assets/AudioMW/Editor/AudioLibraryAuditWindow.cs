@@ -21,7 +21,7 @@ namespace AudioMW.Editor
         private Button export;
         private AudioLibraryIssue selected;
 
-        [MenuItem("Window/AudioMW/Library Audit")]
+        [MenuItem("Window/AudioMW/Panels/Diagnostics/Library Audit")]
         public static void Open()
         {
             AudioLibraryAuditWindow window = GetWindow<AudioLibraryAuditWindow>();

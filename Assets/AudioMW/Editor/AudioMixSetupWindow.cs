@@ -18,7 +18,7 @@ namespace AudioMW.Editor
         private HelpBox status;
         private Button apply;
         private ListView routes;
-        [MenuItem("Window/AudioMW/Mix Setup")]
+        [MenuItem("Window/AudioMW/Panels/Authoring/Mix Setup")]
         public static void Open()
         {
             AudioMixSetupWindow window = GetWindow<AudioMixSetupWindow>(); window.titleContent = new GUIContent("Mix Setup"); window.minSize = new Vector2(420, 460); window.Show();
@@ -31,6 +31,8 @@ namespace AudioMW.Editor
         {
             if (draft == null) draft = new AudioMixRequest();
             plan = null; rootVisualElement.Clear(); AudioWorkspace.Style(rootVisualElement);
+            rootVisualElement.Add(AudioWorkspace.Navigation("Mix setup"));
+            rootVisualElement.AddToClassList("audiomw-setup");
             ScrollView scroll = new ScrollView(); scroll.style.flexGrow = 1; rootVisualElement.Add(scroll);
             scroll.Add(Wrap("Routing and VO ducking"));
             scroll.Add(Wrap("Choose explicit asset categories, then review exact changes. Nothing is written until Approve and apply. Existing mixer graphs and category faders are preserved."));

@@ -21,7 +21,7 @@ namespace AudioMW.Editor
         private Label profileTitle;
         private IVisualElementScheduledItem refresh;
 
-        [MenuItem("Window/AudioMW/Music Transitions")]
+        [MenuItem("Window/AudioMW/Panels/Authoring/Music Transitions")]
         public static void OpenMenu() { Open(null); }
 
         public static void Open(MusicStateProfile selected)

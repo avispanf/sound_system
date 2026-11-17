@@ -33,7 +33,7 @@ namespace AudioMW.Editor
         private double nextSample;
         private IMGUIContainer graph;
         public IReadOnlyList<AudioPerformanceSample> Samples => samples;
-        [MenuItem("Window/AudioMW/Performance")]
+        [MenuItem("Window/AudioMW/Panels/Diagnostics/Performance")]
         public static void Open()
         {
             var window = GetWindow<AudioPerformanceWindow>(); window.titleContent = new GUIContent("Performance"); window.minSize = new Vector2(360, 340); window.Show();

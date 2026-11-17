@@ -34,7 +34,20 @@ namespace AudioMW.Editor
                 field.bindingPath = property.FindPropertyRelative(Fields[i]).propertyPath;
                 var row = new VisualElement { name = "mixer-binding-" + Fields[i] }; row.Add(field); root.Add(row);
             }
-            root.contentContainer.TrackSerializedObjectValue(property.serializedObject, _ => root.text = Title(property));
+            var targets = property.serializedObject.targetObjects;
+            string path = property.propertyPath;
+            System.Action refreshTitle = () =>
+            {
+                foreach (var target in targets) if (target == null) return;
+                using (var current = new SerializedObject(targets))
+                {
+                    var binding = current.FindProperty(path);
+                    if (binding != null) root.text = Title(binding);
+                }
+            };
+            root.contentContainer.TrackSerializedObjectValue(property.serializedObject, _ => refreshTitle());
+            root.RegisterCallback<ChangeEvent<string>>(_ => root.schedule.Execute(refreshTitle));
+            root.RegisterCallback<ChangeEvent<Object>>(_ => root.schedule.Execute(refreshTitle));
             return root;
         }
 

@@ -10,7 +10,7 @@ namespace AudioMW.Editor
     {
         [SerializeField] private string selectedId;
         private string error;
-        [MenuItem("Window/AudioMW/Agent Review")]
+        [MenuItem("Window/AudioMW/Panels/Authoring/Agent Review")]
         public static void Open() { var window = GetWindow<AudioAgentReviewWindow>(); window.titleContent = new GUIContent("Review changes"); window.minSize = new Vector2(360, 320); window.Show(); }
         public static void ShowPlan(string id) { Open(); var window = GetWindow<AudioAgentReviewWindow>(); window.selectedId = id; window.CreateGUI(); }
         private void OnEnable() { AudioAgentBridge.Changed += Refresh; }

@@ -96,3 +96,29 @@ rebuilds the pool, so switch presets at setup rather than during active content.
 For a mobile 3D game, create a measured 3D tier instead of choosing Mobile 2D
 just because the target is a phone. The 24 kHz option also trades bandwidth for
 quality; do not apply it indiscriminately to music-heavy games.
+
+## Studio authoring (preview.46)
+
+Open **Window > AudioMW > Studio** for the primary authoring workflow. The left
+browser has Events (including music and voice), Banks, Assets and Parameters.
+The center shows the selected asset's actual container sources and an Audio Bin
+with cached waveform, file metadata and dry source audition. Selecting a source
+row changes the source below; it never triggers playback automatically.
+
+Properties are the actual native custom Inspector embedded in Studio, with
+serialized bindings and Undo. The external Inspector and pin/follow remain
+available. Routing / audition shows real output and parameter references plus
+scene-bound runtime audition; Play source (dry) remains a separate operation.
+At narrow widths Properties moves below the source deck. Banks link to their
+member events. Assets lists real AudioClips; import settings still use Unity's
+native Apply / Revert Inspector instead of being silently applied on selection.
+
+**Mixer** opens Unity's native Audio Mixer as a separate window with the real
+buses, effects and snapshots. This is not a new custom mixing engine. Diagnostics,
+Review changes and specialist tools remain available; their content has not all
+been rewritten as embedded Studio views. No FMOD timeline, instrument trigger
+regions, fake signal meters or live LUFS are implied by this layout.
+
+Reference: FMOD Studio's browser/editor/deck composition and Audio Bin workflow:
+https://www.fmod.com/docs/2.04/studio/authoring-events.html
+https://www.fmod.com/docs/2.04/studio/managing-assets.html

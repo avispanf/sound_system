@@ -10,9 +10,9 @@ namespace AudioMW.Editor
     public static class AudioWorkspace
     {
         private static readonly Dictionary<Object, EditorWindow> pinnedWindows = new Dictionary<Object, EditorWindow>();
-        [MenuItem("Window/AudioMW/Sounds", false, 0)]
+        [MenuItem("Window/AudioMW/Studio", false, 0)]
         public static void Sounds() { AudioBrowserWindow.Open(); }
-        [MenuItem("Window/AudioMW/Music", false, 1)]
+        [MenuItem("Window/AudioMW/Panels/Authoring/Music", false, 1)]
         public static void Music() { MusicStatePreviewWindow.OpenMenu(); }
         [MenuItem("Window/AudioMW/Diagnostics", false, 2)]
         public static void Diagnostics() { EventDebuggerWindow.Open(); }
@@ -42,32 +42,43 @@ namespace AudioMW.Editor
             else search.Focus();
         }
 
+        [MenuItem("Window/AudioMW/Mixer", false, 1)]
+        public static void Mixer() { EditorApplication.ExecuteMenuItem("Window/Audio/Audio Mixer"); }
+
         public static Toolbar Navigation(string current)
         {
-            Toolbar bar = new Toolbar();
-            bar.style.flexWrap = Wrap.Wrap;
-            bar.style.height = StyleKeyword.Auto;
-            bar.name = "workspace-navigation";
-            Add(bar, "Events", current == "Sounds" ? "Events" : current, Sounds);
-            Add(bar, "Music", current, Music);
-            Add(bar, "Parameters", current, AudioInspectionWindow.Parameters);
-            Add(bar, "Routing", current, AudioInspectionWindow.Routing);
-            Add(bar, "Spatial", current, AudioInspectionWindow.Spatial);
-            Add(bar, "Diagnostics", current, Diagnostics);
-            Add(bar, "Performance", current, AudioPerformanceWindow.Open);
-            ToolbarSpacer space = new ToolbarSpacer { flex = true }; bar.Add(space);
-            ToolbarButton create = new ToolbarButton(SoundEventSetupWindow.Open) { text = "+ Create event", tooltip = "Create a Sound Event from clips selected in the Project window." };
-            create.AddToClassList("audiomw-primary"); bar.Add(create);
-            ToolbarButton review = new ToolbarButton(AudioAgentReviewWindow.Open) { text = "Review changes", name = "review-changes", tooltip = "Review agent proposals. Opening this tool applies nothing." }; bar.Add(review);
-            ToolbarMenu tools = new ToolbarMenu { text = "Tools" };
-            tools.menu.AppendAction("Mix setup", _ => AudioMixSetupWindow.Open());
-            tools.menu.AppendAction("Project setup", _ => AudioProjectSetupWindow.Open());
-            tools.menu.AppendAction("Agent review", _ => AudioAgentReviewWindow.Open());
-            tools.menu.AppendAction("Library audit", _ => AudioLibraryAuditWindow.Open());
-            tools.menu.AppendAction("Loudness audit", _ => LoudnessAuditWindow.Open());
-            tools.menu.AppendAction("Import audit", _ => ImportAuditWindow.Open());
-            tools.menu.AppendAction("Review Play Mode changes", _ => LiveTweakWindow.Open());
-            bar.Add(tools);
+            bool diagnostics = current == "Diagnostics" || current == "Performance" || current == "Library Audit" || current == "Loudness Audit" || current == "Import Audit" || current == "Live edits";
+            Toolbar bar = new Toolbar { name = "workspace-navigation" };
+            bar.AddToClassList("audiomw-group-navigation");
+            Add(bar, "Studio", diagnostics ? "Diagnostics" : "Studio", Sounds);
+            bar.Add(new ToolbarButton(Mixer) { text = "Mixer" });
+            Add(bar, "Diagnostics", diagnostics ? "Diagnostics" : "Authoring", Diagnostics);
+            var sections = new ToolbarMenu { text = current == "Sounds" ? "Events" : current, name = "workspace-sections" };
+            sections.AddToClassList("audiomw-section-menu");
+            if (diagnostics)
+            {
+                sections.menu.AppendAction("Event requests", _ => Diagnostics());
+                sections.menu.AppendAction("Performance", _ => AudioPerformanceWindow.Open());
+                sections.menu.AppendSeparator();
+                sections.menu.AppendAction("Library audit", _ => AudioLibraryAuditWindow.Open());
+                sections.menu.AppendAction("Loudness audit", _ => LoudnessAuditWindow.Open());
+                sections.menu.AppendAction("Import audit", _ => ImportAuditWindow.Open());
+                sections.menu.AppendAction("Play Mode edits", _ => LiveTweakWindow.Open());
+            }
+            else
+            {
+                sections.menu.AppendAction("Events", _ => Sounds());
+                sections.menu.AppendAction("Music", _ => Music());
+                sections.menu.AppendAction("Parameters", _ => AudioInspectionWindow.Parameters());
+                sections.menu.AppendAction("Routing", _ => AudioInspectionWindow.Routing());
+                sections.menu.AppendAction("Spatial", _ => AudioInspectionWindow.Spatial());
+                sections.menu.AppendSeparator();
+                sections.menu.AppendAction("Review changes", _ => AudioAgentReviewWindow.Open());
+                sections.menu.AppendAction("Project setup", _ => AudioProjectSetupWindow.Open());
+                sections.menu.AppendAction("Mix setup", _ => AudioMixSetupWindow.Open());
+                sections.menu.AppendAction("Create event", _ => SoundEventSetupWindow.Open());
+            }
+            bar.Add(sections);
             return bar;
         }
 

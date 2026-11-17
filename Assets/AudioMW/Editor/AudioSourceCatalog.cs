@@ -37,6 +37,7 @@ namespace AudioMW.Editor
         public static List<AudioSourceEntry> Collect(Object asset)
         {
             List<AudioSourceEntry> sources = new List<AudioSourceEntry>();
+            if (asset is AudioClip clip) sources.Add(new AudioSourceEntry { Direct = clip, Location = AssetDatabase.GetAssetPath(clip) });
             SoundEvent item = asset as SoundEvent;
             if (item != null) Visit(item, sources, new HashSet<SoundEvent>(), item.name);
             MusicTrack track = asset as MusicTrack;

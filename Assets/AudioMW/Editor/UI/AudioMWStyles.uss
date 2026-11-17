@@ -375,3 +375,44 @@
 
 .audiomw-profile-inspector #music-layer > .unity-foldout__toggle, .audiomw-profile-inspector #music-transition-rule > .unity-foldout__toggle { flex-direction: row; align-items: center; }
 .audiomw-profile-inspector #music-layer > .unity-foldout__toggle > .unity-base-field__input, .audiomw-profile-inspector #music-transition-rule > .unity-foldout__toggle > .unity-base-field__input { flex-grow: 1; flex-shrink: 1; min-width: 0; width: 0; }
+
+.audiomw-group-navigation { flex-wrap: wrap; height: auto; min-height: 30px; padding: 3px 6px; }
+.audiomw-group-navigation .unity-toolbar-button { margin: 0 3px 0 0; padding: 0 10px; min-height: 24px; }
+.audiomw-group-navigation .audiomw-section-menu { margin-left: 12px; min-width: 110px; flex-grow: 1; }
+.audiomw-group-navigation .audiomw-section-menu .unity-text-element { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.audiomw-audit-controls { padding: 8px 12px; align-items: center; }
+.audiomw-audit-controls .unity-base-field { margin-right: 12px; }
+.audiomw-audit .unity-list-view__item .unity-label { padding: 4px 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.audiomw-setup > .unity-scroll-view { padding: 12px; }
+.audiomw-setup .unity-label { white-space: normal; }
+.audiomw-group-navigation .audiomw-section-menu { flex-grow: 0; width: 160px; max-width: 200px; }
+.audiomw-audit .unity-list-view__item .unity-label { padding: 2px 12px; }
+.audiomw-audit #audit-name { -unity-font-style: bold; }
+.audiomw-audit #audit-details { font-size: 11px; }
+
+.audiomw-studio #studio-toolbar { height: 34px; flex-shrink: 0; padding: 4px 10px; background-color: rgb(30, 32, 35); }
+.audiomw-studio #studio-toolbar > .unity-label { -unity-font-style: bold; margin-right: 24px; -unity-text-align: middle-left; }
+.audiomw-studio #studio-toolbar .unity-toolbar-button { padding: 0 10px; margin: 0 3px; }
+.audiomw-studio #studio-browser-tabs { padding: 4px; margin: 0; flex-direction: row; flex-wrap: wrap; }
+.audiomw-studio #studio-browser-tabs .unity-button { margin: 1px; padding: 3px 7px; min-height: 24px; border-radius: 2px; }
+.audiomw-studio #events-context-host { width: 340px; padding: 0; background-color: rgb(39, 41, 44); }
+.audiomw-studio #asset-context { padding: 8px; }
+.audiomw-studio #asset-context .unity-button { margin-top: 2px; }
+.audiomw-studio #asset-overview { background-color: rgb(32, 34, 37); }
+.audiomw-studio #asset-title { font-size: 20px; margin: 4px 0; }
+.audiomw-studio #studio-container { margin-top: 16px; min-height: 160px; padding: 12px; border-width: 1px; border-color: rgb(61, 64, 68); border-radius: 3px; background-color: rgb(26, 28, 30); }
+.audiomw-studio #studio-container-heading, .audiomw-studio #studio-bin-heading { -unity-font-style: bold; font-size: 12px; margin-bottom: 8px; color: rgb(188, 195, 198); }
+.audiomw-studio #studio-signal-flow { flex-direction: row; flex-wrap: wrap; margin-bottom: 12px; }
+.audiomw-studio #studio-signal-flow > .unity-label { padding: 6px 8px; margin-right: 4px; background-color: rgb(45, 49, 51); border-radius: 2px; white-space: normal; }
+.audiomw-studio .studio-instrument { height: 30px; margin: 2px 0; padding-left: 12px; border-left-width: 3px; border-left-color: rgb(111, 168, 133); background-color: rgb(49, 68, 59); -unity-text-align: middle-left; overflow: hidden; text-overflow: ellipsis; }
+.audiomw-studio .studio-instrument:hover { background-color: rgb(61, 84, 71); }
+.audiomw-studio #studio-audio-bin { margin-top: 16px; padding-top: 12px; border-top-width: 1px; border-top-color: rgb(61, 64, 68); }
+.audiomw-studio #studio-audio-bin #source-list, .audiomw-studio #studio-audio-bin .audiomw-source-header { display: none; }
+.audiomw-studio #studio-properties { margin-top: 12px; }
+.audiomw-studio #studio-properties .unity-inspector-element { padding: 0; }
+.audiomw-studio #studio-properties .unity-base-field { min-width: 0; }
+.audiomw-studio .studio-instrument-selected { background-color: rgb(66, 92, 75); border-left-color: rgb(165, 202, 175); }
+.audiomw-studio #studio-properties .unity-property-field { min-width: 0; flex-shrink: 1; }
+.audiomw-studio #studio-properties .unity-base-field__label { min-width: 85px; max-width: 150px; flex-shrink: 1; }
+.audiomw-studio #studio-properties .unity-base-field__input { min-width: 0; flex-shrink: 1; }
+.audiomw-studio .studio-bank-member { min-height: 28px; -unity-text-align: middle-left; margin: 3px 0; }

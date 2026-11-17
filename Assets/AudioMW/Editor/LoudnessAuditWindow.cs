@@ -16,30 +16,35 @@ namespace AudioMW.Editor
         private Toggle outliersOnly;
         private List<LoudnessAuditEntry> visible = new List<LoudnessAuditEntry>();
 
-        [MenuItem("Window/AudioMW/Loudness Audit")]
+        [MenuItem("Window/AudioMW/Panels/Diagnostics/Loudness Audit")]
         public static void Open()
         {
             LoudnessAuditWindow window = GetWindow<LoudnessAuditWindow>();
             window.titleContent = new GUIContent("Loudness Audit");
-            window.minSize = new Vector2(520f, 300f);
+            window.minSize = new Vector2(380f, 300f);
             window.Show();
         }
 
         public void CreateGUI()
         {
+            rootVisualElement.Clear(); AudioWorkspace.Style(rootVisualElement);
+            rootVisualElement.Add(AudioWorkspace.Navigation("Loudness Audit"));
+            rootVisualElement.AddToClassList("audiomw-audit");
             VisualElement controls = new VisualElement();
             controls.style.flexDirection = FlexDirection.Row;
+            controls.style.flexWrap = Wrap.Wrap;
+            controls.AddToClassList("audiomw-audit-controls");
             controls.style.paddingLeft = 6f;
             controls.style.paddingTop = 6f;
 
             targetField = new DoubleField("Target LUFS");
             targetField.value = LoudnessMeter.DefaultTargetLufs;
-            targetField.style.width = 160f;
+            targetField.style.width = 180f; targetField.labelElement.style.minWidth = 90;
             controls.Add(targetField);
 
             toleranceField = new DoubleField("Tolerance dB");
             toleranceField.value = LoudnessAuditReport.DefaultToleranceDb;
-            toleranceField.style.width = 160f;
+            toleranceField.style.width = 180f; toleranceField.labelElement.style.minWidth = 90;
             controls.Add(toleranceField);
 
             outliersOnly = new Toggle("Outliers only");
@@ -50,6 +55,8 @@ namespace AudioMW.Editor
 
             VisualElement buttons = new VisualElement();
             buttons.style.flexDirection = FlexDirection.Row;
+            buttons.style.flexWrap = Wrap.Wrap;
+            buttons.AddToClassList("audiomw-audit-controls");
             buttons.style.paddingLeft = 6f;
 
             Button scanAll = new Button(() => Scan(false));
@@ -67,17 +74,20 @@ namespace AudioMW.Editor
             rootVisualElement.Add(buttons);
 
             listView = new ListView();
-            listView.fixedItemHeight = 20f;
+            listView.fixedItemHeight = 46f;
+            listView.horizontalScrollingEnabled = false;
             listView.style.flexGrow = 1f;
-            listView.makeItem = () => new Label();
+            listView.makeItem = () => { var row = new VisualElement(); row.Add(new Label { name = "audit-name" }); row.Add(new Label { name = "audit-details" }); return row; };
             listView.bindItem = BindItem;
             listView.itemsSource = visible;
             listView.selectionChanged += OnSelectionChanged;
             rootVisualElement.Add(listView);
 
-            summaryLabel = new Label("nothing scanned yet");
+            summaryLabel = new Label("No scan yet · choose Scan project or select clips first.");
             summaryLabel.style.paddingLeft = 6f;
             summaryLabel.style.paddingBottom = 6f;
+            summaryLabel.style.paddingRight = 12f;
+            summaryLabel.style.flexShrink = 0;
             summaryLabel.style.whiteSpace = WhiteSpace.Normal;
             rootVisualElement.Add(summaryLabel);
         }
@@ -154,11 +164,12 @@ namespace AudioMW.Editor
             }
 
             LoudnessAuditEntry entry = visible[index];
-            Label label = (Label)element;
+            element.Q<Label>("audit-name").text = entry.ClipName; element.tooltip = entry.ClipName;
+            Label label = element.Q<Label>("audit-details");
 
             if (!entry.Readable)
             {
-                label.text = string.Format("{0,-34} not readable, needs Decompress On Load", Truncate(entry.ClipName, 34));
+                label.text = "Unavailable · needs Decompress On Load";
                 label.style.color = new StyleColor(new Color(0.7f, 0.7f, 0.7f));
                 return;
             }
@@ -166,8 +177,7 @@ namespace AudioMW.Editor
             double offset = entry.SuggestedOffsetDb(targetField.value);
 
             label.text = string.Format(
-                "{0,-34} {1,8:F1} LUFS   peak {2,6:F1}   offset {3,6:F1} dB",
-                Truncate(entry.ClipName, 34),
+                "{0:F1} LUFS · peak {1:F1} dBTP · offset {2:F1} dB",
                 entry.Loudness.IntegratedLufs,
                 entry.Loudness.TruePeakDb,
                 offset);

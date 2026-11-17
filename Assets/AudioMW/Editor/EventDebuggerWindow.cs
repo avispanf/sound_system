@@ -36,7 +36,7 @@ namespace AudioMW.Editor
 
         private List<EventDebugRecord> visible = new List<EventDebugRecord>();
 
-        [MenuItem("Window/AudioMW/Event Debugger")]
+        [MenuItem("Window/AudioMW/Panels/Diagnostics/Event Debugger")]
         public static void Open()
         {
             EventDebuggerWindow window = GetWindow<EventDebuggerWindow>();
