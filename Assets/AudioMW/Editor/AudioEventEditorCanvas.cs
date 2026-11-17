@@ -183,7 +183,7 @@ namespace AudioMW.Editor
             EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
             bars=GUILayout.Toggle(bars,"Bars:Beats",EditorStyles.toolbarButton,GUILayout.Width(90));if(!bars)GUILayout.Label("Seconds",GUILayout.Width(60));
             GUILayout.Label(score.Tempo+" BPM · "+score.BeatsPerBar+"/4",GUILayout.Width(120));snap=EditorGUILayout.Popup(snap,new[]{"Snap off","Beat","Bar"},GUILayout.Width(85));
-            if(doc.Zoom>0){EditorGUI.BeginChangeCheck();doc.Zoom=GUILayout.HorizontalSlider(doc.Zoom,1,500,GUILayout.Width(100));if(EditorGUI.EndChangeCheck())doc.FitTimeline=false;}
+            EditorGUI.BeginChangeCheck();float zoom=GUILayout.HorizontalSlider(Mathf.Clamp(doc.Zoom,1,500),1,500,GUILayout.Width(100));if(EditorGUI.EndChangeCheck()){doc.Zoom=zoom;doc.FitTimeline=false;}
             if(GUILayout.Button("Fit all",EditorStyles.toolbarButton,GUILayout.Width(60)))doc.FitTimeline=true;
             using(new EditorGUI.DisabledScope(legacy))if(GUILayout.Button("+ Track",EditorStyles.toolbarButton,GUILayout.Width(70))){Undo.RecordObject(score,"Add lane");score.Lanes.Add(new ArrangementLane{Name="Track "+(score.Lanes.Count+1)});EditorUtility.SetDirty(score);}
             DrawWaveformZoom();combinedWaveform=GUILayout.Toggle(combinedWaveform,new GUIContent("Combined","Combined peaks across source channels. This is display only, not a mono downmix."),EditorStyles.toolbarButton,GUILayout.Width(72));

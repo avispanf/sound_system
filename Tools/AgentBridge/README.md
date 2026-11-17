@@ -7,3 +7,5 @@ Read `agent-mcp.md` for setup, chat workflow, schemas, preservation, trust bound
 This directory is the companion, not an npm-published package. Do not invent an `npx audiomw` install command. The Unity UPM package has no Node dependency at runtime.
 
 Adaptive music and channel-layout documentation: `agent-music-mcp.md` in the same documentation location.
+
+Reviewed MusicArrangement edits: `agent-timeline-mcp.md`. Use `audiomw_inspect` with an arrangement GUID before `audiomw_propose_timeline`. Reconnect the MCP client after updating the companion to refresh its six-tool inventory.

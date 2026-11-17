@@ -18,7 +18,7 @@ export class UnityBridge {
     await this.noLinks(descriptor);
     let value;
     try { value = JSON.parse(await readFile(descriptor, 'utf8')); }
-    catch { throw new Error('Open this Unity project and enable Window > AudioMW > Agent Review.'); }
+    catch { throw new Error('Open this Unity project and enable Window > AudioMW > Panels > Authoring > Agent Review.'); }
     if (value.SchemaVersion !== 1 || !idPattern.test(value.Session) || !/^[a-f0-9]{64}$/.test(value.Project) || await realpath(value.ProjectPath) !== project) throw new Error('Unity project or bridge identity mismatch.');
     if (!Number.isFinite(value.Heartbeat) || Math.abs(Date.now() - value.Heartbeat) > 10000) throw new Error('Unity bridge heartbeat is stale. Keep the Editor responsive in Edit Mode.');
     return { ...value, root };
@@ -29,12 +29,12 @@ export class UnityBridge {
       catch (e) { if (e.code !== 'ENOENT') throw e; }
     }
   }
-  async inspect() {
+  async inspect(input = {}) {
     this.bound = await this.connection();
-    return this.request('inspect', {});
+    return this.request('inspect', { ArrangementGuid: input.arrangementGuid || '' });
   }
   async request(operation, payload, requestId = randomBytes(16).toString('hex')) {
-    if (!['inspect', 'propose', 'propose_music', 'status', 'review'].includes(operation)) throw new Error('Unsupported operation. Approval is only available in Unity.');
+    if (!['inspect', 'propose', 'propose_music', 'propose_timeline', 'status', 'review'].includes(operation)) throw new Error('Unsupported operation. Approval is only available in Unity.');
     if (!this.bound) throw new Error('Call audiomw_inspect first to bind the intended Unity project/session.');
     if (!idPattern.test(requestId)) throw new Error('requestId must contain 32 lowercase hex characters.');
     const current = await this.connection();
@@ -74,6 +74,10 @@ export class UnityBridge {
       } catch (e) { if (e.code !== 'ENOENT') throw e; }
     }
     throw new Error(`Unity timed out. Request ${requestId} may still be queued. Retry with the same requestId for proposals; do not assume assets changed.`);
+  }
+  async proposeTimeline(input) {
+    const edits = input.edits.map(edit => Object.fromEntries(Object.entries(edit).map(([key, value]) => [key[0].toUpperCase() + key.slice(1), value])));
+    return this.request('propose_timeline', { TimelineDraft: { Intent: input.intent, ArrangementGuid: input.arrangementGuid, ExpectedHash: input.expectedHash, Edits: edits } }, input.requestId);
   }
   async proposeMusic(input) {
     const local = async file => {

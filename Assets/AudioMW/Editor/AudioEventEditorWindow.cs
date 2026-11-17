@@ -103,6 +103,8 @@ namespace AudioMW.Editor
         private void OnProjectChange() { RefreshBrowser(); RefreshDocuments(); }
         public void CreateGUI()
         {
+            if(browser!=null&&browser.viewController!=null&&builtBrowserTab>=0)browserExpansion[builtBrowserTab]=browserFolders.Where(id=>browser.IsExpanded(id)).ToList();
+            builtBrowserTab=-1;browserFolders.Clear();
             responsiveSize=new Vector2(-1,-1);rootVisualElement.Clear(); AudioWorkspace.Style(rootVisualElement); rootVisualElement.AddToClassList("audiomw-event-editor-v2");
             var top = new Toolbar { name="studio-v2-toolbar" }; top.Add(new Label("AudioMW | Event Editor"));
             top.Add(new ToolbarButton(()=>{drawerOpen=!drawerOpen;UpdateCompactLayout();}){text="Browser",name="studio-browser-toggle"});

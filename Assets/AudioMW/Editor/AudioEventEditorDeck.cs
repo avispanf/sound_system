@@ -204,11 +204,13 @@ namespace AudioMW.Editor
                 var lane=score.Lanes[laneIndex];var laneProperty=lanes.GetArrayElementAtIndex(laneIndex);int clipIndex=lane.Clips.FindIndex(c=>selectedClips.Contains(c.Id));
                 var property=clipIndex>=0?laneProperty.FindPropertyRelative("Clips").GetArrayElementAtIndex(clipIndex):laneProperty;
                 EditorGUILayout.BeginHorizontal();float previousLabel=EditorGUIUtility.labelWidth;EditorGUIUtility.labelWidth=100;
-                EditorGUILayout.BeginVertical(GUILayout.Width(Mathf.Clamp(deckScroll.contentRect.width*.40f,270,380)));
+                bool showBinding=clipIndex>=0&&musicDeckSection=="Properties"&&deckScroll.contentRect.width>=960;
+                EditorGUILayout.BeginVertical(GUILayout.Width(showBinding?280:Mathf.Clamp(deckScroll.contentRect.width*.40f,270,380)));
                 foreach(string field in clipIndex>=0?new[]{"Source","Start","Duration","Gain"}:new[]{"Name","Gain"})
                     PropertyRow(property.FindPropertyRelative(field),field+(field=="Start"||field=="Duration"?" (s)":""));
                 if(clipIndex<0)EditorGUILayout.LabelField(lane.Clips.Count+" clips · session M/S in track header",EditorStyles.miniLabel);
-                EditorGUILayout.EndVertical();GUILayout.Space(24);EditorGUILayout.BeginVertical();
+                EditorGUILayout.EndVertical();GUILayout.Space(16);
+                if(showBinding)EditorGUILayout.BeginVertical(GUILayout.Width(250));else EditorGUILayout.BeginVertical();
                 if(musicDeckSection=="Routing")
                 {
                     PropertyRow(laneProperty.FindPropertyRelative("Output"),"Track output");
@@ -223,8 +225,11 @@ namespace AudioMW.Editor
                     PropertyRow(property.FindPropertyRelative("FadeOut"),"Fade out (s)");
                 }
                 else DrawWeightPanel(laneProperty.FindPropertyRelative("Parameter"),laneProperty.FindPropertyRelative("Weight"));
-                EditorGUILayout.EndVertical();EditorGUILayout.EndHorizontal();EditorGUIUtility.labelWidth=previousLabel;
+                EditorGUILayout.EndVertical();
+                if(showBinding){GUILayout.Space(16);EditorGUILayout.BeginVertical();DrawWeightPanel(laneProperty.FindPropertyRelative("Parameter"),laneProperty.FindPropertyRelative("Weight"));EditorGUILayout.EndVertical();}
+                EditorGUILayout.EndHorizontal();EditorGUIUtility.labelWidth=previousLabel;
                 EditorGUILayout.BeginHorizontal();
+                if(clipIndex>=0){var selected=lane.Clips[clipIndex];GUILayout.Label("End "+(selected.Start+selected.Duration).ToString("0.###")+" s · "+selected.Source?.channels+" ch",EditorStyles.miniLabel);GUILayout.FlexibleSpace();}
                 if(GUILayout.Button("Arrangement",GUILayout.Width(100))){selectedLane="";selectedClips.Clear();CurrentDocument.Selection="";}
                 if(clipIndex>=0){if(GUILayout.Button("Duplicate",GUILayout.Width(100))){deckSerialized.ApplyModifiedProperties();ArrangementAuthoring.Duplicate(score,selectedClips);deckSerialized.Update();}if(GUILayout.Button("Delete clip",GUILayout.Width(100))){deckSerialized.ApplyModifiedProperties();ArrangementAuthoring.Delete(score,selectedClips);selectedClips.Clear();deckSerialized.Update();}}
                 else

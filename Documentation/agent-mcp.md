@@ -31,7 +31,7 @@ Example prompt:
 
 > Inspect BAD SHIFT with AudioMW. Use these two attached WAV files as variations for the existing MicrowaveRandom event triggered by E. Preserve its routing, volume, selection and scene references. Prepare the integration plan and show it in Unity. Wait for me to approve there, then read the result. Do not play audio during automated verification.
 
-Tools: `audiomw_inspect`, `audiomw_propose`, `audiomw_propose_music`, `audiomw_show_review`, `audiomw_plan_status`. There is no approval, arbitrary C#, shell, code-generation or remote-play tool. For an equivalent deterministic SDK client:
+Tools: `audiomw_inspect`, `audiomw_propose`, `audiomw_propose_music`, `audiomw_propose_timeline`, `audiomw_show_review`, `audiomw_plan_status`. There is no approval, arbitrary C#, shell, code-generation or remote-play tool. For an equivalent deterministic SDK client:
 
 ```sh
 node client.mjs /absolute/UnityProject inspect
@@ -80,3 +80,5 @@ The session ID is not a security boundary against software with arbitrary write 
 - [Official TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk/tree/v1.x)
 
 See [agent-mcp-verification.md](agent-mcp-verification.md) for observed acceptance results and remaining limits.
+
+Timeline authoring: see [agent-timeline-mcp.md](agent-timeline-mcp.md) for selected-arrangement inspection, conflict hashes, supported operations and human review. Update the companion alongside Unity and reconnect clients to discover the sixth tool.

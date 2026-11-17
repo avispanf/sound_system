@@ -17,11 +17,11 @@ namespace AudioMW.Tests
         private AudioEventEditorWindow window;
         private AudioClip clip;
         private string folder;
-        private bool muted;
+        private bool muted,shown;
         private Object selection;
         [SetUp] public void SetUp()
         {
-            muted=EditorUtility.audioMasterMute;EditorUtility.audioMasterMute=true;
+            shown=false;muted=EditorUtility.audioMasterMute;EditorUtility.audioMasterMute=true;
             selection=Selection.activeObject;
             folder="Assets/EditorAudition_"+Guid.NewGuid().ToString("N");
             AssetDatabase.CreateFolder("Assets",folder.Substring(7));
@@ -40,7 +40,7 @@ namespace AudioMW.Tests
         }
         [TearDown] public void TearDown()
         {
-            Object.DestroyImmediate(window);EditorAudioPreview.Stop();
+            if(shown&&window!=null)window.Close();if(window!=null)Object.DestroyImmediate(window);EditorAudioPreview.Stop();
             AssetDatabase.DeleteAsset(folder);Selection.activeObject=selection;
             EditorUtility.audioMasterMute=muted;
         }
@@ -51,6 +51,20 @@ namespace AudioMW.Tests
             var score=ScriptableObject.CreateInstance<MusicArrangement>();score.Exit=1;
             score.Lanes.Add(new ArrangementLane());score.Lanes[0].Clips.Add(new ArrangementClip{Source=clip,Duration=1,FadeIn=.1,FadeOut=.1});
             AssetDatabase.CreateAsset(score,folder+"/Score.asset");window.OpenDocument(score);return score;
+        }
+        [UnityEngine.TestTools.UnityTest] public System.Collections.IEnumerator ArrangementDeckAt1366RendersInitialZoomAndSelectedClipWithoutEditing()
+        {
+            var score=OpenScore();
+            for(int i=1;i<4;i++){var lane=new ArrangementLane{Name="Track "+i};lane.Clips.Add(new ArrangementClip{Source=clip,Duration=1});score.Lanes.Add(lane);}
+            EditorUtility.SetDirty(score);AssetDatabase.SaveAssetIfDirty(score);
+            shown=true;window.Show();window.position=new Rect(0,26,1366,768);window.Repaint();
+            yield return null;yield return null;
+            typeof(AudioEventEditorWindow).GetField("selectedLane",Private).SetValue(window,score.Lanes[0].Id);
+            Field<System.Collections.Generic.HashSet<string>>("selectedClips").Add(score.Lanes[0].Clips[0].Id);
+            typeof(AudioEventEditorWindow).GetMethod("ShowDeck",Private).Invoke(window,new object[]{score});window.Repaint();
+            yield return null;yield return null;
+            Assert.AreSame(score,window.DeckTarget);Assert.IsFalse(EditorUtility.IsDirty(score));
+            Assert.Greater(window.rootVisualElement.layout.width,1000);Assert.AreEqual(4,score.Lanes.Count);
         }
         [Test] public void MusicPlayFromAuthorOwnsPreviewSceneAndStopCleansIt()
         {

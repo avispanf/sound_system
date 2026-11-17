@@ -33,13 +33,13 @@ async function service(f, callback) {
   }, 15);
   return async () => { clearInterval(timer); while (busy) await new Promise(r => setTimeout(r, 10)); };
 }
-test('real stdio SDK negotiation exposes only five review tools and no approval', async () => {
+test('real stdio SDK negotiation exposes six review tools and no approval', async () => {
   const f = await fixture(); const stop = await service(f, request => ({ Ok: true, State: 'ready', Inventory: { Project: request.Project, Session: request.Session } }));
   const client = new Client({ name: 'audiomw-test', version: '1' });
   try {
     await client.connect(new StdioClientTransport({ command: process.execPath, args: [path.resolve('server.mjs'), '--project', f.project] }));
     const tools = (await client.listTools()).tools;
-    assert.deepEqual(tools.map(t => t.name).sort(), ['audiomw_inspect', 'audiomw_plan_status', 'audiomw_propose', 'audiomw_propose_music', 'audiomw_show_review']);
+    assert.deepEqual(tools.map(t => t.name).sort(), ['audiomw_inspect', 'audiomw_plan_status', 'audiomw_propose', 'audiomw_propose_music', 'audiomw_propose_timeline', 'audiomw_show_review']);
     const result = await client.callTool({ name: 'audiomw_inspect', arguments: {} });
     assert.equal(result.structuredContent.Inventory.Project, f.value.Project);
     const invalid = await client.callTool({ name: 'audiomw_propose', arguments: { events: [] } }); assert.equal(invalid.isError, true);
@@ -101,4 +101,22 @@ test('music requests preserve explicit stems, channel choices and state transiti
     assert.equal(captured.Operation, 'propose_music'); assert.equal(captured.MusicDraft.Tracks[0].Stems[0].ForceToMono, true); assert.equal(captured.MusicDraft.Tracks[0].Stems[0].LowWeight, 0); assert.equal(captured.MusicDraft.Profile.Quantization, 'Bar');
     input.tracks[0].body = 'https://host/loop.wav'; await assert.rejects(bridge.proposeMusic(input), /absolute local/);
   } finally { await stop(); await f.dispose(); }
+});
+
+test('timeline edits traverse real stdio schema and preserve review-only semantics', async () => {
+  const f = await fixture(); let captured;
+  const stop = await service(f, request => { captured = request; return { Ok: true, State: request.Operation === 'inspect' ? 'ready' : 'pending' }; });
+  const client = new Client({ name: 'timeline-test', version: '1' });
+  try {
+    await client.connect(new StdioClientTransport({ command: process.execPath, args: [path.resolve('server.mjs'), '--project', f.project] }));
+    await client.callTool({ name: 'audiomw_inspect', arguments: {} });
+    const input = { requestId: 'f'.repeat(32), intent: 'Trim and fade kitchen music', arrangementGuid: 'b'.repeat(32), expectedHash: 'c'.repeat(64), edits: [{ operation: 'edit_clip', clipId: 'stable-clip', start: 2, trim: .5, duration: 3, fadeIn: .2, fadeOut: .3, gain: .7, repeat: false }] };
+    const reply = await client.callTool({ name: 'audiomw_propose_timeline', arguments: input });
+    assert.equal(reply.structuredContent.State, 'pending'); assert.equal(captured.Operation, 'propose_timeline');
+    assert.equal(captured.TimelineDraft.ExpectedHash, input.expectedHash); assert.equal(captured.TimelineDraft.Edits[0].FadeOut, .3);
+    input.edits[0].duration = -1;
+    assert.equal((await client.callTool({ name: 'audiomw_propose_timeline', arguments: input })).isError, true);
+    input.edits = [{ operation: 'approve' }];
+    assert.equal((await client.callTool({ name: 'audiomw_propose_timeline', arguments: input })).isError, true);
+  } finally { await client.close(); await stop(); await f.dispose(); }
 });

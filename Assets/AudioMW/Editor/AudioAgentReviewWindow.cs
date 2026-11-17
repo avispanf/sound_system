@@ -64,11 +64,11 @@ namespace AudioMW.Editor
             if (!string.IsNullOrEmpty(error)) scroll.Add(new HelpBox(error, HelpBoxMessageType.Error));
             foreach (var pending in AudioAgentBridge.Plans)
             {
-                var data = pending.Read(); var proposal = new Button(() => { selectedId = data.Id; error = null; CreateGUI(); }) { text = pending.State + " · " + (data.Changes.Length + data.Music.Length + (data.HasProfile ? 1 : 0)) + " asset(s) · " + data.Id.Substring(0, 8), tooltip = data.Intent }; proposal.EnableInClassList("audiomw-proposal-selected", data.Id == selectedId); proposals.Add(proposal);
+                var data = pending.Read(); var proposal = new Button(() => { selectedId = data.Id; error = null; CreateGUI(); }) { text = pending.State + " · " + (data.Changes.Length + data.Music.Length + (data.HasProfile ? 1 : 0) + (data.HasTimeline ? 1 : 0)) + " asset(s) · " + data.Id.Substring(0, 8), tooltip = data.Intent }; proposal.EnableInClassList("audiomw-proposal-selected", data.Id == selectedId); proposals.Add(proposal);
             }
             var plan = AudioAgentBridge.Find(selectedId); if (plan == null) { scroll.Add(Text("Send files through your agent, then choose a proposal here. No assets are imported while preparing a plan.")); return; }
             var review = plan.Read();
-            var stateLabel = Text(plan.State + " · " + review.Changes.Length + " events · " + review.Music.Length + " tracks" + (review.HasProfile ? " · state profile" : "")); stateLabel.AddToClassList("audiomw-eyebrow"); scroll.Add(stateLabel);
+            var stateLabel = Text(plan.State + " · " + review.Changes.Length + " events · " + review.Music.Length + " tracks" + (review.HasProfile ? " · state profile" : "") + (review.HasTimeline ? " · timeline edits" : "")); stateLabel.AddToClassList("audiomw-eyebrow"); scroll.Add(stateLabel);
             scroll.Add(Text(review.Intent));
             context.Add(Text("Scope · Entire plan"));
             context.Add(Text("Captured target · " + review.BuildTarget + "\nUnity " + review.Unity));
@@ -78,7 +78,17 @@ namespace AudioMW.Editor
                 var label = Text(heading); label.AddToClassList("audiomw-review-heading"); context.Add(label);
                 context.Add(Text(heading == "Before apply" ? "Validate asset identity, source files and current plan state." : heading == "After apply" ? "Report the actual result below. Imported audio still needs gameplay wiring and listening checks." : "Stale plans cannot be applied. Request a new proposal after changing the reviewed assets."));
             }
-            var destination = new Foldout { text = "Import destination", value = false }; destination.Add(Text(review.Folder)); context.Add(destination);
+            if (!review.HasTimeline) { var destination = new Foldout { text = "Import destination", value = false }; destination.Add(Text(review.Folder)); context.Add(destination); }
+            else
+            {
+                var item = new VisualElement(); item.AddToClassList("audiomw-review-item"); scroll.Add(item);
+                item.Add(Text("Timeline · " + review.Timeline.Path));
+                item.Add(Text(review.Timeline.Edits.Length + " edits · existing arrangement · no import or playback"));
+                var before = new Foldout { text = "Before · saved arrangement", value = false }; before.Add(Text(review.Timeline.Before)); item.Add(before);
+                var after = new Foldout { text = "After · proposed arrangement", value = true }; after.Add(Text(review.Timeline.After)); item.Add(after);
+                var edits = new Foldout { text = "Exact operations / identities", value = false }; foreach (var edit in review.Timeline.Edits) edits.Add(Text(edit)); item.Add(edits);
+                item.Add(new Button(() => { Selection.activeObject = AssetDatabase.LoadAssetAtPath<MusicArrangement>(review.Timeline.Path); EditorGUIUtility.PingObject(Selection.activeObject); }) { text = "Locate arrangement" });
+            }
             foreach (var change in review.Changes)
             {
                 var item = new VisualElement(); item.AddToClassList("audiomw-review-item"); scroll.Add(item);
@@ -137,7 +147,7 @@ namespace AudioMW.Editor
                 try
                 {
                     string problem = AudioAgentPlanner.Check(plan, AudioAgentBridge.Session); if (problem.Length > 0) throw new InvalidOperationException(problem);
-                    if (!EditorUtility.DisplayDialog("Apply AudioMW integration?", review.Changes.Length + " event changes, " + review.Music.Length + " music tracks" + (review.HasProfile ? " and a state profile" : "") + "; imported audio in " + review.Folder + ".\nReview " + plan.Digest.Substring(0, 12) + ".\nExisting asset content will be replaced exactly as shown. No gameplay code or mixer gains will be changed.", "Apply reviewed plan", "Cancel")) return;
+                    if (!EditorUtility.DisplayDialog("Apply AudioMW integration?", review.HasTimeline ? "Apply " + review.Timeline.Edits.Length + " timeline edits to " + review.Timeline.Path + "?\nReview " + plan.Digest.Substring(0, 12) + ". No import, playback or scene changes." : review.Changes.Length + " event changes, " + review.Music.Length + " music tracks" + (review.HasProfile ? " and a state profile" : "") + "; imported audio in " + review.Folder + ".\nReview " + plan.Digest.Substring(0, 12) + ".\nExisting asset content will be replaced exactly as shown. No gameplay code or mixer gains will be changed.", "Apply reviewed plan", "Cancel")) return;
                     AudioAgentBridge.Approve(plan); error = null;
                 }
                 catch (Exception e) { error = e.Message; }

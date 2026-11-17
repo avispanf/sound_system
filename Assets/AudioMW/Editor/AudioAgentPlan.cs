@@ -59,6 +59,8 @@ namespace AudioMW.Editor
         public string BuildTarget;
         public AudioAgentChange[] Changes = new AudioAgentChange[0];
         public AudioAgentMusicChange[] Music = new AudioAgentMusicChange[0];
+        public bool HasTimeline;
+        public AudioAgentTimelineChange Timeline;
         public bool HasProfile;
         public AudioAgentProfileChange Profile;
         public string[] Limitations;
@@ -130,6 +132,7 @@ namespace AudioMW.Editor
                 var review = plan.Read();
                 if (review.Project != AudioProjectPlanner.ProjectIdentity() || review.Session != session) throw new InvalidOperationException("Project or editor session changed. Propose a new plan.");
                 if (review.Unity != Application.unityVersion || review.BuildTarget != EditorUserBuildSettings.activeBuildTarget.ToString()) throw new InvalidOperationException("Unity or build target changed. Propose again.");
+                if (review.HasTimeline) { AudioAgentTimelinePlanner.Check(review.Timeline); return ""; }
                 AssetPath(review.Folder);
                 if (!AssetDatabase.IsValidFolder(Path.GetDirectoryName(review.Folder).Replace('\\', '/')) || Directory.Exists(review.Folder) || File.Exists(review.Folder) || File.Exists(review.Folder + ".meta")) throw new InvalidOperationException("The destination changed. Propose again.");
                 AudioAgentMusicPlanner.Check(review);
@@ -153,6 +156,7 @@ namespace AudioMW.Editor
         {
             if (plan != null && plan.State == "applied") return;
             string problem = Check(plan, session); if (problem.Length != 0) throw new InvalidOperationException(problem);
+            if (plan.Read().HasTimeline) { AudioAgentTimelinePlanner.Apply(plan); return; }
             var review = plan.Read(); string stage = Path.Combine("Library", "AudioMWAgentStage", review.Id); var touched = new List<AudioAgentChange>(); var musicTouched = new List<AudioAgentTarget>(); bool moved = false;
             AudioAgentPlanner.NoLinks(Path.GetFullPath(stage));
             if (Directory.Exists(stage)) throw new InvalidOperationException("Staging exists from an interrupted operation. Inspect it before retrying.");
