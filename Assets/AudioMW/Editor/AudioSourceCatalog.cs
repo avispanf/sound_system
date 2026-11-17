@@ -9,6 +9,7 @@ namespace AudioMW.Editor
         public AudioClip Direct;
         public ClipReference Reference;
         public SoundEvent Owner;
+        public int SourceIndex = -1;
         public string Location;
         public AudioClip Clip { get { return Reference != null ? Reference.Clip : Direct; } }
         public string Name
@@ -57,8 +58,8 @@ namespace AudioMW.Editor
             if (item == null || path.Count >= 32 || !path.Add(item)) return;
             if (item.ContainerMode == ContainerMode.Simple)
             {
-                for (int i = 0; i < item.Clips.Length; i++) sources.Add(new AudioSourceEntry { Direct = item.Clips[i], Owner = item, Location = location + " / Clip " + (i + 1) });
-                for (int i = 0; i < item.ClipReferences.Length; i++) sources.Add(new AudioSourceEntry { Reference = item.ClipReferences[i], Owner = item, Location = location + " / Reference " + (i + 1) });
+                for (int i = 0; i < item.Clips.Length; i++) sources.Add(new AudioSourceEntry { Direct = item.Clips[i], Owner = item, SourceIndex = i, Location = location + " / Clip " + (i + 1) });
+                for (int i = 0; i < item.ClipReferences.Length; i++) sources.Add(new AudioSourceEntry { Reference = item.ClipReferences[i], Owner = item, SourceIndex = item.Clips.Length + i, Location = location + " / Reference " + (i + 1) });
             }
             else if (item.ContainerMode == ContainerMode.Blend)
             {

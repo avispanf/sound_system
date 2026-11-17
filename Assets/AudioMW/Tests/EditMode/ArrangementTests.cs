@@ -22,6 +22,70 @@ namespace AudioMW.Tests
         {
             var clip=new ArrangementClip{Source=source,Start=start,Trim=trim,Duration=duration,Repeat=repeat};score.Lanes[0].Clips.Add(clip);return clip;
         }
+        [Test] public void SourceWeightsPreserveDefaultsAndUndo()
+        {
+            var item=ScriptableObject.CreateInstance<SoundEvent>();
+            try
+            {
+                item.Clips=new[]{source,source,source};item.SelectionMode=ClipSelectionMode.WeightedRandom;
+                Undo.IncrementCurrentGroup();AudioEventEditorWindow.SetSourceWeight(item,2,4);Undo.FlushUndoRecordObjects();
+                CollectionAssert.AreEqual(new[]{1f,1f,4f},item.ClipWeights);
+                Undo.PerformUndo();Assert.AreEqual(0,item.ClipWeights.Length);
+                Undo.PerformRedo();CollectionAssert.AreEqual(new[]{1f,1f,4f},item.ClipWeights);
+                item.SelectionMode=ClipSelectionMode.ShuffleBag;AudioEventEditorWindow.SetSourceWeight(item,1,9);
+                Assert.AreEqual(1,item.ClipWeights[1]);
+            }
+            finally{Undo.ClearUndo(item);Object.DestroyImmediate(item);}
+        }
+        [Test] public void NestedSourceCatalogKeepsOwnerAndWeightIndexWithoutCycling()
+        {
+            var root=ScriptableObject.CreateInstance<SoundEvent>();var leaf=ScriptableObject.CreateInstance<SoundEvent>();
+            try
+            {
+                root.ContainerMode=ContainerMode.Layered;root.Children=new[]{SoundEventChild.Create(leaf),SoundEventChild.Create(root)};
+                leaf.Clips=new[]{source,source};var entries=AudioSourceCatalog.Collect(root);
+                Assert.AreEqual(2,entries.Count);Assert.AreSame(leaf,entries[1].Owner);Assert.AreEqual(1,entries[1].SourceIndex);
+                Assert.AreEqual(0,leaf.ClipWeights.Length);
+            }
+            finally{Object.DestroyImmediate(root);Object.DestroyImmediate(leaf);}
+        }
+        [Test] public void WaveformKeepsStereoPolarityAndLastFrame()
+        {
+            var stereo=AudioClip.Create("Stereo envelope",2051,2,48000,false);
+            try
+            {
+                var pcm=new float[4102];for(int i=0;i<2051;i++){pcm[i*2]=.5f;pcm[i*2+1]=-.5f;}pcm[4100]=1;
+                stereo.SetData(pcm,0);WaveformCache.Clear();var texture=WaveformCache.Get(stereo);
+                Assert.IsNotNull(texture);Assert.AreEqual(128,texture.height);
+                Assert.Greater(texture.GetPixel(100,110).a,0);Assert.AreEqual(0,texture.GetPixel(100,82).a);
+                Assert.Greater(texture.GetPixel(100,18).a,0);Assert.AreEqual(0,texture.GetPixel(100,46).a);
+                Assert.Greater(texture.GetPixel(1023,124).a,0);
+            }
+            finally{WaveformCache.Clear();Object.DestroyImmediate(stereo);}
+        }
+        [Test] public void FadeAuthoringClampsDurationAndUndoes()
+        {
+            var clip=Clip();Undo.IncrementCurrentGroup();ArrangementAuthoring.SetFades(score,clip.Id,.7,.9);Undo.FlushUndoRecordObjects();
+            Assert.AreEqual(.7,clip.FadeIn,1e-9);Assert.AreEqual(.3,clip.FadeOut,1e-9);Assert.IsEmpty(score.Validate());
+            Undo.PerformUndo();Assert.AreEqual(0,score.Lanes[0].Clips[0].FadeIn);Assert.AreEqual(0,score.Lanes[0].Clips[0].FadeOut);
+            Undo.PerformRedo();Assert.AreEqual(.7,score.Lanes[0].Clips[0].FadeIn,1e-9);
+        }
+        [Test] public void SaveRootIncludesEditedChildAfterDeckNavigation()
+        {
+            string folder="Assets/StudioChild_"+System.Guid.NewGuid().ToString("N");AssetDatabase.CreateFolder("Assets",folder.Substring(7));
+            var root=ScriptableObject.CreateInstance<SoundEvent>();var child=ScriptableObject.CreateInstance<SoundEvent>();var window=ScriptableObject.CreateInstance<AudioEventEditorWindow>();
+            try
+            {
+                AssetDatabase.CreateAsset(child,folder+"/Child.asset");root.ContainerMode=ContainerMode.Layered;root.Children=new[]{SoundEventChild.Create(child)};AssetDatabase.CreateAsset(root,folder+"/Root.asset");
+                window.CreateGUI();window.OpenDocument(root);child.Volume=.25f;EditorUtility.SetDirty(child);
+                var flags=System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance;
+                typeof(AudioEventEditorWindow).GetMethod("TrackEdit",flags).Invoke(window,new object[]{child});
+                string state=EditorJsonUtility.ToJson(window);EditorJsonUtility.FromJsonOverwrite(state,window);
+                typeof(AudioEventEditorWindow).GetMethod("ShowDeck",flags).Invoke(window,new object[]{root});window.SaveDocument();
+                Assert.IsFalse(EditorUtility.IsDirty(child));Assert.That(System.IO.File.ReadAllText(folder+"/Child.asset"),Does.Contain("volume: 0.25"));
+            }
+            finally{Object.DestroyImmediate(window);AssetDatabase.DeleteAsset(folder);}
+        }
         [Test] public void TrimAndSeekPreserveSampleOffset()
         {
             Clip(2,.25,.75);var segment=ArrangementSchedule.Window(score,2.5,0,1).Single();

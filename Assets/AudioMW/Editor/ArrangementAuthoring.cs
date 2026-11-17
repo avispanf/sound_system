@@ -66,6 +66,14 @@ namespace AudioMW.Editor
             }
             EditorUtility.SetDirty(score);
         }
+        public static void SetFades(MusicArrangement score,string id,double fadeIn,double fadeOut)
+        {
+            if(double.IsNaN(fadeIn)||double.IsInfinity(fadeIn)||double.IsNaN(fadeOut)||double.IsInfinity(fadeOut))return;
+            foreach(var lane in score.Lanes)foreach(var clip in lane.Clips)if(clip.Id==id)
+            {
+                Undo.RecordObject(score,"Change clip fades");clip.FadeIn=Math.Max(0,Math.Min(clip.Duration,fadeIn));clip.FadeOut=Math.Max(0,Math.Min(clip.Duration-clip.FadeIn,fadeOut));EditorUtility.SetDirty(score);return;
+            }
+        }
         public static void Delete(MusicArrangement score, ICollection<string> ids)
         {
             Undo.RecordObject(score,"Delete timeline clips"); foreach(var lane in score.Lanes) lane.Clips.RemoveAll(c=>ids.Contains(c.Id)); EditorUtility.SetDirty(score);

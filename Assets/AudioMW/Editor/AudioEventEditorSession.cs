@@ -77,11 +77,11 @@ namespace AudioMW.Editor
             if(sessionLabel!=null)sessionLabel.text=identity==0?"Local: Disconnected":EditorApplication.isPaused?"Local: Paused":"Local: Connected · "+identity;
             if(transportPosition!=null)transportPosition.text=arrangementPlayer!=null?arrangementPlayer.Position.ToString("0.000")+" s":legacyPlayer!=null&&legacyPlayer.IsPlaying?"DSP music session":"Stopped";
             canvas?.MarkDirtyRepaint();
-            if(EditorApplication.timeSinceStartup-lastRefresh>.25){lastRefresh=EditorApplication.timeSinceStartup;RefreshDocuments();Repaint();}
+            if(EditorApplication.timeSinceStartup-lastRefresh>.25){lastRefresh=EditorApplication.timeSinceStartup;RefreshDocuments();UpdateCompactLayout();Repaint();}
         }
         private void RefreshDock()
         {
-            if(bottom==null)return;bottom.Clear();bool open=bottomTab!="";bottom.style.display=open?DisplayStyle.Flex:DisplayStyle.None;bottom.style.height=open?210:0;deck.style.display=DisplayStyle.Flex;deck.style.minHeight=open?28:160;deck.style.height=open?28:(position.height<850?180:240);deckScroll.style.display=open?DisplayStyle.None:DisplayStyle.Flex;
+            if(bottom==null)return;bottom.Clear();bool open=bottomTab!="";bottom.style.display=open?DisplayStyle.Flex:DisplayStyle.None;bottom.style.height=open?210:0;deck.style.display=DisplayStyle.Flex;deck.style.minHeight=open?28:160;deck.style.height=open?28:(position.height<850?200:240);deckScroll.style.display=open?DisplayStyle.None:DisplayStyle.Flex;
             if(open){var scroll=new ScrollView();scroll.style.flexGrow=1;scroll.Add(new IMGUIContainer(DrawDock));bottom.Add(scroll);}
         }
         private void DrawDock()

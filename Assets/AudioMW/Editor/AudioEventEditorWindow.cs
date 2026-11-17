@@ -30,12 +30,15 @@ namespace AudioMW.Editor
         [SerializeField] private bool overviewOpen = true;
         [SerializeField] private float deckHeight=240;
         private bool browserRefreshing,drawerOpen;
+        private Vector2 responsiveSize=new Vector2(-1,-1);
         private TwoPaneSplitView mainSplit;
         private VisualElement libraryPanel;
         [SerializeField] private string mode = "Author";
         [SerializeField] private string view = "Container";
         private readonly List<Object> browserAssets = new List<Object>();
         private Object deckTarget;
+        [Serializable] private sealed class DependentEdit { public string Document; public Object Target; }
+        [SerializeField] private List<DependentEdit> documentEdits=new List<DependentEdit>();
         private SerializedObject deckSerialized;
         private TreeView browser;
         private readonly Dictionary<int,List<int>> browserExpansion=new Dictionary<int,List<int>>();
@@ -74,7 +77,7 @@ namespace AudioMW.Editor
         private void OnProjectChange() { RefreshBrowser(); RefreshDocuments(); }
         public void CreateGUI()
         {
-            rootVisualElement.Clear(); AudioWorkspace.Style(rootVisualElement); rootVisualElement.AddToClassList("audiomw-event-editor-v2");
+            responsiveSize=new Vector2(-1,-1);rootVisualElement.Clear(); AudioWorkspace.Style(rootVisualElement); rootVisualElement.AddToClassList("audiomw-event-editor-v2");
             var top = new Toolbar { name="studio-v2-toolbar" }; top.Add(new Label("AudioMW | Event Editor"));
             top.Add(new ToolbarButton(()=>{drawerOpen=!drawerOpen;UpdateCompactLayout();}){text="Browser",name="studio-browser-toggle"});
             top.Add(new ToolbarSpacer { flex=true }); top.Add(new ToolbarButton(AudioWorkspace.Mixer) { text="Mixer" });
@@ -115,17 +118,25 @@ namespace AudioMW.Editor
             deckScroll=new ScrollView();deckScroll.style.flexGrow=1;deck.Add(deckScroll);var deckGui=new IMGUIContainer(DrawDeck);deckGui.style.width=Length.Percent(100);deckScroll.contentContainer.style.width=Length.Percent(100);deckScroll.Add(deckGui);
             var dockTabs=new Toolbar{name="studio-v2-dock-tabs"};foreach(string label in new[]{"Profiler","Issues","Live changes"}){string tab=label;dockTabs.Add(new ToolbarButton(()=>{bottomTab=bottomTab==tab?"":tab;RefreshDock();}){text=label});}center.Add(dockTabs);
             bottom=new VisualElement{name="studio-v2-dock"};center.Add(bottom);
-            rootVisualElement.RegisterCallback<GeometryChangedEvent>(e=>{ overview.style.display=overviewOpen&&e.newRect.width>=1400?DisplayStyle.Flex:DisplayStyle.None;if(bottomTab=="")deck.style.height=Mathf.Clamp(deckHeight,160,e.newRect.height<850?180:320);UpdateCompactLayout(); });
+            rootVisualElement.UnregisterCallback<GeometryChangedEvent>(OnGeometryChanged);rootVisualElement.RegisterCallback<GeometryChangedEvent>(OnGeometryChanged);
             rootVisualElement.RegisterCallback<KeyDownEvent>(e=>{if(e.target is TextElement || e.target is TextField)return;if(e.actionKey&&e.keyCode==KeyCode.S){SaveDocument();e.StopPropagation();}if(e.keyCode==KeyCode.Escape)CancelDrag();});
             RefreshBrowser();RefreshDocuments();RestoreDocumentSelection();ShowDeck(CurrentAsset);RefreshDock();RefreshTransport();RefreshOverview();
         }
+        private void OnGeometryChanged(GeometryChangedEvent e){UpdateCompactLayout();}
         private void UpdateCompactLayout()
         {
             if(mainSplit==null)return;
+            if(responsiveSize!=position.size)
+            {
+                responsiveSize=position.size;
+                if(overview!=null)overview.style.display=overviewOpen&&position.width>=1400?DisplayStyle.Flex:DisplayStyle.None;
+                if(deck!=null&&bottomTab=="")deck.style.height=Mathf.Clamp(deckHeight,160,position.height<850?200:320);
+                mainSplit.fixedPaneInitialDimension=position.width<1400?220:260;
+            }
             bool compact=position.width<1000;
             var toggle=rootVisualElement.Q<ToolbarButton>("studio-browser-toggle");if(toggle!=null)toggle.style.display=compact?DisplayStyle.Flex:DisplayStyle.None;
             if(compact&&!drawerOpen)mainSplit.CollapseChild(0);else mainSplit.UnCollapse();
-            if(libraryPanel!=null){libraryPanel.style.minWidth=220;mainSplit.fixedPaneInitialDimension=position.width<1400?220:260;}
+            if(libraryPanel!=null)libraryPanel.style.minWidth=220;
         }
         public void SwitchBrowser(int index) {browserTab=Mathf.Clamp(index,0,3);search?.SetValueWithoutNotify(queries[browserTab]);EditorAudioPreview.Stop();RefreshBrowser();}
         private void RefreshBrowser()
@@ -177,17 +188,29 @@ namespace AudioMW.Editor
         private void RefreshDocuments()
         {
             if(documentTabs==null)return;
-            string stamp=documentIndex+string.Join("|",documents.Select(d=>{var a=AssetDatabase.LoadAssetAtPath<Object>(AssetDatabase.GUIDToAssetPath(d.Guid));return d.Guid+":"+(a!=null?a.name:"")+":"+(a!=null&&EditorUtility.IsDirty(a))+":"+d.Pinned;}));
+            string stamp=documentIndex+string.Join("|",documents.Select(d=>{var a=AssetDatabase.LoadAssetAtPath<Object>(AssetDatabase.GUIDToAssetPath(d.Guid));return d.Guid+":"+(a!=null?a.name:"")+":"+(a!=null&&(EditorUtility.IsDirty(a)||documentEdits.Any(e=>e.Document==d.Guid&&e.Target!=null&&EditorUtility.IsDirty(e.Target))))+":"+d.Pinned;}));
             if(documentsStamp==stamp)return;documentsStamp=stamp;documentTabs.Clear();
             for(int i=0;i<documents.Count;i++){int index=i;var asset=AssetDatabase.LoadAssetAtPath<Object>(AssetDatabase.GUIDToAssetPath(documents[i].Guid));if(asset==null)continue;if(EditorUtility.IsDirty(asset))documents[i].Pinned=true;
                 var tabGroup=new VisualElement();tabGroup.AddToClassList("studio-document-tab");tabGroup.EnableInClassList("studio-v2-active",index==documentIndex);documentTabs.Add(tabGroup);
-                var b=new ToolbarButton(()=>OpenDocument(asset,documents[index].Pinned)){text=asset.name+(EditorUtility.IsDirty(asset)?" •":""),tooltip=AssetDatabase.GetAssetPath(asset)};b.EnableInClassList("studio-v2-active",index==documentIndex);tabGroup.Add(b);
+                var b=new ToolbarButton(()=>OpenDocument(asset,documents[index].Pinned)){text=asset.name+(EditorUtility.IsDirty(asset)||documentEdits.Any(e=>e.Document==documents[index].Guid&&e.Target!=null&&EditorUtility.IsDirty(e.Target))?" •":""),tooltip=AssetDatabase.GetAssetPath(asset)};b.EnableInClassList("studio-v2-active",index==documentIndex);tabGroup.Add(b);
                 tabGroup.Add(new ToolbarButton(()=>{StopAudition();documents.RemoveAt(index);if(index<documentIndex)documentIndex--;documentIndex=Math.Min(documentIndex,documents.Count-1);selectedClips.Clear();selectedLane="";ShowDeck(CurrentAsset);RefreshDocuments();RefreshOverview();}){text="×"});}
         }
-        public void SaveDocument(){if(CurrentAsset is MusicArrangement score && score.Validate()!=""){notice=score.Validate();return;}if(deckTarget!=null)AssetDatabase.SaveAssetIfDirty(deckTarget);if(CurrentAsset!=null)AssetDatabase.SaveAssetIfDirty(CurrentAsset);RefreshDocuments();}
+        private void TrackEdit(Object target)
+        {
+            if(target==null||CurrentDocument==null)return;
+            if(!documentEdits.Any(e=>e.Document==CurrentDocument.Guid&&e.Target==target))documentEdits.Add(new DependentEdit{Document=CurrentDocument.Guid,Target=target});
+            CurrentDocument.Pinned=true;RefreshOverview();
+        }
+        public void SaveDocument()
+        {
+            if(CurrentAsset is MusicArrangement score&&score.Validate()!=""){notice=score.Validate();return;}
+            if(CurrentDocument!=null){foreach(var edit in documentEdits.Where(e=>e.Document==CurrentDocument.Guid))if(edit.Target!=null)AssetDatabase.SaveAssetIfDirty(edit.Target);documentEdits.RemoveAll(e=>e.Document==CurrentDocument.Guid);}
+            if(deckTarget!=null)AssetDatabase.SaveAssetIfDirty(deckTarget);
+            if(CurrentAsset!=null)AssetDatabase.SaveAssetIfDirty(CurrentAsset);RefreshDocuments();
+        }
         private void ShowDeck(Object target)
         {
-            deckSerialized?.Dispose();deckSerialized=null;deckTarget=target;
+            deckSerialized?.Dispose();deckSerialized=null;deckTarget=target;deckSourceIndex=-1;deckChildParent=null;deckChildIndex=-1;
             if(target!=null)deckSerialized=new SerializedObject(target);
             if(breadcrumb!=null)breadcrumb.text=target==CurrentAsset?(target!=null?target.name:"Select an object"):(CurrentAsset!=null?CurrentAsset.name:"No event")+"  ›  "+(target!=null?target.name:"Select an object");
         }
