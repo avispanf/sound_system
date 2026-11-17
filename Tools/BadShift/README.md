@@ -163,3 +163,5 @@ Preview.29 adds a real project-event library and identity-based request filterin
 Preview.30 separates Events source overview and asset context, with narrow reflow preserving source selection and audition controls. Native Inspector authoring and pin/follow remain unchanged. See DARK-UI-VERIFICATION.json for validation scope.
 
 Preview.31 improves narrow native Inspector object references and restored foldout summaries. Review changes remains a separate human-confirmation workflow; fresh test and native audit scope are recorded in DARK-UI-VERIFICATION.json.
+
+Preview.32 keeps long weighted-source names readable in narrow native Inspectors. Weighted and Switch child layout audit used a transient QA copy; no new demo content or runtime behavior is included.

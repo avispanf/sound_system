@@ -249,6 +249,30 @@ namespace AudioMW.Tests
         }
 
         [UnityTest]
+        public IEnumerator NarrowWeightedInspectorKeepsLongSourceNamesAboveValues()
+        {
+            var item = Event("LongWeightName", Clip("Concrete footsteps corridor heavy boots variation twelve"));
+            item.SelectionMode = ClipSelectionMode.WeightedRandom;
+            var editor = UnityEditor.Editor.CreateEditor(item);
+            var window = ScriptableObject.CreateInstance<EditorWindow>();
+            try
+            {
+                window.Show(); window.position = new Rect(100,100,300,650);
+                var view = editor.CreateInspectorGUI(); window.rootVisualElement.Add(view); view.Bind(editor.serializedObject);
+                yield return null; yield return null; yield return null;
+                var weight = view.Q<FloatField>("weight-0");
+                var label = weight.labelElement;
+                var input = weight.Q(className: "unity-base-field__input");
+                Assert.Greater(label.worldBound.width, weight.worldBound.width * .85f);
+                Assert.GreaterOrEqual(input.worldBound.yMin, label.worldBound.yMax - 1);
+                Assert.AreEqual(WhiteSpace.Normal, label.resolvedStyle.whiteSpace);
+                Assert.AreEqual(0, item.ClipWeights.Length);
+                Assert.AreEqual(1, weight.value);
+            }
+            finally { window.Close(); Object.DestroyImmediate(editor); }
+        }
+
+        [UnityTest]
         public IEnumerator NarrowGainKeepsNumberResetAndMuteInsideTheInspector()
         {
             var item = Event("NarrowGain", Clip("Source"));

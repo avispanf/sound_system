@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.0-preview.32 — Weighted source readability
+
+- Wrap source-slot names above their weight values in narrow native Inspectors without changing selection weights or their defaults.
+
 ## 0.5.0-preview.31 — Native Inspector reference readability
 
 - Give object references their full available width in narrow native Inspectors, including mixer output and concurrency groups.
