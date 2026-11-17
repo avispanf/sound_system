@@ -166,3 +166,9 @@ Fresh 330/330 EditMode tests (review38-edit.xml) verify compact labels, order, p
 | Review | Proposal library, actual changes, context, visible route/channel policy and fixed human confirmation | Approval applies the whole plan; partial-selection mock controls intentionally absent |
 
 This is a scope checklist based on current source plus the dated evidence above, not a claim that every window was freshly retested in this block. Earlier screenshots/tests retain their original dates. Unreal remains a future native plugin design, not a shipped implementation.
+
+## Sound parameter Inspector (preview.39, 2026-11-17)
+
+SoundParameter now uses the shared dark native Inspector layout with Value range, Default value and Authored scope sections. Stored default remains editable through serialized binding; effective default shows the runtime clamped value separately. Invalid bounds/defaults and constant single-object ranges are explained without auto-correction. The global flag is described as authored scope, not a mechanism that moves values between stores. No smoothing control is invented: this asset does not own smoothing. A button opens the selected persistent parameter in the read-only Parameters workspace.
+
+Fresh final332/332 EditMode (review39-final-edit.xml) checks a real pinned300px Inspector with an out-of-range stored default, unchanged JSON on display, editing/Undo, mixed defaults and multi-object Undo restoring different values. All5 package checks pass. Native SoundSystem300px screenshot uses actual PARAM_Intensity without editing; a live mouse click opens Parameters on that asset and its actual three music-layer references. Main Console0errors; output muted. No new runtime probe, standalone PlayMode suite, native gameplay build or listening test. Runtime bytes unchanged frompreview38.

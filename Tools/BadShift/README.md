@@ -189,3 +189,7 @@ Mixer binding headings show parameter → exposed target and explicit mixed/unas
 ### Editor UI preview.38
 
 Music uses compact state buttons and a separate profile-rule context. Fresh 330/330 EditMode, 5/5 package checks and 30/30 silent normal-Editor runtime assertions on BAD SHIFT. Main-editor screenshots at 1200/360 show QA edit-mode composition only. No new native player build or listening acceptance.
+
+### Editor UI preview.39
+
+Sound Parameter Inspector now separates stored/effective defaults, range and scope, preserving native multi-edit and Undo. Fresh332/332 EditMode and5/5 package checks; native300px inspection and live reference-navigation check without sound. No new gameplay build or listening check.

@@ -396,6 +396,57 @@ namespace AudioMW.Tests
         }
 
         [UnityTest]
+        public IEnumerator ParameterInspectorExplainsClampedDefaultWithoutRewritingIt()
+        {
+            var parameter = SoundParameter.CreateRuntime(0,1,5); temporary.Add(parameter);
+            var before = EditorJsonUtility.ToJson(parameter);
+            var window = AudioWorkspace.Pin(parameter);
+            try
+            {
+                window.position = new Rect(100,100,300,750);
+                yield return null; yield return null; yield return null;
+                var root = window.rootVisualElement;
+                Assert.AreEqual("Effective default · 1", root.Q<Label>("parameter-effective-default").text);
+                StringAssert.Contains("outside the range", root.Q<HelpBox>("parameter-validation").text);
+                Assert.AreEqual(before, EditorJsonUtility.ToJson(parameter));
+                var field = root.Q<PropertyField>("parameter-default").Q<FloatField>();
+                Assert.AreEqual(5, field.value);
+                Assert.Greater(field.labelElement.worldBound.width, field.worldBound.width * .85f);
+                field.value = .5f;
+                yield return null; yield return null;
+                Assert.AreEqual(.5f, parameter.DefaultValue);
+                Undo.PerformUndo();
+                yield return null; yield return null;
+                Assert.AreEqual(before, EditorJsonUtility.ToJson(parameter));
+            }
+            finally { window.Close(); }
+        }
+
+        [UnityTest]
+        public IEnumerator ParameterInspectorRetainsMixedDefaultsThroughEditAndUndo()
+        {
+            var first = SoundParameter.CreateRuntime(0,1,.2f); temporary.Add(first);
+            var second = SoundParameter.CreateRuntime(0,1,.8f); temporary.Add(second);
+            var editor = UnityEditor.Editor.CreateEditor(new Object[] { first, second });
+            var window = ScriptableObject.CreateInstance<EditorWindow>();
+            try
+            {
+                window.Show();
+                var view = editor.CreateInspectorGUI(); window.rootVisualElement.Add(view); view.Bind(editor.serializedObject);
+                yield return null; yield return null; yield return null;
+                var field = view.Q<PropertyField>("parameter-default").Q<FloatField>();
+                Assert.IsTrue(field.showMixedValue);
+                field.value = .5f;
+                yield return null; yield return null;
+                Assert.AreEqual(.5f, first.DefaultValue); Assert.AreEqual(.5f, second.DefaultValue);
+                Undo.PerformUndo();
+                yield return null; yield return null;
+                Assert.AreEqual(.2f, first.DefaultValue); Assert.AreEqual(.8f, second.DefaultValue);
+            }
+            finally { window.Close(); Object.DestroyImmediate(editor); }
+        }
+
+        [UnityTest]
         public IEnumerator NarrowWeightedInspectorKeepsLongSourceNamesAboveValues()
         {
             var item = Event("LongWeightName", Clip("Concrete footsteps corridor heavy boots variation twelve"));

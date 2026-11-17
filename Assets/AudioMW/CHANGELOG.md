@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0-preview.39 — Sound parameter Inspector
+
+- Group native parameter authoring into value range, stored/effective default and authored scope.
+- Explain clamping without rewriting assets, retain multi-edit/Undo, and link to actual authored references in Parameters.
+
 ## 0.5.0-preview.38 — Compact music state controls
 
 - Place compact state-name controls before current/pending status, matching the Music reference hierarchy.
