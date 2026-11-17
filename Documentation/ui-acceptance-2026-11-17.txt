@@ -1,0 +1,48 @@
+AudioMW overnight UI acceptance — 17 November 2026
+Code baseline: main eff60b3; delivery: 0.5.0-preview.44
+
+OUTCOME
+The editor has a shared graphite/teal shell, library/overview/context composition and responsive native authoring. This is a verified UI iteration, not full reference parity or Asset Store release certification. AudioMW remains the name; Unreal remains a concept.
+
+IMPLEMENTED
+Events: grouped library, actual source metadata/waveform, separate dry and runtime audition, authored routing/parameter context and native Inspector navigation.
+Inspector: event containers, selection algorithms and gain controls; grouped MusicStateProfile, MusicTrack, SoundParameter, MixerRoutingProfile and AttenuationPreset authoring. Native serialized fields, mixed values, Undo, range contracts and asset identity remain in place. Music layer and routing/transition rows expose meaningful headings; long layer headings wrap at300px. Repeat Pin reuses profile windows by object identity without changing selection.
+Review: separate tool, proposal library, actual before/after information, route/channel policy, captured context and fixed human confirmation controls. Empty state does not fabricate a proposal. No real plan was approved/applied in these checks.
+Music: compact state buttons, Current/Pending, current profile rules and separately captured queued timing.
+Diagnostics: captured outcomes, reasons and gain scope, event identity filtering, selected detail preserved through rebuild, right context at wide widths and stacked detail when narrow.
+Spatial/Parameters/Routing: real authored references and settings, distance-response model and native navigation, with explicit limits on available data.
+
+KNOWN DIFFERENCES / REMAINING WORK
+1. Events right pane is read-only context. Editing remains in Unity's native Inspector, not a duplicate editable Inspector embedded in the browser.
+2. Music beat timeline and live layer meters from the reference are not implemented.
+3. Routing parent topology, sends, snapshots and live bus meters are not implemented in this workspace.
+4. Review approves the entire plan. Partial item selection in the concept has no matching backend and is deliberately absent.
+5. Dynamic code references and per-instance parameter overrides are not exhaustively inventoried.
+6. The initial blank native PropertyEditor panel seen during QA is not fully diagnosed. Repeat profile Pin is fixed and tested; this is not a claim that every first-open native issue is solved.
+7. Only dark theme is in scope per the latest user decision. No light-theme acceptance claim.
+
+EVIDENCE AND DATES
+Latest EditMode:337/337, review44-edit.xml, 17Nov07:09:45–07:10:04UTC. Includes native pin identity, same-name assets, immediate repeats, selection independence, existing Event pin/follow, serialized authoring and Undo regressions.
+Package tests:5/5 in preview44 block. Delivery imported in the isolated BAD SHIFT fixture.
+Latest real runtime probe:30/30, preview43, music-runtime-acceptance43-final.txt. Normal Unity Editor with actual scheduling, DSP crossfade completion, cancellation boundaries, accepted/rejected requests and Diagnostics wide/narrow behavior. Editor and AudioListener muted. This is not a standalone PlayMode suite.
+Latest consolidation: package C#/USS/MJS bytes match checkout; ZIP CRC, embedded package equality and QA helper exclusion checked again. Native Events actual SFX_Impact and Review zero-proposal screens inspected again. These checks do not turn older test runs into new runs.
+Main project Console:0 errors at the final observed check.
+Native gameplay player: not rebuilt during the overnight UI work.
+Listening: not performed; all testing muted.
+Unity2022.3 compatibility: not established by these Unity6000.3.21f1 checks.
+
+DELIVERY
+Workspace: /Users/avispanf/Documents/Codex/2026-11-05/audiomw-project-goal-documentation-goal-audiomw
+outputs/AudioMW-0.5.0-preview.44.tgz
+SHA256:704f7c5e1edaa3f8429f40505c33b0f81c6908655d46f77309fa6672375e8539
+outputs/AudioMW-BadShift-project.zip — isolated Unity project, current package and screenshots.
+outputs/AudioMW-final-ui-audit-2026-11-17.json — final package checks and dated test references.
+work/bad-shift/overnight-ui-log.txt — detailed continuation journal.
+Screens: outputs/audiomw-final-events-wide-dark.png; audiomw-final-review-empty-dark.png; audiomw-pin-reuse-300-v44-dark.png; audiomw-long-layer-300-v43-dark.png. Other dated screenshots remain alongside these; pending Review evidence is preview36, not the final empty screen.
+
+NEXT ACCEPTANCE
+Open the isolated BAD SHIFT project; inspect Events, the pinned Inspector, Music and Diagnostics at your normal monitor scale. Test deliberate native pin/follow and narrow docking. Use only disposable content for any manual proposal-approval test. Real import confirmation must remain a human action in Unity.
+Schedule a separate audible gameplay review with real demo audio and a new native player build. Re-run the full required PlayMode/compatibility/release checks before submission. Decide which missing reference features are release requirements before expanding the backend; do not draw plausible meters or topology without real data.
+
+PRESERVED
+No edits to MyGame/RIFT SHIFT or AnimaClient/Hit.Zone. No user scene saved. ProjectSettings/EditorSettings.asset remains outside commits. Runtime code unchanged across the overnight UI deliveries. No automated human-confirmation bypass.
