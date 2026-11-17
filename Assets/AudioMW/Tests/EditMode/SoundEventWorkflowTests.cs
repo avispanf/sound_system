@@ -500,6 +500,47 @@ namespace AudioMW.Tests
         }
 
         [UnityTest]
+        public IEnumerator MusicLayerTitleTracksAuthoringAndUndoAt300()
+        {
+            var parameter = SoundParameter.CreateRuntime(0,1,0); temporary.Add(parameter); parameter.name = "Intensity";
+            var track = ScriptableObject.CreateInstance<MusicTrack>(); temporary.Add(track);
+            var serialized = new SerializedObject(track);
+            var layers = serialized.FindProperty("layers"); layers.arraySize = 1;
+            var layer = layers.GetArrayElementAtIndex(0);
+            layer.FindPropertyRelative("layerName").stringValue = "Percussion";
+            layer.FindPropertyRelative("parameter").objectReferenceValue = parameter;
+            serialized.ApplyModifiedPropertiesWithoutUndo(); layers.isExpanded = true; layer.isExpanded = true;
+            var before = EditorJsonUtility.ToJson(track);
+            var window = AudioWorkspace.Pin(track);
+            try
+            {
+                window.position = new Rect(100,100,300,750);
+                yield return null; yield return null; yield return null;
+                var root = window.rootVisualElement;
+                var row = root.Q<Foldout>("music-layer");
+                Assert.AreEqual("Percussion · Intensity",row.text);
+                var name = root.Q<PropertyField>("music-layer-layerName").Q<TextField>();
+                Assert.Greater(name.labelElement.worldBound.width,name.worldBound.width*.85f);
+                Assert.AreEqual(before,EditorJsonUtility.ToJson(track));
+                name.value = "Drums";
+                yield return null; yield return null;
+                Assert.AreEqual("Drums",track.Layers[0].Name);
+                Undo.PerformUndo();
+                yield return null; yield return null;
+                Assert.AreEqual(before,EditorJsonUtility.ToJson(track));
+                double deadline = EditorApplication.timeSinceStartup + 3;
+                while (row.text != "Percussion · Intensity" && EditorApplication.timeSinceStartup < deadline) yield return null;
+                Assert.AreEqual("Percussion · Intensity",row.text);
+                root.Q<PropertyField>("music-layer-parameter").Q<ObjectField>().value = null;
+                deadline = EditorApplication.timeSinceStartup + 3;
+                while (row.text != "Percussion · Fixed weight" && EditorApplication.timeSinceStartup < deadline) yield return null;
+                Assert.AreEqual("Percussion · Fixed weight",row.text);
+                Assert.IsNull(track.Layers[0].Parameter);
+            }
+            finally { window.Close(); }
+        }
+
+        [UnityTest]
         public IEnumerator AttenuationInspectorPreservesStoredLimitsAndInactiveCurve()
         {
             var preset = AttenuationPreset.CreateRuntime(1,-2,-1,AudioRolloffMode.Linear,AnimationCurve.Linear(0,.8f,1,.1f)); temporary.Add(preset);

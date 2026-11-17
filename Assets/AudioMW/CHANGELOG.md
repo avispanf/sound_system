@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0-preview.42 — Music layer authoring
+
+- Identify collapsed music layers by authored name and controlling parameter, with explicit fixed-weight and mixed states.
+- Keep source, weight curve, fallback weight and fade fields native and readable in narrow Inspectors.
+
 ## 0.5.0-preview.41 — Attenuation preset Inspector
 
 - Group native attenuation authoring into distance response and spatial settings, with explicit world units and applied limits.

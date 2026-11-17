@@ -201,3 +201,8 @@ MusicTrack Inspector groups sources, grid, layers and output with native gain an
 ### Editor UI preview.41
 
 AttenuationPreset Inspector separates stored/applied distances and preserves inactive custom curves, with direct Spatial navigation. Fresh335/335 EditMode and5/5 package checks; native300px inspection and navigation without sound or asset edits. No new gameplay build or listening check.
+
+
+### Editor UI preview.42
+
+Music layers show authored names and controlling parameters in collapsed rows; expanded fields remain native at300px. Fresh336/336 EditMode and5/5 package checks, plus native actual-track visual inspection without sound. No gameplay rebuild or listening check.
