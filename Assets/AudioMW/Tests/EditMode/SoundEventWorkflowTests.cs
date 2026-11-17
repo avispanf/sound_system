@@ -281,6 +281,45 @@ namespace AudioMW.Tests
         }
 
         [UnityTest]
+        public IEnumerator MusicRouteShowsBothStatesAndRetainsNativeUndo()
+        {
+            var profile = ScriptableObject.CreateInstance<MusicStateProfile>(); temporary.Add(profile);
+            profile.Transitions = new[] { new MusicTransitionRule { From = "Exploration corridor", To = "Combat second phase", FadeSeconds = 1.5f } };
+            var before = EditorJsonUtility.ToJson(profile);
+            var editor = UnityEditor.Editor.CreateEditor(profile);
+            var route = editor.serializedObject.FindProperty("transitions");
+            route.isExpanded = true; route.GetArrayElementAtIndex(0).isExpanded = true;
+            var window = AudioWorkspace.Pin(profile);
+            try
+            {
+                window.Show(); window.position = new Rect(100,100,300,750);
+                var view = window.rootVisualElement;
+                yield return null; yield return null; yield return null;
+                var foldout = view.Q<Foldout>("music-transition-rule");
+                Assert.NotNull(foldout);
+                Assert.AreEqual("Exploration corridor → Combat second phase", foldout.text);
+                var fade = view.Q<PropertyField>("music-rule-FadeSeconds").Q<FloatField>();
+                Assert.AreEqual("Crossfade (s)", fade.label);
+                Assert.Greater(fade.labelElement.worldBound.width, fade.worldBound.width * .85f);
+                Assert.AreEqual(before, EditorJsonUtility.ToJson(profile));
+                var destination = view.Q<PropertyField>("music-rule-To").Q<TextField>();
+                destination.value = "Victory";
+                yield return null; yield return null;
+                Assert.AreEqual("Victory", profile.Transitions[0].To);
+                Assert.AreEqual("Exploration corridor → Victory", foldout.text);
+                Undo.PerformUndo();
+                yield return null; yield return null;
+                Assert.AreEqual("Combat second phase", profile.Transitions[0].To);
+                Assert.AreEqual("Exploration corridor → Combat second phase", foldout.text);
+                window.position = new Rect(100,100,520,750);
+                yield return null; yield return null;
+                Assert.AreEqual(before, EditorJsonUtility.ToJson(profile));
+                Assert.LessOrEqual(fade.worldBound.xMax, window.rootVisualElement.worldBound.xMax + 1);
+            }
+            finally { window.Close(); Object.DestroyImmediate(editor); }
+        }
+
+        [UnityTest]
         public IEnumerator NarrowWeightedInspectorKeepsLongSourceNamesAboveValues()
         {
             var item = Event("LongWeightName", Clip("Concrete footsteps corridor heavy boots variation twelve"));

@@ -315,5 +315,8 @@
 #audiomw-music-inspector .audiomw-profile-heading { -unity-font-style: bold; font-size: 13px; margin-top: 12px; padding-top: 8px; margin-bottom: 6px; border-top-width: 1px; border-top-color: rgb(61, 66, 67); }
 #audiomw-music-inspector .unity-base-field { margin-top: 4px; margin-bottom: 4px; }
 #audiomw-music-inspector.audiomw-inspector-narrow .unity-base-field { flex-direction: column; align-items: stretch; }
-#audiomw-music-inspector.audiomw-inspector-narrow .unity-base-field > .unity-base-field__label { min-width: 0; width: auto; margin-bottom: 4px; }
+#audiomw-music-inspector.audiomw-inspector-narrow .unity-base-field > .unity-base-field__label { min-width: 0; max-width: none; width: auto; margin-bottom: 4px; }
 #audiomw-music-inspector.audiomw-inspector-narrow .unity-base-field > .unity-base-field__input { min-width: 0; width: auto; }
+
+#audiomw-music-inspector #music-transition-rule > .unity-foldout__toggle { height: auto; min-height: 20px; }
+#audiomw-music-inspector #music-transition-rule > .unity-foldout__toggle .unity-toggle__text { flex-shrink: 1; min-width: 0; white-space: normal; }

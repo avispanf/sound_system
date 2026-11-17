@@ -169,3 +169,7 @@ Preview.32 keeps long weighted-source names readable in narrow native Inspectors
 ### Editor UI preview.33
 
 Music profile native Inspector now groups states, default timing, route overrides and runtime preview, with stacked controls at narrow widths. Fresh 327/327 EditMode and 5/5 package checks; silent native 300 px empty QA profile inspection. No new native gameplay build or listening check. See DARK-UI-VERIFICATION.json for exact scope.
+
+### Editor UI preview.34
+
+Music transition rules show source → destination and consistent timing labels. Narrow native Inspector alignment now handles nested controls; wide alignment is restored on resize. Fresh 328/328 EditMode and 5/5 package checks, muted native Inspector captures at 300/520 px. QA profile only; no new gameplay build or listening check.

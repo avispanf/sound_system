@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0-preview.34 — Music transition authoring
+
+- Show both source and destination states in transition-rule headings, updating through native editing and Undo.
+- Use consistent Boundary and Crossfade (s) labels; keep nested native Inspector fields readable at narrow widths and restore aligned rows when widened.
+
 ## 0.5.0-preview.33 — Music profile Inspector
 
 - Organize native music profile authoring into states, default transition, route overrides and runtime preview sections with shared graphite styling.
