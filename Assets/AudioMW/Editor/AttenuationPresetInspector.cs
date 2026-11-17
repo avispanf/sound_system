@@ -24,7 +24,7 @@ namespace AudioMW.Editor
         public override VisualElement CreateInspectorGUI()
         {
             VisualElement root = new VisualElement { name = "audiomw-attenuation-inspector" };
-            AudioProfileInspectorLayout.Configure(root, targets.Length == 1 ? target : null);
+            AudioProfileInspectorLayout.Configure(root, targets.Length == 1 ? target : null, serializedObject);
             Heading(root, "Distance response");
             Field(root, "minDistance", "Near distance (units)");
             Field(root, "maxDistance", "Far distance (units)");
@@ -35,11 +35,22 @@ namespace AudioMW.Editor
             Label curveNote = new Label { name = "attenuation-curve-status" }; root.Add(curveNote);
             Heading(root, "Spatial settings");
             Field(root, "spatialBlend", "3D blend");
+            Field(root, "stereoPan", "Stereo pan");
             Field(root, "spread", "Spread (degrees)");
+            Heading(root, "Distance processing");
+            Field(root, "distanceFiltering", "Distance low-pass");
+            var cutoff = Field(root, "cutoffByDistance", "Cutoff (Hz)");
+            Field(root, "distanceSpread", "Distance spread");
+            var spread = Field(root, "spreadByDistance", "Spread (degrees)");
+            root.Add(new Label("Curve X: 0 = near, 1 = far. Cutoff uses Hz; spread uses degrees. Occlusion and distance filtering use the lower cutoff. Spread controls 3D stereo/multichannel extent, not mono-to-stereo conversion."));
             Field(root, "dopplerLevel", "Doppler level");
             root.Add(new Label("0 blend is 2D; 1 is fully 3D. Spread and Doppler are separate from distance attenuation. Reverb, occlusion and mixer gain are configured elsewhere."));
             System.Action refresh = () =>
             {
+                var filterEnabled = serializedObject.FindProperty("distanceFiltering");
+                var spreadEnabled = serializedObject.FindProperty("distanceSpread");
+                cutoff.SetEnabled(filterEnabled.hasMultipleDifferentValues || filterEnabled.boolValue);
+                spread.SetEnabled(spreadEnabled.hasMultipleDifferentValues || spreadEnabled.boolValue);
                 var mode = serializedObject.FindProperty("rolloffMode");
                 bool editable = mode.hasMultipleDifferentValues || mode.intValue == (int)AudioRolloffMode.Custom;
                 curve.SetEnabled(editable);

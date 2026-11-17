@@ -54,6 +54,7 @@ namespace AudioMW.Editor
             Add(bar, "Routing", current, AudioInspectionWindow.Routing);
             Add(bar, "Spatial", current, AudioInspectionWindow.Spatial);
             Add(bar, "Diagnostics", current, Diagnostics);
+            Add(bar, "Performance", current, AudioPerformanceWindow.Open);
             ToolbarSpacer space = new ToolbarSpacer { flex = true }; bar.Add(space);
             ToolbarButton create = new ToolbarButton(SoundEventSetupWindow.Open) { text = "+ Create event", tooltip = "Create a Sound Event from clips selected in the Project window." };
             create.AddToClassList("audiomw-primary"); bar.Add(create);

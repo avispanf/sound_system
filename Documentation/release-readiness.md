@@ -77,3 +77,13 @@ Build a fresh archive, prepare an isolated project with `--archive`, then run
 `Tools/run_player_smoke.py` with the correct editor and backend. Never build from
 the development Sound System scene. Keep the build report, Player report, archive
 hash, editor version, backend and stripping level together for each candidate.
+
+## Production workflow candidate, 2026-11-17
+
+Preview.45 adds local live parameter audition, a bounded Editor performance
+recorder, optional distance filtering/spread and explicit mobile-tier enforcement.
+See [production-workflow.md](production-workflow.md) for supported scope and
+limitations, and ui-production-review-2026-11-17.txt for UI inspection evidence.
+The candidate verification JSON distinguishes package tests, BAD SHIFT integration,
+macOS Mono smoke and older results. Device listening and mobile profiling remain
+open release gates.

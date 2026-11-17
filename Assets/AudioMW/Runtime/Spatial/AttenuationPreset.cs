@@ -13,6 +13,27 @@ namespace AudioMW
         [SerializeField, Range(0f, 360f)] private float spread;
         [SerializeField, Range(0f, 5f)] private float dopplerLevel = 1f;
 
+        [SerializeField, Range(-1f, 1f)] private float stereoPan;
+        [SerializeField] private bool distanceFiltering;
+        [SerializeField] private AnimationCurve cutoffByDistance = AnimationCurve.Linear(0f, 22000f, 1f, 1800f);
+        [SerializeField] private bool distanceSpread;
+        [SerializeField] private AnimationCurve spreadByDistance = AnimationCurve.Linear(0f, 180f, 1f, 0f);
+
+        public float StereoPan { get { return stereoPan; } set { stereoPan = Mathf.Clamp(value, -1f, 1f); } }
+        public bool DistanceFiltering { get { return distanceFiltering; } set { distanceFiltering = value; } }
+        public bool DistanceSpread { get { return distanceSpread; } set { distanceSpread = value; } }
+        public AnimationCurve CutoffByDistance { get { return cutoffByDistance; } set { cutoffByDistance = value; } }
+        public AnimationCurve SpreadByDistance { get { return spreadByDistance; } set { spreadByDistance = value; } }
+        public bool UsesDistanceProcessing { get { return spatialBlend > 0f && (distanceFiltering || distanceSpread); } }
+        public float EvaluateCutoff(float distance) { return distanceFiltering ? EvaluateDistanceCurve(cutoffByDistance, distance, 22000f, 10f, 22000f) : 22000f; }
+        public float EvaluateSpread(float distance) { return distanceSpread ? EvaluateDistanceCurve(spreadByDistance, distance, spread, 0f, 360f) : spread; }
+        private float EvaluateDistanceCurve(AnimationCurve curve, float distance, float fallback, float low, float high)
+        {
+            if (curve == null || curve.length == 0) return fallback;
+            float value = curve.Evaluate(Mathf.InverseLerp(MinDistance, MaxDistance, Mathf.Max(0f, distance)));
+            return float.IsNaN(value) || float.IsInfinity(value) ? fallback : Mathf.Clamp(value, low, high);
+        }
+
         public float SpatialBlend
         {
             get { return spatialBlend; }
@@ -100,6 +121,7 @@ namespace AudioMW
             source.minDistance = MinDistance;
             source.maxDistance = MaxDistance;
             source.spread = spread;
+            source.panStereo = stereoPan;
             source.dopplerLevel = dopplerLevel;
             source.rolloffMode = rolloffMode;
 

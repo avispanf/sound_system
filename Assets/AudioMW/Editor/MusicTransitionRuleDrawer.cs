@@ -27,9 +27,33 @@ namespace AudioMW.Editor
             Foldout root = new Foldout { text = Title(property), value = property.isExpanded, name = "music-transition-rule" };
             root.RegisterValueChangedCallback(evt => { if (evt.target == root) property.isExpanded = evt.newValue; });
             for (int i = 0; i < Fields.Length; i++)
-                root.Add(new PropertyField(property.FindPropertyRelative(Fields[i]), Labels[i]) { name = "music-rule-" + Fields[i] });
-            root.TrackPropertyValue(property.FindPropertyRelative("From"), _ => root.text = Title(property));
-            root.TrackPropertyValue(property.FindPropertyRelative("To"), _ => root.text = Title(property));
+            {
+                BindableElement field;
+                if (Fields[i] == "From" || Fields[i] == "To") field = new TextField(Labels[i]);
+                else if (Fields[i] == "Quantization") field = new EnumField(Labels[i], MusicQuantization.Bar);
+                else if (Fields[i] == "Curve") field = new EnumField(Labels[i], default(MusicFadeCurve));
+                else
+                {
+                    var fade = new FloatField(Labels[i]);
+                    fade.RegisterValueChangedCallback(evt => { if (evt.newValue < 0f) fade.value = 0f; });
+                    field = fade;
+                }
+                field.bindingPath = property.FindPropertyRelative(Fields[i]).propertyPath;
+                var row = new VisualElement { name = "music-rule-" + Fields[i] }; row.Add(field); root.Add(row);
+            }
+            var targets = property.serializedObject.targetObjects;
+            string path = property.propertyPath;
+            System.Action refreshTitle = () =>
+            {
+                foreach (var target in targets) if (target == null) return;
+                using (var current = new SerializedObject(targets))
+                {
+                    var route = current.FindProperty(path);
+                    if (route != null) root.text = Title(route);
+                }
+            };
+            root.contentContainer.TrackSerializedObjectValue(property.serializedObject, _ => refreshTitle());
+            root.RegisterCallback<ChangeEvent<string>>(_ => root.schedule.Execute(refreshTitle));
             return root;
         }
 

@@ -25,9 +25,21 @@ namespace AudioMW.Editor
             Foldout root = new Foldout { text = Title(property), value = property.isExpanded, name = "music-layer" };
             root.RegisterValueChangedCallback(evt => { if (evt.target == root) property.isExpanded = evt.newValue; });
             for (int i = 0; i < Fields.Length; i++)
-                root.Add(new PropertyField(property.FindPropertyRelative(Fields[i]), Labels[i]) { name = "music-layer-" + Fields[i] });
-            root.TrackPropertyValue(property.FindPropertyRelative("parameter"), _ => root.text = Title(property));
-            root.TrackPropertyValue(property.FindPropertyRelative("layerName"), _ => root.text = Title(property));
+            {
+                BindableElement field;
+                switch (Fields[i])
+                {
+                    case "layerName": field = new TextField(Labels[i]); break;
+                    case "clip": field = new ObjectField(Labels[i]) { objectType = typeof(AudioClip), allowSceneObjects = false }; break;
+                    case "parameter": field = new ObjectField(Labels[i]) { objectType = typeof(SoundParameter), allowSceneObjects = false }; break;
+                    case "weightCurve": field = new CurveField(Labels[i]); break;
+                    case "defaultWeight": field = new Slider(Labels[i],0,1) { showInputField = true }; break;
+                    default: field = new FloatField(Labels[i]); break;
+                }
+                field.bindingPath = property.FindPropertyRelative(Fields[i]).propertyPath;
+                var row = new VisualElement { name = "music-layer-" + Fields[i] }; row.Add(field); root.Add(row);
+            }
+            root.contentContainer.TrackSerializedObjectValue(property.serializedObject, _ => root.text = Title(property));
             return root;
         }
 

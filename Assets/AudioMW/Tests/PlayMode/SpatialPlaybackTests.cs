@@ -98,6 +98,70 @@ namespace AudioMW.Tests
             yield return null;
         }
 
+        [UnityTest]
+        public IEnumerator DistanceFilterCombinesWithOcclusionAndRestoresPooledDefaults()
+        {
+            var listeners = Object.FindObjectsOfType<AudioListener>();
+            var listenerStates = new bool[listeners.Length];
+            for (int i = 0; i < listeners.Length; i++) { listenerStates[i] = listeners[i].enabled; listeners[i].enabled = false; }
+            var ears = new GameObject("Distance listener"); ears.AddComponent<AudioListener>();
+            var item = MakeEvent(); var plain = MakeEvent();
+            var preset = AttenuationPreset.CreateRuntime(1,1,11,AudioRolloffMode.Linear);
+            preset.DistanceFiltering = true; preset.DistanceSpread = true; preset.StereoPan = .4f;
+            preset.CutoffByDistance = AnimationCurve.Linear(0,22000,1,2000);
+            preset.SpreadByDistance = AnimationCurve.Linear(0,180,1,0); item.AttenuationPreset = preset;
+            try
+            {
+                var voice = AudioSystem.PlayAtPosition(item,new Vector3(6,0,0));
+                yield return null;
+                var filter = voice.Source.GetComponent<AudioLowPassFilter>();
+                Assert.NotNull(filter); Assert.IsTrue(filter.enabled);
+                Assert.AreEqual(12000,filter.cutoffFrequency,1); Assert.AreEqual(90,voice.Source.spread,1);
+                Assert.AreEqual(.4f,voice.Source.panStereo,.001f);
+                voice.ApplyOcclusion(1,800); yield return null;
+                Assert.AreEqual(800,filter.cutoffFrequency,1);
+                voice.ClearOcclusion(); Assert.AreEqual(12000,filter.cutoffFrequency,1);
+                ears.transform.position = new Vector3(6,0,0); yield return null; yield return null;
+                Assert.IsFalse(filter.enabled); Assert.AreEqual(180,voice.Source.spread,1);
+                voice.Stop();
+                var next = AudioSystem.PlayAtPosition(plain,Vector3.zero);
+                Assert.AreEqual(0,next.Source.panStereo); Assert.AreEqual(0,next.Source.spread); Assert.AreEqual(1,next.Source.dopplerLevel);
+            }
+            finally
+            {
+                AudioSystem.StopAll(); Object.Destroy(ears); Object.Destroy(item); Object.Destroy(plain); Object.Destroy(preset);
+                for (int i = 0; i < listeners.Length; i++) if (listeners[i] != null) listeners[i].enabled = listenerStates[i];
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator MobileTierKeepsDistanceAndOcclusionProcessingNeutral()
+        {
+            var previous = AudioRuntimeSettings.ActiveTier;
+            var tier = AudioTierConfig.Mobile2D();
+            var item = MakeEvent();
+            var preset = AttenuationPreset.CreateRuntime(1,1,11,AudioRolloffMode.Linear);
+            preset.DistanceFiltering = true;
+            preset.CutoffByDistance = AnimationCurve.Constant(0,1,500);
+            item.AttenuationPreset = preset;
+            try
+            {
+                AudioRuntimeSettings.ActiveTier = tier;
+                var voice = AudioSystem.PlayAtPosition(item,new Vector3(20,0,0));
+                voice.ApplyOcclusion(.1f,300);
+                yield return null;
+                Assert.AreEqual(0,voice.Source.spatialBlend);
+                Assert.AreEqual(item.Volume,voice.Source.volume,.001f);
+                var filter = voice.Source.GetComponent<AudioLowPassFilter>();
+                Assert.IsTrue(filter == null || !filter.enabled);
+            }
+            finally
+            {
+                AudioSystem.StopAll(); AudioRuntimeSettings.ActiveTier = previous;
+                Object.Destroy(item); Object.Destroy(preset); Object.Destroy(tier);
+            }
+        }
+
         private static SoundEvent MakeEvent()
         {
             SoundEvent soundEvent = SoundEvent.CreateRuntime(MakeSine(1f));

@@ -25,9 +25,16 @@ namespace AudioMW.Editor
             Foldout root = new Foldout { text = Title(property), value = property.isExpanded, name = "mixer-parameter-binding" };
             root.RegisterValueChangedCallback(evt => { if (evt.target == root) property.isExpanded = evt.newValue; });
             for (int i = 0; i < Fields.Length; i++)
-                root.Add(new PropertyField(property.FindPropertyRelative(Fields[i]), Labels[i]) { name = "mixer-binding-" + Fields[i] });
-            root.TrackPropertyValue(property.FindPropertyRelative("parameter"), _ => root.text = Title(property));
-            root.TrackPropertyValue(property.FindPropertyRelative("exposedName"), _ => root.text = Title(property));
+            {
+                BindableElement field;
+                if (Fields[i] == "parameter") field = new ObjectField(Labels[i]) { objectType = typeof(SoundParameter), allowSceneObjects = false };
+                else if (Fields[i] == "exposedName") field = new TextField(Labels[i]);
+                else if (Fields[i] == "curve") field = new CurveField(Labels[i]);
+                else field = new FloatField(Labels[i]);
+                field.bindingPath = property.FindPropertyRelative(Fields[i]).propertyPath;
+                var row = new VisualElement { name = "mixer-binding-" + Fields[i] }; row.Add(field); root.Add(row);
+            }
+            root.contentContainer.TrackSerializedObjectValue(property.serializedObject, _ => root.text = Title(property));
             return root;
         }
 

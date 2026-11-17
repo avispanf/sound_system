@@ -1,0 +1,80 @@
+AudioMW production workflow and UI review — 2026-11-17
+Candidate: 0.5.0-preview.45
+
+Scope
+The latest request prioritizes FMOD-like dark authoring, indie/mobile/A scope,
+minimum profiling/live editing and basic spatial processing. The existing guide
+still governs native selection, pin/follow, dry/runtime separation, truthful data,
+Undo and separate human-confirmed agent review. Unreal is not implemented here.
+
+Implemented
+- Dark neutral surfaces and shared green accents; waveform and selection agree.
+- Native ObjectField/search/help icons retain square dimensions; source labels
+  truncate rather than stretch their icons.
+- Compact native properties retain field labels and aligned checkboxes.
+- Music layer/rule and mixer binding drawers use native typed bindings; profile
+  Inspectors refresh their binding state after Undo/Redo so subsequent edits do
+  not replay stale serialized values. Crossfade retains its nonnegative input.
+- Parameters/Spatial/Routing switch to a vertical library/detail split below
+  620 points instead of clipping the right pane. Wide views retain three regions.
+- Review Play Mode edits has stable rows, path tooltips, explicit Keep/Revert
+  semantics, disabled actions when empty and wrapped footer text.
+- Diagnostics footer now reserves enough height for wrapped status.
+- Performance has bounded real-runtime capture and honest idle states; it has no
+  fabricated DSP, live LUFS or remote-device measurements.
+- Parameters separates read-only response preview from explicit live global control.
+- Attenuation Inspector exposes optional distance filtering/spread and stereo pan;
+  inactive curves remain authored but disabled. Spatial displays modeled values.
+
+Native review
+Viewed actual Sound System windows in Unity 6000.3.21f1, dark theme, muted:
+Events at 1100 points, Sound Event Inspector at 300, Attenuation Inspector at320,
+Parameters at380 (before/after clipping fix), Music and Diagnostics at380,
+Review changes at380, Play Mode edit review at360, Performance at380/450.
+Screenshots are in the workspace work/bad-shift/review45-*.png.
+No real proposal was approved or applied; empty review was checked honestly.
+Main project scenes were not played or saved during this review.
+
+Visual/functional boundaries
+This is an FMOD-inspired Unity workflow, not a pixel-identical FMOD editor. Native
+Inspector chrome remains native. There is no invented event timeline, DSP deck,
+bus meter or routing topology. Music without a state profile shows unavailable.
+Direct reference equality is not claimed. Light theme was intentionally excluded.
+
+Validation
+See the candidate verification JSON and XML evidence for exact final counts.
+The real BAD SHIFT production probe verifies live UI writes/restoration, asset
+preservation, gameplay replacement preservation and actual profiler samples.
+Desktop smoke is a separate generated macOS Mono Player, not a new gameplay build.
+Listening, Android/iOS device budgets, Windows/Linux Players, IL2CPP and remote
+Player live update remain open. Presets alone do not verify a platform.
+
+Production priorities
+Use shared profiles and current audits first. Next invest in device smoke CI,
+representative large libraries, per-platform import/memory reports and safe bulk
+changes with reviewable diffs. Avoid expensive acoustic simulation and pretending
+all projects need the entire FMOD/Wwise feature set. See production-workflow.md.
+
+Final evidence
+- Unity 6000.3.21f1 EditMode: 342/342, review45-edit-n.xml.
+- Unity 2022.3.62f3 EditMode: 342/342, review45-2022-n.xml.
+- Unity 6000.3.21f1 audio PlayMode: 190/190, review45-audio-play-final.xml.
+- Earlier full BAD SHIFT PlayMode: 279/279 before final tier enforcement change;
+  do not substitute this for a full final-candidate gameplay rerun.
+- Final runtime macOS Mono/Low Player: 14/14 smoke checks, zero build errors,
+  DSP advanced; only AudioMW.Runtime.dll shipped. All 166 Runtime files match
+  the final package bytes. No new native BAD SHIFT gameplay build was requested
+  or produced in this block.
+- BAD SHIFT live editing/performance probe: 12 checks; real CSV captured.
+  The probe preceded the final tier-only runtime change, which has its own test.
+- Packaging/fixture Python tests: 15/15; final package source parity verified.
+- Audio output muted throughout; no listening claims.
+- Archive: outputs/AudioMW-0.5.0-preview.45.tgz.
+- SHA256: 8a753a4fbeea0c97b5f971ca5176102d375f8acb3a29faa47016bc89069ed78b.
+
+Cross-version investigation
+Initial 2022.3 runs exposed label, wrapping and stale-heading/binding failures.
+Drawers now use native typed fields and refresh model-derived headings; profile
+Undo/Redo refreshes serialized bindings. Tests wait for native asynchronous
+binding and reacquire controls after native rebuilds. Final suites above passed;
+intermediate failures remain in the workspace evidence rather than being relabeled.

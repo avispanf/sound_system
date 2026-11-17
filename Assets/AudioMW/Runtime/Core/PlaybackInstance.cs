@@ -41,7 +41,7 @@ namespace AudioMW
             {
                 if (Event == null) return false;
                 foreach (Slot slot in slots)
-                    if (slot.Virtual != null || (slot.Voice != null && slot.Voice.IsActive && slot.Layer.Event.AllowVirtualization && slot.Voice.Source.spatialBlend > 0)) return true;
+                    if (slot.Virtual != null || (slot.Voice != null && slot.Voice.IsActive && (slot.Layer.Event.AllowVirtualization || (slot.Layer.Event.AttenuationPreset != null && slot.Layer.Event.AttenuationPreset.UsesDistanceProcessing)) && slot.Voice.Source.spatialBlend > 0)) return true;
                 return false;
             }
         }
@@ -103,6 +103,7 @@ namespace AudioMW
             voice.HandleId = HandleId;
             voice.Play(slot.Layer.Event, slot.Layer.Parameters, position, Attach, offset);
             voice.ApplyOcclusionSelf(occlusionVolume, occlusionCutoff);
+            if (slot.Layer.Event.AttenuationPreset != null && slot.Layer.Event.AttenuationPreset.UsesDistanceProcessing) voice.ApplyDistance(runtime.ResolveListener());
         }
 
         public void ApplyOcclusion(float volume, float cutoff)
@@ -194,6 +195,7 @@ namespace AudioMW
                     voice.ClearFollowers();
                     slot.Voice = null;
                 }
+                if (voice != null && voice.IsActive) voice.ApplyDistance(listener);
                 if (voice != null && voice.IsActive && virtualizationEnabled && listener != null &&
                     slot.Layer.Event.AllowVirtualization && voice.Source.spatialBlend > 0f &&
                     VirtualizationPolicy.ShouldVirtualize(false, Vector3.Distance(voice.Source.transform.position, listener.position), voice.Source.maxDistance))

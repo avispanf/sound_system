@@ -297,22 +297,24 @@ namespace AudioMW.Tests
                 yield return null; yield return null; yield return null;
                 var foldout = view.Q<Foldout>("music-transition-rule");
                 Assert.NotNull(foldout);
-                Assert.AreEqual("Exploration corridor → Combat second phase", foldout.text);
-                var fade = view.Q<PropertyField>("music-rule-FadeSeconds").Q<FloatField>();
+                Assert.AreEqual("Exploration corridor → Combat second phase", view.Q<Foldout>("music-transition-rule").text);
+                var fade = view.Q("music-rule-FadeSeconds").Q<FloatField>();
                 Assert.AreEqual("Crossfade (s)", fade.label);
                 Assert.Greater(fade.labelElement.worldBound.width, fade.worldBound.width * .85f);
                 Assert.AreEqual(before, EditorJsonUtility.ToJson(profile));
-                var destination = view.Q<PropertyField>("music-rule-To").Q<TextField>();
+                var destination = view.Q("music-rule-To").Q<TextField>();
                 destination.value = "Victory";
                 yield return null; yield return null;
                 Assert.AreEqual("Victory", profile.Transitions[0].To);
-                Assert.AreEqual("Exploration corridor → Victory", foldout.text);
+                double editedDeadline = EditorApplication.timeSinceStartup + 3;
+                while (view.Q<Foldout>("music-transition-rule").text != "Exploration corridor → Victory" && EditorApplication.timeSinceStartup < editedDeadline) yield return null;
+                Assert.AreEqual("Exploration corridor → Victory", view.Q<Foldout>("music-transition-rule").text);
                 Undo.PerformUndo();
                 yield return null; yield return null;
                 Assert.AreEqual("Combat second phase", profile.Transitions[0].To);
                 double deadline = EditorApplication.timeSinceStartup + 3;
-                while (foldout.text != "Exploration corridor → Combat second phase" && EditorApplication.timeSinceStartup < deadline) yield return null;
-                Assert.AreEqual("Exploration corridor → Combat second phase", foldout.text);
+                while (view.Q<Foldout>("music-transition-rule").text != "Exploration corridor → Combat second phase" && EditorApplication.timeSinceStartup < deadline) yield return null;
+                Assert.AreEqual("Exploration corridor → Combat second phase", view.Q<Foldout>("music-transition-rule").text);
                 window.position = new Rect(100,100,520,750);
                 yield return null; yield return null;
                 Assert.AreEqual(before, EditorJsonUtility.ToJson(profile));
@@ -377,20 +379,22 @@ namespace AudioMW.Tests
                 var root = window.rootVisualElement;
                 var row = root.Q<Foldout>("mixer-parameter-binding");
                 Assert.NotNull(row);
-                Assert.AreEqual("Voice duck → MusicDuckDb", row.text);
-                var field = root.Q<PropertyField>("mixer-binding-exposedName").Q<TextField>();
+                Assert.AreEqual("Voice duck → MusicDuckDb", root.Q<Foldout>("mixer-parameter-binding").text);
+                var field = root.Q("mixer-binding-exposedName").Q<TextField>();
                 Assert.Greater(field.labelElement.worldBound.width, field.worldBound.width * .85f);
                 Assert.AreEqual(before, EditorJsonUtility.ToJson(profile));
                 field.value = "AmbienceDuckDb";
                 yield return null; yield return null;
-                Assert.AreEqual("Voice duck → AmbienceDuckDb", row.text);
+                double editedDeadline = EditorApplication.timeSinceStartup + 3;
+                while (root.Q<Foldout>("mixer-parameter-binding").text != "Voice duck → AmbienceDuckDb" && EditorApplication.timeSinceStartup < editedDeadline) yield return null;
+                Assert.AreEqual("Voice duck → AmbienceDuckDb", root.Q<Foldout>("mixer-parameter-binding").text);
                 Assert.AreEqual("AmbienceDuckDb", profile.Bindings[0].ExposedName);
                 Undo.PerformUndo();
                 yield return null; yield return null;
                 Assert.AreEqual(before, EditorJsonUtility.ToJson(profile));
                 double deadline = EditorApplication.timeSinceStartup + 3;
-                while (row.text != "Voice duck → MusicDuckDb" && EditorApplication.timeSinceStartup < deadline) yield return null;
-                Assert.AreEqual("Voice duck → MusicDuckDb", row.text);
+                while (root.Q<Foldout>("mixer-parameter-binding").text != "Voice duck → MusicDuckDb" && EditorApplication.timeSinceStartup < deadline) yield return null;
+                Assert.AreEqual("Voice duck → MusicDuckDb", root.Q<Foldout>("mixer-parameter-binding").text);
             }
             finally { window.Close(); }
         }
@@ -544,8 +548,8 @@ namespace AudioMW.Tests
                 yield return null; yield return null; yield return null;
                 var root = window.rootVisualElement;
                 var row = root.Q<Foldout>("music-layer");
-                Assert.AreEqual("Percussion accents during the second combat phase · Intensity",row.text);
-                var name = root.Q<PropertyField>("music-layer-layerName").Q<TextField>();
+                Assert.AreEqual("Percussion accents during the second combat phase · Intensity",root.Q<Foldout>("music-layer").text);
+                var name = root.Q("music-layer-layerName").Q<TextField>();
                 Assert.Greater(name.labelElement.worldBound.width,name.worldBound.width*.85f);
                 var title = row.Q<Toggle>().Q<Label>(className: "unity-toggle__text");
                 Assert.Greater(title.worldBound.height, EditorGUIUtility.singleLineHeight * 1.5f);
@@ -558,12 +562,12 @@ namespace AudioMW.Tests
                 yield return null; yield return null;
                 Assert.AreEqual(before,EditorJsonUtility.ToJson(track));
                 double deadline = EditorApplication.timeSinceStartup + 3;
-                while (row.text != "Percussion accents during the second combat phase · Intensity" && EditorApplication.timeSinceStartup < deadline) yield return null;
-                Assert.AreEqual("Percussion accents during the second combat phase · Intensity",row.text);
-                root.Q<PropertyField>("music-layer-parameter").Q<ObjectField>().value = null;
+                while (root.Q<Foldout>("music-layer").text != "Percussion accents during the second combat phase · Intensity" && EditorApplication.timeSinceStartup < deadline) yield return null;
+                Assert.AreEqual("Percussion accents during the second combat phase · Intensity",root.Q<Foldout>("music-layer").text);
+                root.Q("music-layer-parameter").Q<ObjectField>().value = null;
                 deadline = EditorApplication.timeSinceStartup + 3;
-                while (row.text != "Percussion accents during the second combat phase · Fixed weight" && EditorApplication.timeSinceStartup < deadline) yield return null;
-                Assert.AreEqual("Percussion accents during the second combat phase · Fixed weight",row.text);
+                while (root.Q<Foldout>("music-layer").text != "Percussion accents during the second combat phase · Fixed weight" && EditorApplication.timeSinceStartup < deadline) yield return null;
+                Assert.AreEqual("Percussion accents during the second combat phase · Fixed weight",root.Q<Foldout>("music-layer").text);
                 Assert.IsNull(track.Layers[0].Parameter);
             }
             finally { window.Close(); }

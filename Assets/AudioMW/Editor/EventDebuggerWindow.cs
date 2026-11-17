@@ -147,7 +147,9 @@ namespace AudioMW.Editor
             gainLabel = new Label { name = "captured-gain", style = { whiteSpace = WhiteSpace.Normal } }; gains.Add(gainLabel); details.Add(gains);
             var caveat = new Label("Historical request, not a live output meter. Editing asset settings does not rewrite this capture."); caveat.style.whiteSpace = WhiteSpace.Normal; caveat.AddToClassList("audiomw-capture-note"); details.Add(caveat);
             summaryLabel = new Label { style = { whiteSpace = WhiteSpace.Normal } };
-            summaryLabel.style.paddingLeft = 6f;
+            summaryLabel.style.paddingLeft = 12f;
+            summaryLabel.style.paddingRight = 12f;
+            summaryLabel.style.flexShrink = 0;
             summaryLabel.style.paddingBottom = 4f;
             rootVisualElement.Add(summaryLabel);
 

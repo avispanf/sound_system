@@ -1,12 +1,23 @@
 using UnityEngine.UIElements;
+using UnityEditor;
+using UnityEditor.UIElements;
 
 namespace AudioMW.Editor
 {
     internal static class AudioProfileInspectorLayout
     {
-        public static void Configure(VisualElement root, UnityEngine.Object asset)
+        public static void Configure(VisualElement root, UnityEngine.Object asset, SerializedObject serialized)
         {
             root.userData = asset;
+            Undo.UndoRedoCallback synchronizeUndo = () =>
+            {
+                if (root.panel == null || serialized.targetObject == null) return;
+                serialized.Update();
+                root.Unbind();
+                root.Bind(serialized);
+            };
+            root.RegisterCallback<AttachToPanelEvent>(_ => Undo.undoRedoPerformed += synchronizeUndo);
+            root.RegisterCallback<DetachFromPanelEvent>(_ => Undo.undoRedoPerformed -= synchronizeUndo);
             AudioWorkspace.Style(root);
             root.AddToClassList("audiomw-inspection");
             root.RegisterCallback<GeometryChangedEvent>(evt =>

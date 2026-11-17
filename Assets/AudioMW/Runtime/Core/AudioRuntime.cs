@@ -434,7 +434,6 @@ namespace AudioMW
         private void TickVirtualization()
         {
             Transform listener = null;
-            if (virtualizationEnabled)
             foreach (PlaybackInstance playback in instances)
             if (playback.NeedsListener) { listener = ResolveListener(); break; }
             foreach (PlaybackInstance playback in instances)
@@ -471,7 +470,7 @@ namespace AudioMW
             finally { EndOperation(); }
         }
 
-        private Transform ResolveListener()
+        internal Transform ResolveListener()
         {
             if (cachedListener != null && cachedListener.gameObject.activeInHierarchy && cachedListener.GetComponent<AudioListener>().enabled)
             {

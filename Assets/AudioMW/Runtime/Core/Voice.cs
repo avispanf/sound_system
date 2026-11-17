@@ -25,6 +25,8 @@ namespace AudioMW
         private float lastBlendWeight = 1f;
         private float occlusionVolume = 1f;
         private AudioLowPassFilter lowPass;
+        private float occlusionCutoff = 22000f;
+        private float distanceCutoff = 22000f;
 
         public event System.Action<Voice> Released;
         private float startTime;
@@ -98,6 +100,7 @@ namespace AudioMW
 
         public void Play(SoundEvent soundEvent, PlaybackParameters parameters, Vector3 position, Transform attach, float startOffset = 0f)
         {
+            occlusionCutoff = distanceCutoff = 22000f;
             currentEvent = soundEvent;
             attachTarget = attach;
             active = true;
@@ -121,12 +124,16 @@ namespace AudioMW
             }
             else
             {
+                source.panStereo = 0f;
+                source.spread = 0f;
+                source.dopplerLevel = 1f;
                 source.spatialBlend = soundEvent.SpatialBlend;
                 source.minDistance = soundEvent.MinDistance;
                 source.maxDistance = soundEvent.MaxDistance;
                 source.rolloffMode = soundEvent.RolloffMode;
             }
 
+            if (AudioRuntimeSettings.ActiveTier != null && !AudioRuntimeSettings.ActiveTier.SpatialAudioEnabled) source.spatialBlend = 0f;
             source.priority = soundEvent.Priority;
             ApplyParameters();
             source.Play();
@@ -185,8 +192,34 @@ namespace AudioMW
 
         internal void ApplyOcclusionSelf(float volumeMultiplier, float cutoffHz)
         {
+            if (AudioRuntimeSettings.ActiveTier != null && !AudioRuntimeSettings.ActiveTier.OcclusionEnabled) { volumeMultiplier = 1f; cutoffHz = 22000f; }
             occlusionVolume = Mathf.Clamp01(volumeMultiplier);
+            occlusionCutoff = Mathf.Clamp(cutoffHz, 10f, 22000f);
+            ApplyFilter();
+            ApplyParameters();
+        }
 
+        internal void ApplyDistance(Transform listener)
+        {
+            var preset = currentEvent != null ? currentEvent.AttenuationPreset : null;
+            distanceCutoff = 22000f;
+            if (preset != null)
+            {
+                source.panStereo = preset.StereoPan;
+                source.spread = preset.Spread;
+                if (preset.UsesDistanceProcessing && source.spatialBlend > 0f && listener != null)
+                {
+                    float distance = Vector3.Distance(cachedTransform.position, listener.position);
+                    if (AudioRuntimeSettings.ActiveTier == null || AudioRuntimeSettings.ActiveTier.CustomDspEnabled) distanceCutoff = preset.EvaluateCutoff(distance);
+                    source.spread = preset.EvaluateSpread(distance);
+                }
+            }
+            ApplyFilter();
+        }
+
+        private void ApplyFilter()
+        {
+            float cutoffHz = Mathf.Min(occlusionCutoff, distanceCutoff);
             if (cutoffHz >= 21999f)
             {
                 if (lowPass != null)
@@ -210,7 +243,6 @@ namespace AudioMW
                 lowPass.cutoffFrequency = Mathf.Clamp(cutoffHz, 10f, 22000f);
             }
 
-            ApplyParameters();
         }
 
         public void ClearOcclusion()

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.0-preview.45 — Production workflow and compact authoring
+
+- Enforce Mobile 2D spatial/occlusion flags at voice playback and respect the DSP flag for distance filtering.
+- Use native music-layer bindings across Unity 2022.3/6 and preserve readable long headings and crossfade units.
+- Add opt-in distance low-pass and spread curves, stereo pan, and correct filter composition with occlusion.
+- Add local Play Mode global-parameter audition with conditional restoration and unchanged asset defaults.
+- Add bounded Editor performance snapshots and CSV with explicit SFX/CPU/GC scope and unavailable counters.
+- Align dark authoring surfaces, green accents, native icon geometry, compact field layouts and Play Mode edit review.
+- Reflow Spatial/Parameters/Routing into a vertical library/detail split at narrow widths and preserve readable status text.
+
 ## 0.5.0-preview.44 — Native Inspector pin identity
 
 - Reuse pinned native Inspectors for profile assets as well as Sound Events, including repeated requests before UI binding.

@@ -26,6 +26,8 @@ namespace AudioMW.Editor
         private ScrollView contextHost;
         private VisualElement context;
         private VisualElement layout;
+        private TwoPaneSplitView split;
+        private bool compact;
         private Label status;
         private int dirty;
         private int dependencyDirty;
@@ -39,7 +41,7 @@ namespace AudioMW.Editor
         {
             var window = Resources.FindObjectsOfTypeAll<AudioInspectionWindow>().FirstOrDefault(w => w.workspace == mode);
             if (window == null) { window = CreateInstance<AudioInspectionWindow>(); window.workspace = mode; }
-            window.titleContent = new GUIContent(mode.ToString()); window.minSize = new Vector2(620, 360); window.Show(); window.CreateGUI(); window.Focus(); return window;
+            window.titleContent = new GUIContent(mode.ToString()); window.minSize = new Vector2(360, 360); window.Show(); window.CreateGUI(); window.Focus(); return window;
         }
         private void OnEnable() { Selection.selectionChanged += Follow; Undo.undoRedoPerformed += Refresh; }
         private void OnDisable() { Selection.selectionChanged -= Follow; Undo.undoRedoPerformed -= Refresh; }
@@ -62,12 +64,12 @@ namespace AudioMW.Editor
             var toggle = new ToolbarToggle { text = "Follow selection", value = follow }; toggle.RegisterValueChangedCallback(e => { follow = e.newValue; Follow(); });
             bar.Add(new ToolbarButton(Refresh) { text = "Refresh" }); panel.Add(bar);
             layout = new VisualElement { name = "inspection-layout" }; rootVisualElement.Add(layout);
-            var split = new TwoPaneSplitView(0, 190, TwoPaneSplitViewOrientation.Horizontal); split.style.flexGrow = 1; split.style.minWidth = 0; layout.Add(split);
+            split = new TwoPaneSplitView(0, 190, TwoPaneSplitViewOrientation.Horizontal); compact = false; split.style.flexGrow = 1; split.style.minWidth = 0; layout.Add(split);
             library = new ListView(visible, 24, () => { var label = new Label(); label.AddToClassList("audiomw-library-item"); return label; }, (v, i) => { var label = (Label)v; label.text = visible[i].name; label.tooltip = AssetDatabase.GetAssetPath(visible[i]); label.style.overflow = Overflow.Hidden; label.style.textOverflow = TextOverflow.Ellipsis; }) { selectionType = SelectionType.Single, name = "workspace-library" };
             library.horizontalScrollingEnabled = false;
             panel.style.minWidth = 150; library.style.flexGrow = 1;
             library.style.minWidth = 150; library.AddToClassList("audiomw-list"); library.selectionChanged += items => { foreach (Object item in items) { SelectAsset(item); Selection.activeObject = item; break; } };
-            detail = new ScrollView { name = "workspace-detail" }; detail.AddToClassList("audiomw-preview"); detail.AddToClassList("audiomw-inspection"); detail.style.minWidth = 260; panel.Add(library); panel.Add(toggle); split.Add(panel); split.Add(detail);
+            detail = new ScrollView(ScrollViewMode.Vertical) { name = "workspace-detail", horizontalScrollerVisibility = ScrollerVisibility.Hidden }; detail.AddToClassList("audiomw-preview"); detail.AddToClassList("audiomw-inspection"); detail.style.minWidth = 0; panel.Add(library); panel.Add(toggle); split.Add(panel); split.Add(detail);
             contextHost = new ScrollView { name = "inspection-context-host" }; layout.Add(contextHost);
             layout.RegisterCallback<GeometryChangedEvent>(_ => PlaceContext());
             status = new Label { name = "workspace-status" }; status.AddToClassList("audiomw-status"); rootVisualElement.Add(status); Refresh();
@@ -75,6 +77,14 @@ namespace AudioMW.Editor
         private void PlaceContext()
         {
             if (layout == null || context == null) return;
+            bool nextCompact = layout.layout.width < 620;
+            layout.EnableInClassList("audiomw-workspace-compact", nextCompact);
+            if (compact != nextCompact)
+            {
+                compact = nextCompact;
+                split.orientation = compact ? TwoPaneSplitViewOrientation.Vertical : TwoPaneSplitViewOrientation.Horizontal;
+                split.fixedPaneInitialDimension = compact ? 140 : 190;
+            }
             bool narrow = layout.layout.width < 1000;
             layout.EnableInClassList("audiomw-workspace-narrow", narrow);
             if (narrow) { if (context.parent != detail.contentContainer) detail.Add(context); }
@@ -140,11 +150,13 @@ namespace AudioMW.Editor
             source.RegisterValueChangedCallback(e => emitter = e.newValue as SoundEmitter); ears.RegisterValueChangedCallback(e => listener = e.newValue as AudioListener);
             var distance = new Slider("Preview distance (m)", 0, Mathf.Max(.01f,max)) { value = Mathf.Clamp(previewValue,0,max), showInputField = true }; distance.RegisterValueChangedCallback(e => previewValue = e.newValue);
             var result = new Label { name = "spatial-context" }; result.style.whiteSpace = WhiteSpace.Normal;
+            var processing = new Label { name = "spatial-distance-processing" }; processing.style.whiteSpace = WhiteSpace.Normal;
             Func<float> sampleDistance = () =>
             {
                 bool matching = emitter != null && listener != null && emitter.gameObject.scene.IsValid() && listener.gameObject.scene.IsValid() && emitter.isActiveAndEnabled && listener.isActiveAndEnabled && (item != null ? emitter.Event == item : emitter.Event != null && emitter.Event.AttenuationPreset == preset);
                 float d = matching ? Vector3.Distance(emitter.transform.position,listener.transform.position) : previewValue;
                 result.text = matching ? $"Scene distance: {d:0.##} m · {emitter.name} → {listener.name}" : "Preview marker only · choose a matching active scene emitter and listener for real distance.";
+                processing.text = preset == null ? "Distance processing unavailable · assign an attenuation preset." : $"Authored model · pan {preset.StereoPan:0.##} · spread {preset.EvaluateSpread(d):0.#}° · low-pass {(preset.DistanceFiltering ? preset.EvaluateCutoff(d).ToString("0") + " Hz" : "off")}" + (blend <= 0 ? " · 2D: distance processing inactive" : "");
                 return d;
             };
             result.schedule.Execute(() => sampleDistance()).Every(100);
@@ -156,7 +168,8 @@ namespace AudioMW.Editor
                 float d = sampleDistance();
                 AudioResponseGraph.Draw(max, d, x => AudioInspectionData.DistanceModel(x,min,max,blend,mode,preset != null ? preset.CustomRolloff : null), "Distance (m)", "Amplitude (0–1)");
             }));
-            detail.Add(distance); detail.Add(result);
+            detail.Add(distance); detail.Add(result); detail.Add(processing);
+            if (preset != null) context.Add(new Button(() => AudioWorkspace.Pin(preset)) { text = "Edit attenuation preset" });
             if (item != null) { context.Add(new Button(() => AudioWorkspace.OpenEvent(item,"Spatial audio")) { text = "Open spatial settings" }); detail.Add(new AudioEventContextPane(item)); }
             ContextNote("Reverb and echo remain in the native AudioMixer / scene components. Selecting an emitter in Scene View uses its existing spherical distance gizmos; no invented shape is drawn here.");
         }
@@ -167,6 +180,7 @@ namespace AudioMW.Editor
             var slider = new Slider("Preview value",parameter.MinValue,parameter.MaxValue) { value = parameter.Clamp(previewValue), showInputField = true }; detail.Add(slider); slider.RegisterValueChangedCallback(e => previewValue = e.newValue);
             ContextNote("Preview changes only this view. It never writes the asset default or game parameters. Global store and emitter-local overrides are different owners.");
             var live = new Label { name = "parameter-runtime" }; live.style.whiteSpace = WhiteSpace.Normal; context.Add(live);
+            context.Add(new LiveParameterControl(parameter));
             var refs = AudioInspectionData.ParameterUses(parameter); Note(refs.Count + " authored references · project assets only; dynamic code references are unavailable");
             foreach (var use in refs)
             {
