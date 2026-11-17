@@ -249,6 +249,38 @@ namespace AudioMW.Tests
         }
 
         [UnityTest]
+        public IEnumerator MusicInspectorPreservesSerializedDefaultsAndReflowsAt300()
+        {
+            var profile = ScriptableObject.CreateInstance<MusicStateProfile>(); temporary.Add(profile);
+            profile.DefaultFadeSeconds = 2.75f;
+            profile.DefaultQuantization = MusicQuantization.Bar;
+            var before = EditorJsonUtility.ToJson(profile);
+            var editor = UnityEditor.Editor.CreateEditor(profile);
+            var window = ScriptableObject.CreateInstance<EditorWindow>();
+            try
+            {
+                window.Show(); window.position = new Rect(100,100,300,750);
+                var view = editor.CreateInspectorGUI(); window.rootVisualElement.Add(view); view.Bind(editor.serializedObject);
+                yield return null; yield return null; yield return null;
+                StringAssert.Contains("0 states", view.Q<Label>("music-profile-summary").text);
+                StringAssert.Contains("Add a music state", view.Q<HelpBox>("music-profile-validation").text);
+                var fade = view.Q<FloatField>();
+                Assert.NotNull(fade);
+                var input = fade.Q(className: "unity-base-field__input");
+                Assert.GreaterOrEqual(input.worldBound.yMin, fade.labelElement.worldBound.yMax - 1);
+                Assert.Greater(input.worldBound.width, fade.worldBound.width * .85f);
+                Assert.AreEqual(before, EditorJsonUtility.ToJson(profile));
+                fade.value = 1.25f;
+                yield return null; yield return null;
+                Assert.AreEqual(1.25f, profile.DefaultFadeSeconds);
+                Undo.PerformUndo();
+                yield return null; yield return null;
+                Assert.AreEqual(2.75f, profile.DefaultFadeSeconds);
+            }
+            finally { window.Close(); Object.DestroyImmediate(editor); }
+        }
+
+        [UnityTest]
         public IEnumerator NarrowWeightedInspectorKeepsLongSourceNamesAboveValues()
         {
             var item = Event("LongWeightName", Clip("Concrete footsteps corridor heavy boots variation twelve"));

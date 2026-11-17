@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0-preview.33 — Music profile Inspector
+
+- Organize native music profile authoring into states, default transition, route overrides and runtime preview sections with shared graphite styling.
+- Stack narrow fields, show actual state/rule counts and explain default versus override timing without changing serialized values.
+
 ## 0.5.0-preview.32 — Weighted source readability
 
 - Wrap source-slot names above their weight values in narrow native Inspectors without changing selection weights or their defaults.

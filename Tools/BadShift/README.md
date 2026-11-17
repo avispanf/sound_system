@@ -165,3 +165,7 @@ Preview.30 separates Events source overview and asset context, with narrow reflo
 Preview.31 improves narrow native Inspector object references and restored foldout summaries. Review changes remains a separate human-confirmation workflow; fresh test and native audit scope are recorded in DARK-UI-VERIFICATION.json.
 
 Preview.32 keeps long weighted-source names readable in narrow native Inspectors. Weighted and Switch child layout audit used a transient QA copy; no new demo content or runtime behavior is included.
+
+### Editor UI preview.33
+
+Music profile native Inspector now groups states, default timing, route overrides and runtime preview, with stacked controls at narrow widths. Fresh 327/327 EditMode and 5/5 package checks; silent native 300 px empty QA profile inspection. No new native gameplay build or listening check. See DARK-UI-VERIFICATION.json for exact scope.
