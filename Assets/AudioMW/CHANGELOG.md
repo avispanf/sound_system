@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0-preview.41 — Attenuation preset Inspector
+
+- Group native attenuation authoring into distance response and spatial settings, with explicit world units and applied limits.
+- Preserve inactive custom curves, explain rolloff ownership and link to the selected preset in Spatial.
+
 ## 0.5.0-preview.40 — Music track Inspector
 
 - Group native track authoring into sources, musical grid, vertical layers and output.

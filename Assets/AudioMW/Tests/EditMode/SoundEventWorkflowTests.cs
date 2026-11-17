@@ -500,6 +500,33 @@ namespace AudioMW.Tests
         }
 
         [UnityTest]
+        public IEnumerator AttenuationInspectorPreservesStoredLimitsAndInactiveCurve()
+        {
+            var preset = AttenuationPreset.CreateRuntime(1,-2,-1,AudioRolloffMode.Linear,AnimationCurve.Linear(0,.8f,1,.1f)); temporary.Add(preset);
+            var before = EditorJsonUtility.ToJson(preset);
+            var window = AudioWorkspace.Pin(preset);
+            try
+            {
+                window.position = new Rect(100,100,300,750);
+                yield return null; yield return null; yield return null;
+                var root = window.rootVisualElement;
+                StringAssert.Contains("0.01 → 0.01", root.Q<Label>("attenuation-applied-range").text);
+                Assert.IsFalse(root.Q<PropertyField>("attenuation-customRolloff").enabledSelf);
+                Assert.AreEqual(before,EditorJsonUtility.ToJson(preset));
+                var minimum = root.Q<PropertyField>("attenuation-minDistance").Q<FloatField>();
+                Assert.AreEqual(-2,minimum.value);
+                Assert.Greater(minimum.labelElement.worldBound.width,minimum.worldBound.width*.85f);
+                minimum.value = 2;
+                yield return null; yield return null;
+                Assert.AreEqual(2,preset.MinDistance);
+                Undo.PerformUndo();
+                yield return null; yield return null;
+                Assert.AreEqual(before,EditorJsonUtility.ToJson(preset));
+            }
+            finally { window.Close(); }
+        }
+
+        [UnityTest]
         public IEnumerator NarrowWeightedInspectorKeepsLongSourceNamesAboveValues()
         {
             var item = Event("LongWeightName", Clip("Concrete footsteps corridor heavy boots variation twelve"));

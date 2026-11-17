@@ -197,3 +197,7 @@ Sound Parameter Inspector now separates stored/effective defaults, range and sco
 ### Editor UI preview.40
 
 MusicTrack Inspector groups sources, grid, layers and output with native gain and multi-edit. Fresh334/334 EditMode and5/5 package checks; actual track inspected at300px without sound or asset edits. No new gameplay build or listening check.
+
+### Editor UI preview.41
+
+AttenuationPreset Inspector separates stored/applied distances and preserves inactive custom curves, with direct Spatial navigation. Fresh335/335 EditMode and5/5 package checks; native300px inspection and navigation without sound or asset edits. No new gameplay build or listening check.
