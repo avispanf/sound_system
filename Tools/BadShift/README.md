@@ -193,3 +193,7 @@ Music uses compact state buttons and a separate profile-rule context. Fresh 330/
 ### Editor UI preview.39
 
 Sound Parameter Inspector now separates stored/effective defaults, range and scope, preserving native multi-edit and Undo. Fresh332/332 EditMode and5/5 package checks; native300px inspection and live reference-navigation check without sound. No new gameplay build or listening check.
+
+### Editor UI preview.40
+
+MusicTrack Inspector groups sources, grid, layers and output with native gain and multi-edit. Fresh334/334 EditMode and5/5 package checks; actual track inspected at300px without sound or asset edits. No new gameplay build or listening check.

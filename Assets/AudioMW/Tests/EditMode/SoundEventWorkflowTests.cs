@@ -447,6 +447,59 @@ namespace AudioMW.Tests
         }
 
         [UnityTest]
+        public IEnumerator TrackInspectorPreservesSourcesAndGainAt300()
+        {
+            var clip = Clip("TrackBody");
+            var track = MusicTrack.CreateRuntime(null,clip,123,3); temporary.Add(track); track.Volume = .4f;
+            var before = EditorJsonUtility.ToJson(track);
+            var window = AudioWorkspace.Pin(track);
+            try
+            {
+                window.position = new Rect(100,100,300,750);
+                yield return null; yield return null; yield return null;
+                var root = window.rootVisualElement;
+                Assert.AreEqual(before, EditorJsonUtility.ToJson(track));
+                Assert.AreSame(clip, root.Q<PropertyField>("track-loopClip").Q<ObjectField>().value);
+                StringAssert.Contains("Source durations", root.Q<Label>("track-duration").text);
+                var gain = root.Q<DecibelGainField>("track-gain");
+                Assert.AreEqual(.4f, gain.value);
+                foreach (string name in new[] { "gain-number", "gain-reset", "gain-mute" })
+                    Assert.LessOrEqual(gain.Q(name).worldBound.xMax, root.worldBound.xMax + 1);
+                gain.value = .2f;
+                yield return null; yield return null;
+                Assert.AreEqual(.2f, track.Volume);
+                Undo.PerformUndo();
+                yield return null; yield return null;
+                Assert.AreEqual(before, EditorJsonUtility.ToJson(track));
+            }
+            finally { window.Close(); }
+        }
+
+        [UnityTest]
+        public IEnumerator TrackInspectorKeepsMixedGainAndUndo()
+        {
+            var first = MusicTrack.CreateRuntime(null,null,120,4); temporary.Add(first); first.Volume = .2f;
+            var second = MusicTrack.CreateRuntime(null,null,90,3); temporary.Add(second); second.Volume = .8f;
+            var editor = UnityEditor.Editor.CreateEditor(new Object[] { first, second });
+            var window = ScriptableObject.CreateInstance<EditorWindow>();
+            try
+            {
+                window.Show();
+                var view = editor.CreateInspectorGUI(); window.rootVisualElement.Add(view); view.Bind(editor.serializedObject);
+                yield return null; yield return null; yield return null;
+                var gain = view.Q<DecibelGainField>("track-gain"); Assert.IsTrue(gain.showMixedValue);
+                gain.value = .5f;
+                yield return null; yield return null;
+                Assert.AreEqual(.5f,first.Volume); Assert.AreEqual(.5f,second.Volume);
+                Undo.PerformUndo();
+                yield return null; yield return null;
+                Assert.AreEqual(.2f,first.Volume); Assert.AreEqual(.8f,second.Volume);
+                Assert.AreEqual(120,first.Tempo); Assert.AreEqual(90,second.Tempo);
+            }
+            finally { window.Close(); Object.DestroyImmediate(editor); }
+        }
+
+        [UnityTest]
         public IEnumerator NarrowWeightedInspectorKeepsLongSourceNamesAboveValues()
         {
             var item = Event("LongWeightName", Clip("Concrete footsteps corridor heavy boots variation twelve"));

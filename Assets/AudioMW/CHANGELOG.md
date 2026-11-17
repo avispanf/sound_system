@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0-preview.40 — Music track Inspector
+
+- Group native track authoring into sources, musical grid, vertical layers and output.
+- Show source durations, explain zero-based markers, preserve native arrays and decibel gain with multi-edit/Undo.
+
 ## 0.5.0-preview.39 — Sound parameter Inspector
 
 - Group native parameter authoring into value range, stored/effective default and authored scope.
