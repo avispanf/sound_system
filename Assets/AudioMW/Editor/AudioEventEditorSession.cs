@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEditor.UIElements;
+using UnityEditor.SceneManagement;
+using UnityEngine.SceneManagement;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -21,14 +23,46 @@ namespace AudioMW.Editor
         private double lastRefresh;
         private int liveIdentity;
         private Label transportPosition;
+        private Label auditionStatus;
+        private ToolbarButton muteButton;
+        private ToolbarButton enterPlayButton;
+        private PopupField<string> auditionMode;
+        private Scene auditionScene;
+        [SerializeField] private string pendingAuditionGuid = "";
+        private double AuditionPosition
+        {
+            get
+            {
+                if(arrangementPlayer!=null&&arrangementPlayer.IsPlaying)return arrangementPlayer.Position;
+                if(legacyPlayer==null||!legacyPlayer.IsPlaying)return CurrentDocument?.Cursor??0;
+                return LegacyTimelinePosition(legacyPlayer.CurrentTrack,legacyPlayer.Clock.GetPosition(AudioSettings.dspTime));
+            }
+        }
+        public static double LegacyTimelinePosition(MusicTrack track,double elapsed)
+        {
+            double value=Math.Max(0,elapsed);
+            if(track==null)return value;
+            double intro=MusicTrack.GetExactDuration(track.IntroClip),body=track.BodyDuration;
+            return track.Loop&&body>0&&value>=intro?intro+(value-intro)%body:Math.Min(value,intro+body);
+        }
         private void BuildTransport(VisualElement parent)
         {
             var transport=new Toolbar{name="studio-v2-transport"};
             transport.Add(new ToolbarButton(PlayAudition){text="▶ Play event",name="studio-play"});transport.Add(new ToolbarButton(StopAudition){text="■ Stop"});
             transportPosition=new Label("0.000 s");transport.Add(transportPosition);
-            var context=new PopupField<string>(new List<string>{"Author","Audition","Live"},mode);context.RegisterValueChangedCallback(e=>{if(mode=="Live")ReleaseLive();StopAudition();mode=e.newValue;notice="";});transport.Add(context);
+            auditionMode=new PopupField<string>(new List<string>{"Author","Audition","Live"},mode);auditionMode.RegisterValueChangedCallback(e=>{if(mode=="Live")ReleaseLive();StopAudition();mode=e.newValue;notice="";});transport.Add(auditionMode);
             var target=new ObjectField("Emitter position"){name="studio-emitter",objectType=typeof(Transform),allowSceneObjects=true,value=auditionTarget};target.style.width=260;target.RegisterValueChangedCallback(e=>auditionTarget=e.newValue as Transform);transport.Add(target);
-            sessionLabel=new Label();transport.Add(sessionLabel);parent.Add(transport);
+            parent.Add(transport);
+            var status=new VisualElement{name="studio-audition-status"};
+            auditionStatus=new Label{name="studio-audition-message"};status.Add(auditionStatus);
+            enterPlayButton=new ToolbarButton(()=>
+            {
+                if(!(CurrentAsset is SoundEvent)||mode=="Live")return;
+                pendingAuditionGuid=AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(CurrentAsset));
+                EditorApplication.isPlaying=true;
+            }){text="Enter Play Mode & audition",name="studio-enter-play"};status.Add(enterPlayButton);
+            muteButton=new ToolbarButton(()=>EditorUtility.audioMasterMute=!EditorUtility.audioMasterMute){name="studio-audio-mute",tooltip="Unity Editor audio output. This does not change event gains or saved defaults."};status.Add(muteButton);
+            sessionLabel=new Label();sessionLabel.tooltip="Connection to the gameplay runtime. Music can audition separately in Edit Mode.";status.Add(sessionLabel);parent.Add(status);
             var local=new Toolbar{name="studio-view-tabs"};
             foreach(string label in new[]{"Container","Timeline","Parameters","Transitions"}){string next=label;local.Add(new ToolbarButton(()=>{view=next;RefreshTransport();canvas.MarkDirtyRepaint();}){text=label,name="view-"+label});}local.Add(new ToolbarSpacer{flex=true});local.Add(new ToolbarButton(()=>{overviewOpen=!overviewOpen;overview.style.display=overviewOpen?DisplayStyle.Flex:DisplayStyle.None;RefreshOverview();}){text="Overview"});parent.Add(local);
         }
@@ -46,36 +80,80 @@ namespace AudioMW.Editor
         }
         private void PlayAudition()
         {
-            if(mode=="Author"){notice="Choose Audition to start a session. Author edits assets only.";return;}
             if(mode=="Live"){notice="Live observes the game. Choose Audition to start an owned playback session.";return;}
-            if(!EditorApplication.isPlaying||EditorApplication.isPaused){notice="Event audition requires local Play Mode.";return;}
-            int listeners=0;foreach(var listener in UnityEngine.Object.FindObjectsOfType<AudioListener>())if(listener.isActiveAndEnabled)listeners++;
-            if(listeners!=1){notice="Exactly one active AudioListener is required.";return;}
-            StopAudition();EditorAudioPreview.Stop();notice="";
+            if(EditorApplication.isCompiling||EditorApplication.isPaused){notice="Wait for compilation or resume Play Mode before auditioning.";return;}
+            StopAudition();notice="";
+            if(CurrentAsset is AudioClip source){EditorAudioPreview.Play(source);return;}
+            mode="Audition";auditionMode?.SetValueWithoutNotify(mode);
             if(CurrentAsset is SoundEvent sound)
             {
-                if(!AudioRuntime.Exists||auditionTarget==null){notice="Choose an emitter position and start AudioMW in this scene.";return;}
-                auditionHandle=AudioSystem.PlayTrackedAtPosition(sound,auditionTarget.position,auditionParameters);return;
+                if(!EditorApplication.isPlaying){notice="Sound event audition uses the game runtime. Enter Play Mode to hear containers, routing and spatial effects.";return;}
+                var listeners=UnityEngine.Object.FindObjectsOfType<AudioListener>().Where(x=>x.isActiveAndEnabled).ToArray();
+                if(listeners.Length!=1){notice="Exactly one active AudioListener is required for event audition.";return;}
+                if(!AudioRuntime.Exists){notice="AudioMW runtime is unavailable in this scene.";return;}
+                Vector3 position=auditionTarget!=null?auditionTarget.position:listeners[0].transform.position;
+                auditionHandle=AudioSystem.PlayTrackedAtPosition(sound,position,auditionParameters);
+                if(!auditionHandle.IsAssigned)notice="Event request rejected. Open Issues for the runtime reason and event validation.";
+                return;
             }
-            auditionHost=new GameObject("AudioMW Studio audition"){hideFlags=HideFlags.HideAndDontSave};
-            if(CurrentAsset is MusicArrangement arrangement){arrangementPlayer=auditionHost.AddComponent<MusicArrangementPlayer>();arrangementPlayer.Arrangement=arrangement;arrangementPlayer.Parameters.CopyFrom(auditionParameters);foreach(var lane in arrangement.Lanes)arrangementPlayer.SetLaneAudition(lane.Id,mutedLanes.Contains(lane.Id),soloLanes.Contains(lane.Id));if(!arrangementPlayer.Play())notice=arrangement.Validate();}
-            else if(CurrentAsset is MusicTrack music){legacyPlayer=new MusicPlayer(auditionHost.transform,auditionParameters);legacyPlayer.Play(music);}
-            else{notice="This document has no event audition path.";StopAudition();}
+            if(!(CurrentAsset is MusicArrangement)&&!(CurrentAsset is MusicTrack)){notice="Select a sound event, music document or audio source to play.";return;}
+            try
+            {
+                auditionHost=new GameObject("AudioMW Studio audition"){hideFlags=HideFlags.HideAndDontSave};
+                if(!EditorApplication.isPlaying)
+                {
+                    auditionScene=EditorSceneManager.NewPreviewScene();
+                    SceneManager.MoveGameObjectToScene(auditionHost,auditionScene);
+                }
+                if(CurrentAsset is MusicArrangement arrangement)
+                {
+                    arrangementPlayer=auditionHost.AddComponent<MusicArrangementPlayer>();arrangementPlayer.Arrangement=arrangement;
+                    arrangementPlayer.Parameters.CopyFrom(auditionParameters);
+                    foreach(var lane in arrangement.Lanes)arrangementPlayer.SetLaneAudition(lane.Id,mutedLanes.Contains(lane.Id),soloLanes.Contains(lane.Id));
+                    double cursor=CurrentDocument?.Cursor??arrangement.Entry;
+                    if(!arrangementPlayer.Play(cursor>=arrangement.Exit?arrangement.Entry:Math.Max(arrangement.Entry,cursor)))
+                    {
+                        notice=arrangement.Validate();StopAudition();
+                    }
+                }
+                else if(CurrentAsset is MusicTrack music)
+                {
+                    legacyPlayer=new MusicPlayer(auditionHost.transform,auditionParameters);legacyPlayer.Play(music);
+                    if(!legacyPlayer.IsPlaying){notice="Music track has no playable content. Check its clips in Deck.";StopAudition();}
+                }
+            }
+            catch(Exception exception){StopAudition();notice="Audition failed: "+exception.Message;}
         }
         private void StopAudition()
         {
-            auditionHandle.Stop();auditionHandle=SoundHandle.None;legacyPlayer?.Stop();legacyPlayer=null;
+            pendingAuditionGuid="";
+            auditionHandle.Stop();auditionHandle=SoundHandle.None;legacyPlayer?.Destroy();legacyPlayer=null;
             if(arrangementPlayer!=null){auditionParameters.CopyFrom(arrangementPlayer.Parameters);arrangementPlayer.Stop();}arrangementPlayer=null;
-            if(auditionHost!=null)DestroyImmediate(auditionHost);auditionHost=null;EditorAudioPreview.Stop();
+            if(auditionHost!=null)DestroyImmediate(auditionHost);auditionHost=null;
+            if(auditionScene.IsValid())EditorSceneManager.ClosePreviewScene(auditionScene);auditionScene=default;
+            EditorAudioPreview.Stop();
         }
         private void ReleaseLive(){foreach(var lease in liveLeases.Values)lease.Restore();liveLeases.Clear();}
         private void UpdateSession()
         {
-            legacyPlayer?.Tick();capture?.Tick();
+            legacyPlayer?.Tick();if(!EditorApplication.isPlaying)arrangementPlayer?.Tick();capture?.Tick();
             int identity=EditorApplication.isPlaying&&AudioRuntime.Exists?AudioRuntime.Instance.GetInstanceID():0;
             if(identity!=liveIdentity){ReleaseLive();liveIdentity=identity;}
-            if(sessionLabel!=null)sessionLabel.text=identity==0?"Local: Disconnected":EditorApplication.isPaused?"Local: Paused":"Local: Connected · "+identity;
-            if(transportPosition!=null)transportPosition.text=arrangementPlayer!=null?arrangementPlayer.Position.ToString("0.000")+" s":legacyPlayer!=null&&legacyPlayer.IsPlaying?"DSP music session":"Stopped";
+            if(sessionLabel!=null)sessionLabel.text=identity==0?"Game: offline":EditorApplication.isPaused?"Game: paused":"Game: connected";
+            if(muteButton!=null){muteButton.text=EditorUtility.audioMasterMute?"Output muted · Unmute":"Output on · Mute";muteButton.EnableInClassList("studio-v2-active",EditorUtility.audioMasterMute);}
+            if(enterPlayButton!=null)enterPlayButton.style.display=CurrentAsset is SoundEvent&&!EditorApplication.isPlaying&&mode!="Live"?DisplayStyle.Flex:DisplayStyle.None;
+            if(auditionStatus!=null)
+            {
+                string state=EditorAudioPreview.LastError!=""?EditorAudioPreview.LastError:notice!=""?notice
+                    :EditorAudioPreview.IsLoading?"Loading source…"
+                    :EditorAudioPreview.IsPlaying?"Source (dry) · "+EditorAudioPreview.CurrentClip.name
+                    :arrangementPlayer!=null&&arrangementPlayer.IsPlaying||legacyPlayer!=null&&legacyPlayer.IsPlaying?"Music audition · runtime DSP scheduler"
+                    :auditionHandle.IsPlaying?"Event audition · "+(auditionTarget!=null?"selected emitter":"listener position")
+                    :"Ready · Play a source or audition an event";
+                auditionStatus.text=state;auditionStatus.tooltip=state;
+            }
+            var play=rootVisualElement.Q<ToolbarButton>("studio-play");if(play!=null)play.text=CurrentAsset is AudioClip?"▶ Play source (dry)":"▶ Play event";
+            if(transportPosition!=null)transportPosition.text=EditorAudioPreview.IsPlaying?EditorAudioPreview.Position.ToString("0.000")+" s":arrangementPlayer!=null&&arrangementPlayer.IsPlaying||legacyPlayer!=null&&legacyPlayer.IsPlaying?AuditionPosition.ToString("0.000")+" s":auditionHandle.IsPlaying?"Playing":"Stopped";
             canvas?.MarkDirtyRepaint();
             if(EditorApplication.timeSinceStartup-lastRefresh>.25){lastRefresh=EditorApplication.timeSinceStartup;RefreshDocuments();UpdateCompactLayout();Repaint();}
         }

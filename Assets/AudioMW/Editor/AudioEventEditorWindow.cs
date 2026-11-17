@@ -71,9 +71,21 @@ namespace AudioMW.Editor
         [MenuItem("Window/AudioMW/Event Editor", false, 0)]
         public static void Open() { var window = GetWindow<AudioEventEditorWindow>(); window.titleContent = new GUIContent("AudioMW | Event Editor"); window.minSize = new Vector2(760,520); window.Show(); }
         private void OnEnable() { Undo.undoRedoPerformed += OnUndo; EditorApplication.playModeStateChanged += OnPlayState; EditorApplication.update += UpdateSession; }
-        private void OnDisable() { Undo.undoRedoPerformed -= OnUndo; EditorApplication.playModeStateChanged -= OnPlayState; EditorApplication.update -= UpdateSession; StopAudition(); ReleaseLive(); capture?.Dispose(); capture=null; deckSerialized?.Dispose(); if(legacyProjection!=null)DestroyImmediate(legacyProjection); }
+        private void OnDisable() { Undo.undoRedoPerformed -= OnUndo; EditorApplication.playModeStateChanged -= OnPlayState; EditorApplication.update -= UpdateSession; string pending=pendingAuditionGuid; StopAudition(); pendingAuditionGuid=pending; ReleaseLive(); capture?.Dispose(); capture=null; deckSerialized?.Dispose(); if(legacyProjection!=null)DestroyImmediate(legacyProjection); }
         private void OnUndo() { ShowDeck(deckTarget); RefreshDocuments(); canvas?.MarkDirtyRepaint(); }
-        private void OnPlayState(PlayModeStateChange state) { if (state == PlayModeStateChange.ExitingPlayMode || state == PlayModeStateChange.ExitingEditMode) { StopAudition(); ReleaseLive(); } }
+        private void OnPlayState(PlayModeStateChange state)
+        {
+            if(state==PlayModeStateChange.ExitingPlayMode||state==PlayModeStateChange.ExitingEditMode)
+            {
+                string pending=state==PlayModeStateChange.ExitingEditMode?pendingAuditionGuid:"";
+                StopAudition();ReleaseLive();pendingAuditionGuid=pending;
+            }
+            if(state==PlayModeStateChange.EnteredPlayMode&&pendingAuditionGuid!="")
+            {
+                string guid=pendingAuditionGuid;pendingAuditionGuid="";
+                EditorApplication.delayCall+=()=>{if(this!=null&&EditorApplication.isPlaying&&CurrentAsset!=null&&AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(CurrentAsset))==guid)PlayAudition();};
+            }
+        }
         private void OnProjectChange() { RefreshBrowser(); RefreshDocuments(); }
         public void CreateGUI()
         {
@@ -168,10 +180,10 @@ namespace AudioMW.Editor
         public void OpenDocument(Object asset,bool pin=true)
         {
             if(asset==null)return;string guid=AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(asset));if(string.IsNullOrEmpty(guid))return;
+            if(CurrentDocument==null||CurrentDocument.Guid!=guid)StopAudition();
             int index=documents.FindIndex(x=>x.Guid==guid);
             if(index<0){if(CurrentDocument!=null&&!CurrentDocument.Pinned&&CurrentAsset!=null&&!EditorUtility.IsDirty(CurrentAsset)){index=documentIndex;documents[index]=new Document{Guid=guid,Pinned=pin};}else{documents.Add(new Document{Guid=guid,Pinned=pin});index=documents.Count-1;}}
             else if(pin)documents[index].Pinned=true;
-            if(CurrentDocument==null||CurrentDocument.Guid!=guid)StopAudition();
             documentIndex=index;selectedClips.Clear();selectedLane="";Selection.activeObject=asset;view=asset is MusicTrack||asset is MusicArrangement?"Timeline":asset is SoundParameter?"Parameters":asset is MusicStateProfile?"Transitions":"Container";EditorAudioPreview.Stop();RestoreDocumentSelection();ShowDeck(asset);RefreshDocuments();RefreshOverview();RefreshTransport();
         }
         private void RestoreDocumentSelection()

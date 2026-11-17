@@ -3,6 +3,7 @@ using UnityEngine;
 
 namespace AudioMW
 {
+    [ExecuteAlways]
     [AddComponentMenu("")]
     [RequireComponent(typeof(AudioSource))]
     public sealed class MusicDspGain : MonoBehaviour

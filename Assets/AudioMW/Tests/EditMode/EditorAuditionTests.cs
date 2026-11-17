@@ -1,0 +1,139 @@
+using System;
+using System.Linq;
+using System.Reflection;
+using AudioMW.Editor;
+using NUnit.Framework;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using Object = UnityEngine.Object;
+
+namespace AudioMW.Tests
+{
+    public sealed class EditorAuditionTests
+    {
+        private const BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
+        private AudioEventEditorWindow window;
+        private AudioClip clip;
+        private string folder;
+        private bool muted;
+        private Object selection;
+        [SetUp] public void SetUp()
+        {
+            muted=EditorUtility.audioMasterMute;EditorUtility.audioMasterMute=true;
+            selection=Selection.activeObject;
+            folder="Assets/EditorAudition_"+Guid.NewGuid().ToString("N");
+            AssetDatabase.CreateFolder("Assets",folder.Substring(7));
+            string path=folder+"/Source.wav";
+            using(var writer=new System.IO.BinaryWriter(System.IO.File.Create(path)))
+            {
+                writer.Write(System.Text.Encoding.ASCII.GetBytes("RIFF"));writer.Write(96036);
+                writer.Write(System.Text.Encoding.ASCII.GetBytes("WAVEfmt "));writer.Write(16);
+                writer.Write((short)1);writer.Write((short)1);writer.Write(48000);writer.Write(96000);
+                writer.Write((short)2);writer.Write((short)16);
+                writer.Write(System.Text.Encoding.ASCII.GetBytes("data"));writer.Write(96000);writer.Write(new byte[96000]);
+            }
+            AssetDatabase.ImportAsset(path,ImportAssetOptions.ForceSynchronousImport);
+            clip=AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+            window=ScriptableObject.CreateInstance<AudioEventEditorWindow>();window.CreateGUI();
+        }
+        [TearDown] public void TearDown()
+        {
+            Object.DestroyImmediate(window);EditorAudioPreview.Stop();
+            AssetDatabase.DeleteAsset(folder);Selection.activeObject=selection;
+            EditorUtility.audioMasterMute=muted;
+        }
+        private void Invoke(string method) => typeof(AudioEventEditorWindow).GetMethod(method,Private).Invoke(window,null);
+        private T Field<T>(string name) => (T)typeof(AudioEventEditorWindow).GetField(name,Private).GetValue(window);
+        private MusicArrangement OpenScore()
+        {
+            var score=ScriptableObject.CreateInstance<MusicArrangement>();score.Exit=1;
+            score.Lanes.Add(new ArrangementLane());score.Lanes[0].Clips.Add(new ArrangementClip{Source=clip,Duration=1,FadeIn=.1,FadeOut=.1});
+            AssetDatabase.CreateAsset(score,folder+"/Score.asset");window.OpenDocument(score);return score;
+        }
+        [Test] public void MusicPlayFromAuthorOwnsPreviewSceneAndStopCleansIt()
+        {
+            var score=OpenScore();int scenes=SceneManager.sceneCount;
+            bool dirty=SceneManager.GetActiveScene().isDirty;
+            Invoke("PlayAudition");
+            Assert.AreEqual("Audition",Field<string>("mode"));
+            var host=Field<GameObject>("auditionHost");Assert.IsNotNull(host,Field<string>("notice")+" · "+score.Validate());
+            Scene preview=host.scene;Assert.IsTrue(EditorSceneManager.IsPreviewScene(preview));
+            Assert.IsTrue(Field<MusicArrangementPlayer>("arrangementPlayer").IsPlaying);
+            Assert.AreEqual(1,Field<MusicArrangementPlayer>("arrangementPlayer").ScheduledVoiceCount);
+            Assert.AreEqual(scenes,SceneManager.sceneCount);Assert.AreEqual(dirty,SceneManager.GetActiveScene().isDirty);
+            Assert.IsFalse(EditorUtility.IsDirty(score));
+            Invoke("StopAudition");
+            Assert.IsTrue(host==null);Assert.IsFalse(preview.IsValid());
+            Assert.IsNull(Field<MusicArrangementPlayer>("arrangementPlayer"));
+        }
+        [Test] public void ReplacingUnpinnedDocumentStopsItsOwnedMusic()
+        {
+            var score=OpenScore();window.OpenDocument(score,false);
+            var documents=(System.Collections.IList)typeof(AudioEventEditorWindow).GetField("documents",Private).GetValue(window);
+            documents[0].GetType().GetField("Pinned").SetValue(documents[0],false);
+            Invoke("PlayAudition");var host=Field<GameObject>("auditionHost");Assert.IsNotNull(host);
+            window.OpenDocument(clip,false);Assert.IsTrue(host==null);Assert.AreEqual(clip,window.CurrentAsset);
+        }
+        [Test] public void SourceAndMusicAuditionAreExclusive()
+        {
+            var score=OpenScore();Invoke("PlayAudition");var host=Field<GameObject>("auditionHost");Assert.IsNotNull(host,Field<string>("notice"));
+            window.OpenDocument(clip);Invoke("PlayAudition");
+            Assert.IsTrue(host==null);Assert.AreEqual(clip,EditorAudioPreview.CurrentClip);
+            window.OpenDocument(score);Invoke("PlayAudition");
+            Assert.IsNull(EditorAudioPreview.CurrentClip);Assert.IsFalse(EditorAudioPreview.IsLoading);
+        }
+        [Test] public void InvalidArrangementLeavesNoOwnedPlayerAndExplainsFailure()
+        {
+            var score=OpenScore();score.Exit=0;Invoke("PlayAudition");
+            Assert.IsNull(Field<GameObject>("auditionHost"));
+            Assert.That(Field<string>("notice"),Does.Contain("Entry and exit"));
+        }
+        [Test] public void LiveModeNeverStartsOwnedAudition()
+        {
+            OpenScore();typeof(AudioEventEditorWindow).GetField("mode",Private).SetValue(window,"Live");
+            Invoke("PlayAudition");Assert.IsNull(Field<GameObject>("auditionHost"));
+            Assert.That(Field<string>("notice"),Does.Contain("Live observes"));
+        }
+        [Test] public void MissingSourceReportsErrorAndStopClearsIt()
+        {
+            EditorAudioPreview.Play(null);Assert.IsNotEmpty(EditorAudioPreview.LastError);
+            Assert.IsFalse(EditorAudioPreview.IsPlaying);Assert.IsFalse(EditorAudioPreview.IsLoading);
+            EditorAudioPreview.Stop();Assert.IsEmpty(EditorAudioPreview.LastError);
+        }
+        [Test] public void DspGainInitializesInEditModeAndLegacyDestroyRemovesSources()
+        {
+            var scene=EditorSceneManager.NewPreviewScene();
+            var host=new GameObject("Legacy editor audition");SceneManager.MoveGameObjectToScene(host,scene);
+            try
+            {
+                var player=new MusicPlayer(host.transform);
+                var gain=host.GetComponentsInChildren<MusicDspGain>().Single();
+                Assert.AreEqual(AudioSettings.outputSampleRate,typeof(MusicDspGain).GetField("sampleRate",Private).GetValue(gain));
+                player.Destroy();Assert.AreEqual(0,host.transform.childCount);
+            }
+            finally{EditorSceneManager.ClosePreviewScene(scene);}
+        }
+        [Test] public void LegacyPlayheadWrapsBodyAfterIntro()
+        {
+            var track=ScriptableObject.CreateInstance<MusicTrack>();
+            try
+            {
+                track.IntroClip=clip;track.LoopClip=clip;track.Loop=true;
+                Assert.AreEqual(.5,AudioEventEditorWindow.LegacyTimelinePosition(track,.5),1e-6);
+                Assert.AreEqual(1.25,AudioEventEditorWindow.LegacyTimelinePosition(track,3.25),1e-6);
+                track.Loop=false;Assert.AreEqual(2,AudioEventEditorWindow.LegacyTimelinePosition(track,3.25),1e-6);
+            }
+            finally{Object.DestroyImmediate(track);}
+        }
+        [Test] public void SoundEventRequiresExplicitPlayModeAndDoesNotCreateEditorRuntime()
+        {
+            var sound=ScriptableObject.CreateInstance<SoundEvent>();sound.Clips=new[]{clip};
+            AssetDatabase.CreateAsset(sound,folder+"/Event.asset");window.OpenDocument(sound);
+            bool runtime=AudioRuntime.Exists;Invoke("PlayAudition");
+            Assert.IsNull(Field<GameObject>("auditionHost"));Assert.AreEqual(runtime,AudioRuntime.Exists);
+            Assert.That(Field<string>("notice"),Does.Contain("Enter Play Mode"));
+        }
+    }
+}

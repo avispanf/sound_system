@@ -632,7 +632,8 @@ namespace AudioMW
             if (source == null) return;
             source.Stop();
             SetClip(source, null);
-            UnityEngine.Object.Destroy(source.gameObject);
+            if (Application.isPlaying) UnityEngine.Object.Destroy(source.gameObject);
+            else UnityEngine.Object.DestroyImmediate(source.gameObject);
         }
 
         private static void SetFadeOut(List<Channel> group, AudioSource intro, double start, double seconds, MusicFadeCurve curve, bool cancel)

@@ -19,7 +19,7 @@ namespace AudioMW.Editor
         private void DrawCanvas()
         {
             if(CurrentAsset==null){EditorGUILayout.HelpBox("Open an event, or create one with New in the browser. Drop audio files to add references.",MessageType.Info);return;}
-            if(notice!="")EditorGUILayout.HelpBox(notice,MessageType.Info);
+
             if(view=="Parameters"){DrawParameters();return;}
             if(view=="Transitions"){DrawTransitions();return;}
             if(CurrentAsset is MusicArrangement score){string issue=score.Validate();if(issue!=""){EditorGUILayout.HelpBox(issue+" Edit the selected properties in Deck.",MessageType.Error);if(GUILayout.Button("Arrangement properties")){selectedLane="";selectedClips.Clear();ShowDeck(score);}return;}DrawTimeline(score,false);return;}
@@ -87,7 +87,7 @@ namespace AudioMW.Editor
             if(containerSource>=0&&containerSource<sources.Count)
             {
                 var source=sources[containerSource];EditorGUILayout.BeginHorizontal();GUILayout.Label(source.Name,EditorStyles.boldLabel);GUILayout.FlexibleSpace();DrawWaveformZoom();
-                using(new EditorGUI.DisabledScope(source.Clip==null||source.PreviewIssue!=""))if(GUILayout.Button("Play source (dry)",GUILayout.Width(125))){StopAudition();EditorAudioPreview.Play(source.Clip);}
+                using(new EditorGUI.DisabledScope(source.Clip==null||source.PreviewIssue!=""))if(GUILayout.Button("Play source (dry)",GUILayout.Width(125))){StopAudition();notice="";EditorAudioPreview.Play(source.Clip);}
                 if(GUILayout.Button("Stop",GUILayout.Width(45)))EditorAudioPreview.Stop();EditorGUILayout.EndHorizontal();
                 if(source.PreviewIssue!="")EditorGUILayout.HelpBox(source.PreviewIssue,MessageType.Info);
                 if(source.Clip!=null)
@@ -309,7 +309,7 @@ namespace AudioMW.Editor
                 for(int i=0;i<=score.Lanes.Count;i++)TimelineDrop(score,i<score.Lanes.Count?score.Lanes[i].Id:"",new Rect(0,i*rowHeight-doc.Scroll.y,body.width,rowHeight),-doc.Scroll.x,doc.Zoom);
             }
             GUI.EndGroup();
-            double cursor=arrangementPlayer!=null&&arrangementPlayer.IsPlaying?arrangementPlayer.Position:doc.Cursor;
+            double cursor=AuditionPosition;
             float cursorX=body.x+(float)cursor*doc.Zoom-doc.Scroll.x;
             if(cursorX>=body.x&&cursorX<=body.xMax)
             {

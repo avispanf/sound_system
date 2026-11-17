@@ -5,21 +5,33 @@ using UnityEngine;
 
 namespace AudioMW.Editor
 {
+    [InitializeOnLoad]
     public static class EditorAudioPreview
     {
         private static MethodInfo playMethod;
         private static MethodInfo stopMethod;
         private static MethodInfo isPlayingMethod;
+        private static MethodInfo positionMethod;
         private static bool resolved;
+        private static double loadDeadline;
         public static AudioClip CurrentClip { get; private set; }
+        public static bool IsLoading { get; private set; }
+        public static string LastError { get; private set; } = "";
+
+        static EditorAudioPreview()
+        {
+            AssemblyReloadEvents.beforeAssemblyReload += Stop;
+            EditorApplication.quitting += Stop;
+            EditorApplication.update += UpdateLoading;
+            EditorApplication.playModeStateChanged += state =>
+            {
+                if (state == PlayModeStateChange.ExitingEditMode || state == PlayModeStateChange.ExitingPlayMode) Stop();
+            };
+        }
 
         public static bool IsAvailable
         {
-            get
-            {
-                Resolve();
-                return playMethod != null && stopMethod != null;
-            }
+            get { Resolve(); return playMethod != null && stopMethod != null; }
         }
 
         public static bool IsPlaying
@@ -27,105 +39,90 @@ namespace AudioMW.Editor
             get
             {
                 Resolve();
+                if (CurrentClip == null || IsLoading || isPlayingMethod == null) return false;
+                try { return (bool)isPlayingMethod.Invoke(null, Array.Empty<object>()); }
+                catch (Exception) { return false; }
+            }
+        }
 
-                if (isPlayingMethod == null)
-                {
-                    return false;
-                }
-
-                try
-                {
-                    return (bool)isPlayingMethod.Invoke(null, new object[0]);
-                }
-                catch (Exception)
-                {
-                    return false;
-                }
+        public static float Position
+        {
+            get
+            {
+                Resolve();
+                if (!IsPlaying || positionMethod == null) return 0;
+                try { return (float)positionMethod.Invoke(null, Array.Empty<object>()); }
+                catch (Exception) { return 0; }
             }
         }
 
         public static void Play(AudioClip clip)
         {
-            if (clip == null)
+            Stop();
+            if (clip == null) { LastError = "Choose an audio source to preview."; return; }
+            if (!IsAvailable) { LastError = "Source preview is unavailable in this Unity version."; return; }
+            CurrentClip = clip;
+            if (clip.loadState == AudioDataLoadState.Unloaded && !clip.LoadAudioData())
             {
+                Fail("Unity could not load this source. Check its import settings.");
                 return;
             }
+            IsLoading = true;
+            loadDeadline = EditorApplication.timeSinceStartup + 30;
+            UpdateLoading();
+        }
 
-            Resolve();
-
-            if (playMethod == null)
+        private static void UpdateLoading()
+        {
+            if (!IsLoading) return;
+            if (CurrentClip == null) { Fail("The source was removed before it could play."); return; }
+            if (CurrentClip.loadState == AudioDataLoadState.Failed) { Fail("Source audio data failed to load. Check its import settings."); return; }
+            if (CurrentClip.loadState != AudioDataLoadState.Loaded)
             {
-                Debug.LogWarning("AudioMW preview is unavailable in this Unity version; enter play mode to audition clips.");
+                if (EditorApplication.timeSinceStartup > loadDeadline) Fail("Source loading timed out. Check its import settings and retry.");
                 return;
             }
-
+            IsLoading = false;
             try
             {
-                Stop();
-
-                CurrentClip = clip;
-                ParameterInfo[] parameters = playMethod.GetParameters();
-
-                if (parameters.Length == 3)
-                {
-                    playMethod.Invoke(null, new object[] { clip, 0, false });
-                }
-                else
-                {
-                    playMethod.Invoke(null, new object[] { clip });
-                }
+                playMethod.Invoke(null, playMethod.GetParameters().Length == 3
+                    ? new object[] { CurrentClip, 0, false } : new object[] { CurrentClip });
             }
-            catch (Exception exception)
-            {
-                Debug.LogWarning("AudioMW preview failed: " + exception.Message);
-            }
+            catch (Exception exception) { Fail("Source preview failed: " + (exception.InnerException ?? exception).Message); }
+        }
+
+        private static void Fail(string message)
+        {
+            Stop();
+            LastError = message;
         }
 
         public static void Stop()
         {
             CurrentClip = null;
+            IsLoading = false;
+            LastError = "";
             Resolve();
-
-            if (stopMethod == null)
-            {
-                return;
-            }
-
-            try
-            {
-                stopMethod.Invoke(null, new object[0]);
-            }
-            catch (Exception)
-            {
-            }
+            if (stopMethod == null) return;
+            try { stopMethod.Invoke(null, Array.Empty<object>()); }
+            catch (Exception exception) { LastError = "Source preview could not stop: " + (exception.InnerException ?? exception).Message; }
         }
 
         private static void Resolve()
         {
-            if (resolved)
-            {
-                return;
-            }
-
+            if (resolved) return;
             resolved = true;
-
             Type type = typeof(AudioImporter).Assembly.GetType("UnityEditor.AudioUtil");
-
-            if (type == null)
-            {
-                return;
-            }
-
+            if (type == null) return;
             BindingFlags flags = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
-
-            playMethod = type.GetMethod("PlayPreviewClip", flags)
-                         ?? type.GetMethod("PlayClip", flags);
-
-            stopMethod = type.GetMethod("StopAllPreviewClips", flags)
-                         ?? type.GetMethod("StopAllClips", flags);
-
-            isPlayingMethod = type.GetMethod("IsPreviewClipPlaying", flags)
-                              ?? type.GetMethod("IsClipPlaying", flags);
+            playMethod = type.GetMethod("PlayPreviewClip", flags, null, new[] { typeof(AudioClip), typeof(int), typeof(bool) }, null)
+                ?? type.GetMethod("PlayClip", flags, null, new[] { typeof(AudioClip), typeof(int), typeof(bool) }, null)
+                ?? type.GetMethod("PlayClip", flags, null, new[] { typeof(AudioClip) }, null);
+            stopMethod = type.GetMethod("StopAllPreviewClips", flags, null, Type.EmptyTypes, null)
+                ?? type.GetMethod("StopAllClips", flags, null, Type.EmptyTypes, null);
+            isPlayingMethod = type.GetMethod("IsPreviewClipPlaying", flags, null, Type.EmptyTypes, null)
+                ?? type.GetMethod("IsClipPlaying", flags, null, Type.EmptyTypes, null);
+            positionMethod = type.GetMethod("GetPreviewClipPosition", flags, null, Type.EmptyTypes, null);
         }
     }
 }

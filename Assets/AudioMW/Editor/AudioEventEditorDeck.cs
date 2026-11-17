@@ -18,7 +18,7 @@ namespace AudioMW.Editor
             if(deckTarget is AudioClip source)
             {
                 EditorGUILayout.LabelField(source.name,EditorStyles.boldLabel);EditorGUILayout.LabelField(AudioSourcePreviewPane.SourceFormat(source)+" · "+source.frequency+" Hz");
-                EditorGUILayout.BeginHorizontal();if(GUILayout.Button("Play source (dry)")){StopAudition();EditorAudioPreview.Play(source);}if(GUILayout.Button("Stop source"))EditorAudioPreview.Stop();if(GUILayout.Button("Select import settings"))Selection.activeObject=source;EditorGUILayout.EndHorizontal();
+                EditorGUILayout.BeginHorizontal();if(GUILayout.Button("Play source (dry)")){StopAudition();notice="";EditorAudioPreview.Play(source);}if(GUILayout.Button("Stop source"))EditorAudioPreview.Stop();if(GUILayout.Button("Select import settings"))Selection.activeObject=source;EditorGUILayout.EndHorizontal();
                 Rect r=GUILayoutUtility.GetRect(100,70,GUILayout.ExpandWidth(true));if(!WaveformCache.Draw(source,r))GUI.Label(r,"Waveform unavailable: PCM data not readable.");return;
             }
             if(deckTarget is MusicArrangement score){DrawArrangementDeck(score);if(deckSerialized.ApplyModifiedProperties())TrackEdit(deckTarget);return;}
