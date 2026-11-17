@@ -507,7 +507,7 @@ namespace AudioMW.Tests
             var serialized = new SerializedObject(track);
             var layers = serialized.FindProperty("layers"); layers.arraySize = 1;
             var layer = layers.GetArrayElementAtIndex(0);
-            layer.FindPropertyRelative("layerName").stringValue = "Percussion";
+            layer.FindPropertyRelative("layerName").stringValue = "Percussion accents during the second combat phase";
             layer.FindPropertyRelative("parameter").objectReferenceValue = parameter;
             serialized.ApplyModifiedPropertiesWithoutUndo(); layers.isExpanded = true; layer.isExpanded = true;
             var before = EditorJsonUtility.ToJson(track);
@@ -518,9 +518,12 @@ namespace AudioMW.Tests
                 yield return null; yield return null; yield return null;
                 var root = window.rootVisualElement;
                 var row = root.Q<Foldout>("music-layer");
-                Assert.AreEqual("Percussion · Intensity",row.text);
+                Assert.AreEqual("Percussion accents during the second combat phase · Intensity",row.text);
                 var name = root.Q<PropertyField>("music-layer-layerName").Q<TextField>();
                 Assert.Greater(name.labelElement.worldBound.width,name.worldBound.width*.85f);
+                var title = row.Q<Toggle>().Q<Label>(className: "unity-toggle__text");
+                Assert.Greater(title.worldBound.height, EditorGUIUtility.singleLineHeight * 1.5f);
+                Assert.LessOrEqual(title.worldBound.xMax,root.Q<VisualElement>("audiomw-track-inspector").worldBound.xMax);
                 Assert.AreEqual(before,EditorJsonUtility.ToJson(track));
                 name.value = "Drums";
                 yield return null; yield return null;
@@ -529,12 +532,12 @@ namespace AudioMW.Tests
                 yield return null; yield return null;
                 Assert.AreEqual(before,EditorJsonUtility.ToJson(track));
                 double deadline = EditorApplication.timeSinceStartup + 3;
-                while (row.text != "Percussion · Intensity" && EditorApplication.timeSinceStartup < deadline) yield return null;
-                Assert.AreEqual("Percussion · Intensity",row.text);
+                while (row.text != "Percussion accents during the second combat phase · Intensity" && EditorApplication.timeSinceStartup < deadline) yield return null;
+                Assert.AreEqual("Percussion accents during the second combat phase · Intensity",row.text);
                 root.Q<PropertyField>("music-layer-parameter").Q<ObjectField>().value = null;
                 deadline = EditorApplication.timeSinceStartup + 3;
-                while (row.text != "Percussion · Fixed weight" && EditorApplication.timeSinceStartup < deadline) yield return null;
-                Assert.AreEqual("Percussion · Fixed weight",row.text);
+                while (row.text != "Percussion accents during the second combat phase · Fixed weight" && EditorApplication.timeSinceStartup < deadline) yield return null;
+                Assert.AreEqual("Percussion accents during the second combat phase · Fixed weight",row.text);
                 Assert.IsNull(track.Layers[0].Parameter);
             }
             finally { window.Close(); }

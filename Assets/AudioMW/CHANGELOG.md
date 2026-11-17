@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0-preview.43 — Long layer headings
+
+- Wrap authored music layer names and controlling parameters inside narrow native Inspectors.
+- Extend pinned-Inspector regression coverage to multi-line titles and the visible Inspector boundary.
+
 ## 0.5.0-preview.42 — Music layer authoring
 
 - Identify collapsed music layers by authored name and controlling parameter, with explicit fixed-weight and mixed states.

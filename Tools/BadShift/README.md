@@ -206,3 +206,8 @@ AttenuationPreset Inspector separates stored/applied distances and preserves ina
 ### Editor UI preview.42
 
 Music layers show authored names and controlling parameters in collapsed rows; expanded fields remain native at300px. Fresh336/336 EditMode and5/5 package checks, plus native actual-track visual inspection without sound. No gameplay rebuild or listening check.
+
+
+### Editor UI preview.43
+
+Long music layer headings wrap inside300px native Inspectors. Fresh336/336 EditMode,5/5 package checks and30/30 real Editor runtime assertions for Music/Diagnostics; output muted. Native long-name QA screenshot included. No gameplay rebuild or listening check.

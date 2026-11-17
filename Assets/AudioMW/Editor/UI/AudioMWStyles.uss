@@ -323,3 +323,6 @@
 
 .audiomw-profile-inspector #mixer-parameter-binding > .unity-foldout__toggle { height: auto; min-height: 20px; }
 .audiomw-profile-inspector #mixer-parameter-binding > .unity-foldout__toggle .unity-toggle__text { flex-shrink: 1; min-width: 0; white-space: normal; }
+
+.audiomw-profile-inspector #music-layer > .unity-foldout__toggle { height: auto; min-height: 20px; }
+.audiomw-profile-inspector #music-layer > .unity-foldout__toggle .unity-toggle__text { flex-shrink: 1; min-width: 0; white-space: normal; }
