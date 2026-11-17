@@ -310,6 +310,8 @@ namespace AudioMW.Tests
                 Undo.PerformUndo();
                 yield return null; yield return null;
                 Assert.AreEqual("Combat second phase", profile.Transitions[0].To);
+                double deadline = EditorApplication.timeSinceStartup + 3;
+                while (foldout.text != "Exploration corridor → Combat second phase" && EditorApplication.timeSinceStartup < deadline) yield return null;
                 Assert.AreEqual("Exploration corridor → Combat second phase", foldout.text);
                 window.position = new Rect(100,100,520,750);
                 yield return null; yield return null;
@@ -324,6 +326,8 @@ namespace AudioMW.Tests
         {
             var first = MixerRoutingProfile.CreateRuntime(null); temporary.Add(first);
             var second = MixerRoutingProfile.CreateRuntime(null); temporary.Add(second);
+            first.Bindings = new[] { MixerParameterBinding.CreateRuntime(null,"MusicVolume",null,-12,0) };
+            second.Bindings = new[] { MixerParameterBinding.CreateRuntime(null,"EffectsVolume",null,-24,0) };
             first.ExpectedExposedNames = new[] { "MusicVolume" };
             second.ExpectedExposedNames = new[] { "EffectsVolume" };
             var beforeFirst = EditorJsonUtility.ToJson(first);
@@ -333,8 +337,10 @@ namespace AudioMW.Tests
             try
             {
                 window.Show(); window.position = new Rect(100,100,300,750);
+                editor.serializedObject.FindProperty("bindings").isExpanded = true;
                 var view = editor.CreateInspectorGUI(); window.rootVisualElement.Add(view); view.Bind(editor.serializedObject);
                 yield return null; yield return null; yield return null;
+                Assert.AreEqual("Unassigned parameter → Mixed target", view.Q<Foldout>("mixer-parameter-binding").text);
                 Assert.IsInstanceOf<MixerRoutingProfileInspector>(editor);
                 StringAssert.Contains("unavailable", view.Q<HelpBox>("routing-profile-validation").text);
                 Assert.IsFalse(view.Q<Button>("routing-open-mixer").enabledSelf);
@@ -352,6 +358,41 @@ namespace AudioMW.Tests
                 Assert.AreEqual(beforeSecond, EditorJsonUtility.ToJson(second));
             }
             finally { window.Close(); Object.DestroyImmediate(editor); }
+        }
+
+        [UnityTest]
+        public IEnumerator RoutingBindingTitleTracksTargetEditsAndUndoAt300()
+        {
+            var parameter = SoundParameter.CreateRuntime(0,1,0); temporary.Add(parameter); parameter.name = "Voice duck";
+            var profile = MixerRoutingProfile.CreateRuntime(null, MixerParameterBinding.CreateRuntime(parameter,"MusicDuckDb",null,-12,0)); temporary.Add(profile);
+            var before = EditorJsonUtility.ToJson(profile);
+            var serialized = new SerializedObject(profile);
+            serialized.FindProperty("bindings").isExpanded = true;
+            serialized.FindProperty("bindings").GetArrayElementAtIndex(0).isExpanded = true;
+            var window = AudioWorkspace.Pin(profile);
+            try
+            {
+                window.position = new Rect(100,100,300,750);
+                yield return null; yield return null; yield return null;
+                var root = window.rootVisualElement;
+                var row = root.Q<Foldout>("mixer-parameter-binding");
+                Assert.NotNull(row);
+                Assert.AreEqual("Voice duck → MusicDuckDb", row.text);
+                var field = root.Q<PropertyField>("mixer-binding-exposedName").Q<TextField>();
+                Assert.Greater(field.labelElement.worldBound.width, field.worldBound.width * .85f);
+                Assert.AreEqual(before, EditorJsonUtility.ToJson(profile));
+                field.value = "AmbienceDuckDb";
+                yield return null; yield return null;
+                Assert.AreEqual("Voice duck → AmbienceDuckDb", row.text);
+                Assert.AreEqual("AmbienceDuckDb", profile.Bindings[0].ExposedName);
+                Undo.PerformUndo();
+                yield return null; yield return null;
+                Assert.AreEqual(before, EditorJsonUtility.ToJson(profile));
+                double deadline = EditorApplication.timeSinceStartup + 3;
+                while (row.text != "Voice duck → MusicDuckDb" && EditorApplication.timeSinceStartup < deadline) yield return null;
+                Assert.AreEqual("Voice duck → MusicDuckDb", row.text);
+            }
+            finally { window.Close(); }
         }
 
         [UnityTest]

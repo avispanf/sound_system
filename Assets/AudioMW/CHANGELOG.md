@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0-preview.37 — Readable mixer binding headings
+
+- Replace generic binding row headings with actual Sound Parameter → exposed mixer name, including explicit mixed and unassigned states.
+- Keep native bound fields, curves, Undo and an IMGUI fallback; wrap long headings in narrow profiles.
+
 ## 0.5.0-preview.36 — Visible review routing and channels
 
 - Show event routing and source-layout versus force-mono counts before expanding proposal details.

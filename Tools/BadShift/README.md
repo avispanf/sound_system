@@ -181,3 +181,7 @@ Native mixer routing profiles now have grouped fields, honest exposed-name check
 ### Editor UI preview.36
 
 Review shows routing and channel handling before expanding details, with captured platform/Unity context. Fresh 329/329 EditMode and 5/5 package checks; native QA pending-plan screenshots at 1200/360 px. No plan applied, no new gameplay build or listening check.
+
+### Editor UI preview.37
+
+Mixer binding headings show parameter → exposed target and explicit mixed/unassigned states. Fresh final 330/330 EditMode and 5/5 package checks, muted native expanded/collapsed 300 px QA captures. Runtime unchanged; no new gameplay build or listening test.
