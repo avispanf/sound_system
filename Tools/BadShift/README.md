@@ -211,3 +211,8 @@ Music layers show authored names and controlling parameters in collapsed rows; e
 ### Editor UI preview.43
 
 Long music layer headings wrap inside300px native Inspectors. Fresh336/336 EditMode,5/5 package checks and30/30 real Editor runtime assertions for Music/Diagnostics; output muted. Native long-name QA screenshot included. No gameplay rebuild or listening check.
+
+
+### Editor UI preview.44
+
+Repeated Pin reuses native profile Inspectors by asset identity and leaves selection independent. Fresh337/337 EditMode and5/5 package checks; actual PARAM_Intensity repeated pin visually verified at300px without new windows or sound. No fresh runtime probe/gameplay rebuild/listening; preview43 runtime report remains separate.

@@ -18,7 +18,7 @@ namespace AudioMW.Editor
         public override VisualElement CreateInspectorGUI()
         {
             VisualElement root = new VisualElement { name = "audiomw-routing-inspector" };
-            AudioProfileInspectorLayout.Configure(root);
+            AudioProfileInspectorLayout.Configure(root, targets.Length == 1 ? target : null);
             Heading(root, "Target mixer");
             root.Add(new PropertyField(serializedObject.FindProperty("mixer"), "AudioMixer") { name = "routing-mixer" });
             Button open = new Button(() => AssetDatabase.OpenAsset(((MixerRoutingProfile)target).Mixer)) { text = "Open native AudioMixer", name = "routing-open-mixer" };

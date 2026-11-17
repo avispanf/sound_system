@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0-preview.44 — Native Inspector pin identity
+
+- Reuse pinned native Inspectors for profile assets as well as Sound Events, including repeated requests before UI binding.
+- Match by asset identity instead of display names and avoid returning an unrelated focused Inspector for unavailable targets.
+
 ## 0.5.0-preview.43 — Long layer headings
 
 - Wrap authored music layer names and controlling parameters inside narrow native Inspectors.

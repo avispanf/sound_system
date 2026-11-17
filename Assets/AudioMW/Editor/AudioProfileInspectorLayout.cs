@@ -4,8 +4,9 @@ namespace AudioMW.Editor
 {
     internal static class AudioProfileInspectorLayout
     {
-        public static void Configure(VisualElement root)
+        public static void Configure(VisualElement root, UnityEngine.Object asset)
         {
+            root.userData = asset;
             AudioWorkspace.Style(root);
             root.AddToClassList("audiomw-inspection");
             root.RegisterCallback<GeometryChangedEvent>(evt =>

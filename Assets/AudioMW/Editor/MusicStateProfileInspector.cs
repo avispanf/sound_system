@@ -17,7 +17,7 @@ namespace AudioMW.Editor
         public override VisualElement CreateInspectorGUI()
         {
             VisualElement root = new VisualElement { name = "audiomw-music-inspector" };
-            AudioProfileInspectorLayout.Configure(root);
+            AudioProfileInspectorLayout.Configure(root, targets.Length == 1 ? target : null);
             Label summary = new Label { name = "music-profile-summary" };
             summary.AddToClassList("audiomw-subtitle");
             root.Add(summary);

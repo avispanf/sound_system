@@ -500,6 +500,32 @@ namespace AudioMW.Tests
         }
 
         [UnityTest]
+        public IEnumerator ProfilePinUsesIdentityAndKeepsSelectionIndependent()
+        {
+            var first = SoundParameter.CreateRuntime(0,1,.2f); temporary.Add(first); first.name = "Same name";
+            var second = SoundParameter.CreateRuntime(0,1,.8f); temporary.Add(second); second.name = "Same name";
+            var selection = Selection.objects;
+            EditorWindow one = null, two = null;
+            try
+            {
+                one = AudioWorkspace.Pin(first);
+                Assert.NotNull(one);
+                Assert.AreSame(one, AudioWorkspace.Pin(first));
+                two = AudioWorkspace.Pin(second);
+                Assert.AreNotSame(one, two);
+                Selection.activeObject = second;
+                yield return null; yield return null; yield return null;
+                Assert.AreSame(one, AudioWorkspace.Pin(first));
+                Assert.AreSame(second, Selection.activeObject);
+                Assert.AreSame(first, one.rootVisualElement.Q<VisualElement>("audiomw-parameter-inspector").userData);
+                Assert.AreSame(second, two.rootVisualElement.Q<VisualElement>("audiomw-parameter-inspector").userData);
+                Assert.IsNull(AudioWorkspace.Pin(null));
+                Assert.AreSame(second, Selection.activeObject);
+            }
+            finally { if (one != null) one.Close(); if (two != null) two.Close(); Selection.objects = selection; }
+        }
+
+        [UnityTest]
         public IEnumerator MusicLayerTitleTracksAuthoringAndUndoAt300()
         {
             var parameter = SoundParameter.CreateRuntime(0,1,0); temporary.Add(parameter); parameter.name = "Intensity";

@@ -9,6 +9,7 @@ namespace AudioMW.Editor
 {
     public static class AudioWorkspace
     {
+        private static readonly Dictionary<Object, EditorWindow> pinnedWindows = new Dictionary<Object, EditorWindow>();
         [MenuItem("Window/AudioMW/Sounds", false, 0)]
         public static void Sounds() { AudioBrowserWindow.Open(); }
         [MenuItem("Window/AudioMW/Music", false, 1)]
@@ -118,27 +119,45 @@ namespace AudioMW.Editor
             return true;
         }
 
+        private static bool Inspects(EditorWindow window, Object asset)
+        {
+            SoundEventInspectorView view = window.rootVisualElement.Q<SoundEventInspectorView>();
+            if (view != null && view.Asset == asset && view.panel != null) return true;
+            VisualElement profile = window.rootVisualElement.Q<VisualElement>(className: "audiomw-profile-inspector");
+            return profile != null && profile.panel != null && profile.userData as Object == asset;
+        }
+
+        private static EditorWindow RememberPin(Object asset, EditorWindow window)
+        {
+            pinnedWindows[asset] = window;
+            window.Show(); window.Focus();
+            return window;
+        }
+
         public static EditorWindow Pin(Object asset)
         {
+            if (asset == null) return null;
+            var closed = new List<Object>();
+            foreach (var entry in pinnedWindows) if (entry.Key == null || entry.Value == null) closed.Add(entry.Key);
+            foreach (Object key in closed) pinnedWindows.Remove(key);
+            if (pinnedWindows.TryGetValue(asset, out EditorWindow pinned) && pinned != null)
+                return RememberPin(asset, pinned);
             foreach (EditorWindow window in Resources.FindObjectsOfTypeAll<EditorWindow>())
             {
                 if (window.GetType().Name != "PropertyEditor") continue;
-                SoundEventInspectorView view = window.rootVisualElement.Q<SoundEventInspectorView>();
-                if (view != null && view.Asset == asset && view.panel != null) { window.Show(); window.Focus(); return window; }
+                if (Inspects(window, asset)) return RememberPin(asset, window);
             }
             HashSet<int> existing = new HashSet<int>();
             foreach (EditorWindow window in Resources.FindObjectsOfTypeAll<EditorWindow>()) existing.Add(window.GetInstanceID());
             EditorUtility.OpenPropertyEditor(asset);
             foreach (EditorWindow window in Resources.FindObjectsOfTypeAll<EditorWindow>())
-                if (!existing.Contains(window.GetInstanceID()) && window.GetType().Name == "PropertyEditor") return window;
+                if (!existing.Contains(window.GetInstanceID()) && window.GetType().Name == "PropertyEditor") return RememberPin(asset, window);
             foreach (EditorWindow window in Resources.FindObjectsOfTypeAll<EditorWindow>())
             {
                 if (window.GetType().Name != "PropertyEditor") continue;
-                SoundEventInspectorView view = window.rootVisualElement.Q<SoundEventInspectorView>();
-                if (view != null && view.Asset == asset) { window.Focus(); return window; }
+                if (Inspects(window, asset)) return RememberPin(asset, window);
             }
-            EditorWindow focused = EditorWindow.focusedWindow;
-            return focused != null && focused.GetType().Name == "PropertyEditor" ? focused : null;
+            return null;
         }
     }
 }

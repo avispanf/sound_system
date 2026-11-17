@@ -18,7 +18,7 @@ namespace AudioMW.Editor
         public override VisualElement CreateInspectorGUI()
         {
             VisualElement root = new VisualElement { name = "audiomw-parameter-inspector" };
-            AudioProfileInspectorLayout.Configure(root);
+            AudioProfileInspectorLayout.Configure(root, targets.Length == 1 ? target : null);
             Heading(root, "Value range");
             root.Add(new PropertyField(serializedObject.FindProperty("minValue"), "Minimum") { name = "parameter-minimum" });
             root.Add(new PropertyField(serializedObject.FindProperty("maxValue"), "Maximum") { name = "parameter-maximum" });

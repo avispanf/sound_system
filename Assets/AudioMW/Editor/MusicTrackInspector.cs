@@ -23,7 +23,7 @@ namespace AudioMW.Editor
         public override VisualElement CreateInspectorGUI()
         {
             VisualElement root = new VisualElement { name = "audiomw-track-inspector" };
-            AudioProfileInspectorLayout.Configure(root);
+            AudioProfileInspectorLayout.Configure(root, targets.Length == 1 ? target : null);
             Heading(root, "Sources");
             Field(root, "introClip", "Intro clip");
             Field(root, "loopClip", "Body clip");

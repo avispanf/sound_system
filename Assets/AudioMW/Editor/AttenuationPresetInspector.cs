@@ -24,7 +24,7 @@ namespace AudioMW.Editor
         public override VisualElement CreateInspectorGUI()
         {
             VisualElement root = new VisualElement { name = "audiomw-attenuation-inspector" };
-            AudioProfileInspectorLayout.Configure(root);
+            AudioProfileInspectorLayout.Configure(root, targets.Length == 1 ? target : null);
             Heading(root, "Distance response");
             Field(root, "minDistance", "Near distance (units)");
             Field(root, "maxDistance", "Far distance (units)");
