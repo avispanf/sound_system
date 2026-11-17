@@ -19,6 +19,8 @@ namespace AudioMW.Editor
             public float Zoom;
             public bool FitTimeline=true;
             public float LaneHeight=56;
+            public bool FitLanes=true;
+            public bool FollowPlayhead=true;
             public double Cursor;
             public Vector2 Scroll;
             public string Selection = "";
@@ -68,6 +70,18 @@ namespace AudioMW.Editor
         public Object DeckTarget => deckTarget;
         [Shortcut("AudioMW/Save document",typeof(AudioEventEditorWindow),KeyCode.S,ShortcutModifiers.Action)]
         private static void SaveShortcut(ShortcutArguments args){((AudioEventEditorWindow)args.context).SaveDocument();}
+        [Shortcut("AudioMW/Play or stop audition",typeof(AudioEventEditorWindow),KeyCode.Space)]
+        private static void TransportShortcut(ShortcutArguments args)
+        {
+            var window=(AudioEventEditorWindow)args.context;
+            if(!window.IsTransportKeyBlocked(window.rootVisualElement.focusController.focusedElement))window.ToggleTransport();
+        }
+        [Shortcut("AudioMW/Return to entry",typeof(AudioEventEditorWindow),KeyCode.Home)]
+        private static void EntryShortcut(ShortcutArguments args)
+        {
+            var window=(AudioEventEditorWindow)args.context;
+            if(!window.IsTransportKeyBlocked(window.rootVisualElement.focusController.focusedElement))window.ReturnToEntry();
+        }
         [MenuItem("Window/AudioMW/Event Editor", false, 0)]
         public static void Open() { var window = GetWindow<AudioEventEditorWindow>(); window.titleContent = new GUIContent("AudioMW | Event Editor"); window.minSize = new Vector2(760,520); window.Show(); }
         private void OnEnable() { Undo.undoRedoPerformed += OnUndo; EditorApplication.playModeStateChanged += OnPlayState; EditorApplication.update += UpdateSession; }
@@ -131,7 +145,12 @@ namespace AudioMW.Editor
             var dockTabs=new Toolbar{name="studio-v2-dock-tabs"};foreach(string label in new[]{"Profiler","Issues","Live changes"}){string tab=label;dockTabs.Add(new ToolbarButton(()=>{bottomTab=bottomTab==tab?"":tab;RefreshDock();}){text=label});}center.Add(dockTabs);
             bottom=new VisualElement{name="studio-v2-dock"};center.Add(bottom);
             rootVisualElement.UnregisterCallback<GeometryChangedEvent>(OnGeometryChanged);rootVisualElement.RegisterCallback<GeometryChangedEvent>(OnGeometryChanged);
-            rootVisualElement.RegisterCallback<KeyDownEvent>(e=>{if(e.target is TextElement || e.target is TextField)return;if(e.actionKey&&e.keyCode==KeyCode.S){SaveDocument();e.StopPropagation();}if(e.keyCode==KeyCode.Escape)CancelDrag();});
+            rootVisualElement.RegisterCallback<KeyDownEvent>(e=>
+            {
+                if(IsTransportKeyBlocked(e.target))return;
+                if(e.actionKey&&e.keyCode==KeyCode.S){SaveDocument();e.StopPropagation();}
+                else if(e.keyCode==KeyCode.Escape)CancelDrag();
+            },TrickleDown.TrickleDown);
             RefreshBrowser();RefreshDocuments();RestoreDocumentSelection();ShowDeck(CurrentAsset);RefreshDock();RefreshTransport();RefreshOverview();
         }
         private void OnGeometryChanged(GeometryChangedEvent e){UpdateCompactLayout();}
@@ -225,6 +244,20 @@ namespace AudioMW.Editor
             deckSerialized?.Dispose();deckSerialized=null;deckTarget=target;deckSourceIndex=-1;deckChildParent=null;deckChildIndex=-1;
             if(target!=null)deckSerialized=new SerializedObject(target);
             if(breadcrumb!=null)breadcrumb.text=target==CurrentAsset?(target!=null?target.name:"Select an object"):(CurrentAsset!=null?CurrentAsset.name:"No event")+"  ›  "+(target!=null?target.name:"Select an object");
+            if(breadcrumb!=null&&target==CurrentAsset)
+            {
+                if(target is MusicTrack music&&selectedLane.StartsWith("legacy:")&&int.TryParse(selectedLane.Substring(7),out int index))
+                {
+                    int layer=LegacyLayerIndex(music,index);
+                    if(layer>=0)breadcrumb.text+="  ›  "+music.Layers[layer].Name+"  ›  "+music.Layers[layer].Clip.name;
+                }
+                else if(target is MusicArrangement score)
+                {
+                    var lane=score.Lanes.FirstOrDefault(x=>x.Id==selectedLane);
+                    if(lane!=null){breadcrumb.text+="  ›  "+lane.Name;var clip=lane.Clips.FirstOrDefault(x=>selectedClips.Contains(x.Id));if(clip?.Source!=null)breadcrumb.text+="  ›  "+clip.Source.name;}
+                }
+                breadcrumb.tooltip=breadcrumb.text;
+            }
         }
         private void CreateAsset(string kind)
         {

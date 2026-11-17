@@ -41,6 +41,17 @@ namespace AudioMW.Tests
             Assert.IsTrue(player.Play());yield return new WaitForSecondsRealtime(.8f);Assert.IsTrue(player.IsPlaying);Assert.That(player.Position,Is.InRange(.1,.4));
             score.Loop=false;Assert.IsTrue(player.Play());yield return new WaitForSecondsRealtime(.65f);Assert.IsFalse(player.IsPlaying);Assert.AreEqual(.4,player.Position,1e-6);
         }
+        [UnityTest] public IEnumerator PauseCancelsQueuedSourcesAndResumeUsesFrozenSnapshot()
+        {
+            score.Lanes[0].Clips[0].FadeIn=.1;score.Lanes[0].Clips[0].FadeOut=.1;
+            Assert.IsTrue(player.Play());yield return new WaitForSecondsRealtime(.2f);
+            Assert.IsTrue(player.Pause());double paused=player.Position;Assert.IsTrue(player.IsPaused);
+            Assert.AreEqual(0,player.ScheduledVoiceCount);Assert.IsTrue(host.GetComponentsInChildren<AudioSource>().All(s=>!s.isPlaying&&s.clip==null));
+            yield return new WaitForSecondsRealtime(.2f);Assert.AreEqual(paused,player.Position,1e-6);
+            score.Lanes.Clear();Assert.IsTrue(player.Resume());Assert.AreEqual(4,player.ScheduledVoiceCount);
+            yield return new WaitForSecondsRealtime(.2f);Assert.Greater(player.Position,paused);
+            player.Stop();Assert.IsFalse(player.IsPaused);Assert.IsFalse(player.Resume());
+        }
         [Test] public void InvalidPositionDoesNotScheduleAnything(){Assert.IsFalse(player.Play(double.NaN));Assert.AreEqual(0,player.ScheduledVoiceCount);}
     }
 }

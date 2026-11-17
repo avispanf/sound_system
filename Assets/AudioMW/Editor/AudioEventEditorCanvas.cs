@@ -18,6 +18,7 @@ namespace AudioMW.Editor
         private readonly HashSet<string> soloLanes=new HashSet<string>();
         private void DrawCanvas()
         {
+
             if(CurrentAsset==null){EditorGUILayout.HelpBox("Open an event, or create one with New in the browser. Drop audio files to add references.",MessageType.Info);return;}
 
             if(view=="Parameters"){DrawParameters();return;}
@@ -38,8 +39,10 @@ namespace AudioMW.Editor
             }
             DrawContainer();
         }
-        [SerializeField] private int waveformZoom=2;
-        private void DrawWaveformZoom(){waveformZoom=EditorGUILayout.Popup(waveformZoom,new[]{"Wave ×1","Wave ×2","Wave ×4","Wave ×8"},GUILayout.Width(85));}
+        [SerializeField] private int waveformDisplayScale;
+        [SerializeField] private bool combinedWaveform=true;
+        private float WaveformScale => waveformDisplayScale==0?0:Mathf.Pow(2,waveformDisplayScale-1);
+        private void DrawWaveformZoom(){waveformDisplayScale=EditorGUILayout.Popup(waveformDisplayScale,new[]{"Wave fit","Wave ×1","Wave ×2","Wave ×4","Wave ×8"},GUILayout.Width(82));}
         private int containerSource=-1;
         private string containerDocument="";
         private SoundEvent containerFocus;
@@ -93,7 +96,7 @@ namespace AudioMW.Editor
                 if(source.Clip!=null)
                 {
                     Rect wave=GUILayoutUtility.GetRect(100,Mathf.Max(40,preview.height-58),GUILayout.ExpandWidth(true));EditorGUI.DrawRect(wave,new Color(.10f,.12f,.13f));
-                    if(!WaveformCache.Draw(source.Clip,wave,0,-1,Mathf.Pow(2,waveformZoom)))GUI.Label(wave,"Waveform unavailable: PCM not readable.");
+                    DrawSourceWaveform(source.Clip,wave);
                     DrawSourceRuler(source.Clip, GUILayoutUtility.GetRect(100,18,GUILayout.ExpandWidth(true)));
                 }
             }
@@ -183,14 +186,18 @@ namespace AudioMW.Editor
             if(doc.Zoom>0){EditorGUI.BeginChangeCheck();doc.Zoom=GUILayout.HorizontalSlider(doc.Zoom,1,500,GUILayout.Width(100));if(EditorGUI.EndChangeCheck())doc.FitTimeline=false;}
             if(GUILayout.Button("Fit all",EditorStyles.toolbarButton,GUILayout.Width(60)))doc.FitTimeline=true;
             using(new EditorGUI.DisabledScope(legacy))if(GUILayout.Button("+ Track",EditorStyles.toolbarButton,GUILayout.Width(70))){Undo.RecordObject(score,"Add lane");score.Lanes.Add(new ArrangementLane{Name="Track "+(score.Lanes.Count+1)});EditorUtility.SetDirty(score);}
-            DrawWaveformZoom();GUILayout.Label("Height",GUILayout.Width(42));doc.LaneHeight=GUILayout.HorizontalSlider(doc.LaneHeight,48,100,GUILayout.Width(65));
+            DrawWaveformZoom();combinedWaveform=GUILayout.Toggle(combinedWaveform,new GUIContent("Combined","Combined peaks across source channels. This is display only, not a mono downmix."),EditorStyles.toolbarButton,GUILayout.Width(72));
+            doc.FitLanes=GUILayout.Toggle(doc.FitLanes,"Fit rows",EditorStyles.toolbarButton,GUILayout.Width(56));
+            if(!doc.FitLanes)doc.LaneHeight=GUILayout.HorizontalSlider(doc.LaneHeight,40,100,GUILayout.Width(54));
+            doc.FollowPlayhead=GUILayout.Toggle(doc.FollowPlayhead,"Follow",EditorStyles.toolbarButton,GUILayout.Width(50));
             GUILayout.FlexibleSpace();EditorGUILayout.EndHorizontal();
             Rect viewport=GUILayoutUtility.GetRect(200,Mathf.Max(120,canvas.layout.height-(legacy?48:24)),GUILayout.ExpandWidth(true));
-            float header=Mathf.Min(250,viewport.width*.35f),ruler=68,rowHeight=doc.LaneHeight;
+            float header=Mathf.Min(220,viewport.width*.30f),ruler=64,rowHeight=doc.LaneHeight;
             Rect body=new Rect(viewport.x+header,viewport.y+ruler,Mathf.Max(1,viewport.width-header-16),Mathf.Max(1,viewport.height-ruler-16));
+            if(doc.FitLanes)rowHeight=FittedLaneHeight(body.height,score.Lanes.Count+(legacy?0:1));
             double end=Math.Max(score.Exit,score.Lanes.SelectMany(l=>l.Clips).Select(c=>c.Start+c.Duration).DefaultIfEmpty(score.Exit).Max());
             if(doc.FitTimeline||doc.Zoom<=0){doc.Zoom=Mathf.Clamp((body.width-16)/(float)Math.Max(1,end),1,500);doc.Scroll.x=0;}
-            float contentWidth=Mathf.Max(body.width,(float)end*doc.Zoom+16),contentHeight=Mathf.Max(body.height,(score.Lanes.Count+1)*rowHeight);
+            float contentWidth=Mathf.Max(body.width,(float)end*doc.Zoom+16),contentHeight=Mathf.Max(body.height,(score.Lanes.Count+(legacy?0:1))*rowHeight);
             var input=Event.current;
             if(input.type==EventType.ScrollWheel&&viewport.Contains(input.mousePosition))
             {
@@ -199,6 +206,8 @@ namespace AudioMW.Editor
                 else doc.Scroll.y+=input.delta.y*20;
                 input.Use();
             }
+            if(doc.FollowPlayhead&&string.IsNullOrEmpty(dragClip)&&(arrangementPlayer!=null&&arrangementPlayer.IsPlaying||legacyPlayer!=null&&legacyPlayer.IsPlaying)&&input.type==EventType.Repaint)
+                doc.Scroll.x=FollowTimelineScroll(doc.Scroll.x,AuditionPosition,doc.Zoom,body.width,contentWidth);
             doc.Scroll.x=Mathf.Clamp(doc.Scroll.x,0,Mathf.Max(0,contentWidth-body.width));
             doc.Scroll.y=Mathf.Clamp(doc.Scroll.y,0,Mathf.Max(0,contentHeight-body.height));
             doc.Scroll.x=GUI.HorizontalScrollbar(new Rect(body.x,body.yMax,body.width,16),doc.Scroll.x,body.width,0,contentWidth);
@@ -227,7 +236,8 @@ namespace AudioMW.Editor
             if(input.type==EventType.MouseDown&&input.button==0&&input.mousePosition.y>=0&&input.mousePosition.y<26&&input.mousePosition.x>=0&&input.mousePosition.x<body.width)
             {
                 doc.Cursor=Math.Max(0,Math.Min(end,(input.mousePosition.x+doc.Scroll.x)/doc.Zoom));
-                if(!legacy&&arrangementPlayer!=null&&arrangementPlayer.IsPlaying)arrangementPlayer.Seek(doc.Cursor);
+                if(!legacy&&arrangementPlayer!=null&&(arrangementPlayer.IsPlaying||arrangementPlayer.IsPaused))arrangementPlayer.Seek(doc.Cursor);
+                if(legacy&&legacyPlayer!=null&&legacyPlayer.IsPlaying)notice="Legacy MusicTrack plays from its entry. Use an editable arrangement for audible seek.";
                 canvas.Focus();input.Use();
             }
             GUI.EndGroup();
@@ -272,10 +282,11 @@ namespace AudioMW.Editor
                     if(clip.Id==dragClip&&dragKind==3)duration+=dragDelta;
                     Rect rect=new Rect((float)start*doc.Zoom-doc.Scroll.x,y+3,Mathf.Max(4,(float)duration*doc.Zoom),rowHeight-8);
                     if((rect.xMax<0||rect.x>body.width)&&dragClip!=clip.Id)continue;
-                    EditorGUI.DrawRect(rect,selectedClips.Contains(clip.Id)?new Color(.27f,.34f,.21f):new Color(.13f,.21f,.23f));
-                    EditorGUI.DrawRect(new Rect(rect.x,rect.y,rect.width,19),selectedClips.Contains(clip.Id)?new Color(.37f,.46f,.28f):new Color(.23f,.35f,.37f));
-                    DrawClipWaveform(clip,rect,duration,0,body.width);
-                    Color edge=selectedClips.Contains(clip.Id)?new Color(.66f,.81f,.46f):new Color(.32f,.45f,.46f);
+                    bool clipSelected=selectedClips.Contains(clip.Id)||legacy&&selectedLane=="legacy:"+i;
+                    EditorGUI.DrawRect(rect,clipSelected?new Color(.27f,.34f,.21f):new Color(.13f,.21f,.23f));
+                    EditorGUI.DrawRect(new Rect(rect.x,rect.y,rect.width,19),clipSelected?new Color(.37f,.46f,.28f):new Color(.23f,.35f,.37f));
+                    DrawClipWaveform(clip,rect,duration,0,body.width,clipSelected);
+                    Color edge=clipSelected?new Color(.66f,.81f,.46f):new Color(.32f,.45f,.46f);
                     EditorGUI.DrawRect(new Rect(rect.x,rect.y,rect.width,1),edge);
                     EditorGUI.DrawRect(new Rect(rect.x,rect.yMax-1,rect.width,1),edge);
                     EditorGUI.DrawRect(new Rect(rect.x,rect.y,1,rect.height),edge);
@@ -323,10 +334,38 @@ namespace AudioMW.Editor
                 else if(Event.current.keyCode==KeyCode.Escape){CancelDrag();Event.current.Use();}
             }
         }
-        private void DrawClipWaveform(ArrangementClip clip,Rect rect,double duration,float scroll,float width)
+        public static float FittedLaneHeight(float available,int lanes) => Mathf.Clamp(available/Mathf.Clamp(lanes,4,6),40,72);
+        public static float FollowTimelineScroll(float scroll,double seconds,float zoom,float width,float content)
+        {
+            float x=(float)Math.Max(0,seconds)*zoom;
+            if(x<scroll+12||x>scroll+width-24)scroll=x-width*.25f;
+            return Mathf.Clamp(scroll,0,Mathf.Max(0,content-width));
+        }
+        private void DrawSourceWaveform(AudioClip source,Rect rect)
+        {
+            EditorGUI.DrawRect(rect,new Color(.11f,.14f,.16f));
+            bool available=WaveformCache.Draw(source,rect,0,-1,WaveformScale);
+            if(!available)GUI.Label(rect,"Waveform unavailable: source PCM is not readable.",EditorStyles.centeredGreyMiniLabel);
+            if(source==null)return;
+            double duration=MusicTrack.GetExactDuration(source);
+            if(EditorAudioPreview.CurrentClip==source&&(EditorAudioPreview.IsPlaying||EditorAudioPreview.IsPaused))
+            {
+                float x=rect.x+rect.width*(float)(EditorAudioPreview.Position/Math.Max(.001,duration));
+                EditorGUI.DrawRect(new Rect(x,rect.y,1,rect.height),new Color(.66f,.81f,.46f));
+            }
+            GUI.Label(rect,new GUIContent("","Click to audition this source from here. Dry playback only."));
+            EditorGUIUtility.AddCursorRect(rect,MouseCursor.SlideArrow);
+            if(Event.current.type==EventType.MouseDown&&Event.current.button==0&&rect.Contains(Event.current.mousePosition))
+            {
+                int sample=(int)(Mathf.Clamp01((Event.current.mousePosition.x-rect.x)/rect.width)*Math.Max(0,source.samples-1));
+                StopAudition();notice="";EditorAudioPreview.Play(source,sample);Event.current.Use();
+            }
+        }
+        private void DrawClipWaveform(ArrangementClip clip,Rect rect,double duration,float scroll,float width,bool selected)
         {
             if(clip.Source==null)return;
-            double length=MusicTrack.GetExactDuration(clip.Source),span=length-clip.Trim;
+            double trim=clip.Trim+(clip.Id==dragClip&&dragKind==2?dragDelta:0);
+            double length=MusicTrack.GetExactDuration(clip.Source),span=length-trim;
             if(span<=0||duration<=0)return;
             double px=rect.width/duration;
             double visibleStart=Math.Max(0,(scroll-rect.x)/px),visibleEnd=Math.Min(duration,(scroll+width-rect.x)/px);
@@ -336,7 +375,11 @@ namespace AudioMW.Editor
             {
                 double begin=piece*span,a=Math.Max(visibleStart,begin),b=Math.Min(visibleEnd,begin+span);
                 if(a>=visibleEnd)break;
-                if(b>a)WaveformCache.Draw(clip.Source,new Rect(rect.x+(float)(a*px),rect.y+20,(float)((b-a)*px),rect.height-22),clip.Trim+a-begin,b-a,Mathf.Pow(2,waveformZoom));
+                if(b>a)
+                {
+                    var wave=new Rect(rect.x+(float)(a*px),rect.y+20,(float)((b-a)*px),rect.height-22);
+                    if(!WaveformCache.Draw(clip.Source,wave,trim+a-begin,b-a,WaveformScale,selected?new Color(.81f,.69f,.46f):new Color(.50f,.71f,.74f),combinedWaveform))GUI.Label(wave,"PCM unavailable",EditorStyles.miniLabel);
+                }
                 if(!clip.Repeat)break;
             }
         }

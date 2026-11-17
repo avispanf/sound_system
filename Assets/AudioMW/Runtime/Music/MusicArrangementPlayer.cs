@@ -18,7 +18,8 @@ namespace AudioMW
         private readonly HashSet<string> solo = new HashSet<string>();
         public ParameterStore Parameters { get; } = new ParameterStore();
         public bool IsPlaying { get; private set; }
-        public double Position => snapshot != null ? ArrangementSchedule.Position(snapshot, initial, AudioSettings.dspTime - anchor) : initial;
+        public bool IsPaused { get; private set; }
+        public double Position => snapshot != null && !IsPaused ? ArrangementSchedule.Position(snapshot, initial, AudioSettings.dspTime - anchor) : initial;
         public int ScheduledVoiceCount => voices.Count;
         public double StartDspTime => anchor;
         private sealed class Voice { public AudioSource Source; public ArrangementSegment Segment; }
@@ -32,7 +33,29 @@ namespace AudioMW
             anchor = AudioSettings.dspTime + .1;
             IsPlaying = true; Tick(); return true;
         }
-        public bool Seek(double position) { return MusicArrangement.Finite(position) && Play(position); }
+        public bool Seek(double position)
+        {
+            if(!MusicArrangement.Finite(position))return false;
+            if(!IsPaused||snapshot==null)return Play(position);
+            initial=Math.Max(snapshot.Entry,Math.Min(position,snapshot.Loop?snapshot.LoopEnd:snapshot.Exit));
+            if(snapshot.Loop&&initial>=snapshot.LoopEnd)initial=snapshot.LoopStart;
+            return true;
+        }
+        public bool Pause()
+        {
+            if(!IsPlaying||snapshot==null)return false;
+            initial=Position;IsPlaying=false;IsPaused=true;ReleaseVoices();return true;
+        }
+        public bool Resume()
+        {
+            if(!IsPaused||snapshot==null)return false;
+            anchor=AudioSettings.dspTime+.1;IsPaused=false;IsPlaying=true;Tick();return true;
+        }
+        private void ReleaseVoices()
+        {
+            foreach(var voice in voices){if(voice.Source==null)continue;voice.Source.Stop();voice.Source.clip=null;pool.Push(voice.Source);}
+            voices.Clear();scheduled.Clear();
+        }
         public void SetLaneAudition(string id, bool mute, bool isolate)
         {
             if (mute) muted.Add(id); else muted.Remove(id);
@@ -83,9 +106,8 @@ namespace AudioMW
         public void Stop()
         {
             if(snapshot!=null)initial=Position;
-            IsPlaying = false;
-            foreach (var voice in voices) { if (voice.Source == null) continue; voice.Source.Stop(); voice.Source.clip = null; pool.Push(voice.Source); }
-            voices.Clear(); scheduled.Clear();
+            IsPlaying = false; IsPaused = false;
+            ReleaseVoices();
             if (snapshot != null) { if (Application.isPlaying) Destroy(snapshot); else DestroyImmediate(snapshot); snapshot = null; }
         }
         private void OnDisable() { Stop(); }

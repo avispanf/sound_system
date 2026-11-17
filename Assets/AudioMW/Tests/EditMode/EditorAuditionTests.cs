@@ -127,6 +127,52 @@ namespace AudioMW.Tests
             }
             finally{Object.DestroyImmediate(track);}
         }
+        [Test] public void TimelineDisplayFollowsBothEdgesAndKeepsTimeUnitsExplicit()
+        {
+            Assert.AreEqual(60,AudioEventEditorWindow.FittedLaneHeight(240,4));
+            Assert.AreEqual(40,AudioEventEditorWindow.FittedLaneHeight(240,6));
+            Assert.AreEqual(450,AudioEventEditorWindow.FollowTimelineScroll(0,5,100,200,1000));
+            Assert.AreEqual(0,AudioEventEditorWindow.FollowTimelineScroll(450,.1,100,200,1000));
+            Assert.AreEqual("2:01 · Bars:Beats",AudioEventEditorWindow.FormatTransportTime(2,true,120,4));
+            Assert.AreEqual("01:01.250 · s",AudioEventEditorWindow.FormatTransportTime(61.25,false,120,4));
+        }
+        [Test] public void WaveformEnergyUsesActualSamplesIncludingOddTail()
+        {
+            var source=AudioClip.Create("Peak RMS fixture",5,2,48000,false);
+            try
+            {
+                source.SetData(new[]{1f,-.5f,0f,-.5f,0f,-.5f,0f,-.5f,0f,-.5f},0);WaveformCache.Clear();
+                Assert.IsTrue(WaveformCache.TryGetRange(source,0,0,5.0/48000,out var left));
+                Assert.AreEqual(0,left.x);Assert.AreEqual(1,left.y);Assert.AreEqual(Mathf.Sqrt(.2f),left.z,1e-6);
+                Assert.IsTrue(WaveformCache.TryGetRange(source,1,0,5.0/48000,out var right));
+                Assert.AreEqual(-.5f,right.x);Assert.AreEqual(-.5f,right.y);Assert.AreEqual(.5f,right.z,1e-6);
+                Assert.IsFalse(WaveformCache.TryGetRange(source,2,0,1,out _));
+            }
+            finally{WaveformCache.Clear();Object.DestroyImmediate(source);}
+        }
+        [Test] public void ArrangementPauseRetainsSnapshotAndStopDiscardsResume()
+        {
+            var score=OpenScore();Invoke("PlayAudition");var player=Field<MusicArrangementPlayer>("arrangementPlayer");
+            Assert.IsTrue(player.Pause());Assert.IsTrue(player.IsPaused);Assert.IsFalse(player.IsPlaying);Assert.AreEqual(0,player.ScheduledVoiceCount);
+            score.Lanes.Clear();Assert.IsTrue(player.Seek(.5));Assert.IsTrue(player.IsPaused);Assert.AreEqual(.5,player.Position,1e-6);
+            Assert.IsTrue(player.Resume());Assert.AreEqual(1,player.ScheduledVoiceCount);
+            player.Stop();Assert.IsFalse(player.IsPaused);Assert.IsFalse(player.Resume());
+        }
+        [Test] public void TransportGuardDoesNotCaptureTypedInput()
+        {
+            var method=typeof(AudioEventEditorWindow).GetMethod("IsTransportKeyBlocked",Private);
+            var field=new UnityEngine.UIElements.TextField();var number=new UnityEngine.UIElements.DoubleField();var canvas=new UnityEngine.UIElements.IMGUIContainer();
+            Assert.IsTrue((bool)method.Invoke(window,new object[]{field}));
+            Assert.IsTrue((bool)method.Invoke(window,new object[]{number}));
+            Assert.IsFalse((bool)method.Invoke(window,new object[]{canvas}));
+        }
+        [Test] public void LayerSelectionIgnoresMissingLegacySources()
+        {
+            var track=MusicTrack.CreateRuntime(null,null,120,4);
+            track.Layers=new[]{MusicLayer.CreateRuntime("Missing",null,null,null),MusicLayer.CreateRuntime("Real",clip,null,null)};
+            try{Assert.AreEqual(1,AudioEventEditorWindow.LegacyLayerIndex(track,0));Assert.AreEqual(-1,AudioEventEditorWindow.LegacyLayerIndex(track,1));}
+            finally{Object.DestroyImmediate(track);}
+        }
         [Test] public void SoundEventRequiresExplicitPlayModeAndDoesNotCreateEditorRuntime()
         {
             var sound=ScriptableObject.CreateInstance<SoundEvent>();sound.Clips=new[]{clip};

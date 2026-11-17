@@ -8,6 +8,7 @@ namespace AudioMW.Editor
     public sealed partial class AudioEventEditorWindow
     {
         private string deckSection="Properties";
+        private string musicDeckSection="Properties";
         private SoundBank membership;
         private int deckSourceIndex=-1,deckChildIndex=-1;
         private SoundEvent deckChildParent;
@@ -17,9 +18,14 @@ namespace AudioMW.Editor
             deckSerialized.Update();
             if(deckTarget is AudioClip source)
             {
-                EditorGUILayout.LabelField(source.name,EditorStyles.boldLabel);EditorGUILayout.LabelField(AudioSourcePreviewPane.SourceFormat(source)+" · "+source.frequency+" Hz");
-                EditorGUILayout.BeginHorizontal();if(GUILayout.Button("Play source (dry)")){StopAudition();notice="";EditorAudioPreview.Play(source);}if(GUILayout.Button("Stop source"))EditorAudioPreview.Stop();if(GUILayout.Button("Select import settings"))Selection.activeObject=source;EditorGUILayout.EndHorizontal();
-                Rect r=GUILayoutUtility.GetRect(100,70,GUILayout.ExpandWidth(true));if(!WaveformCache.Draw(source,r))GUI.Label(r,"Waveform unavailable: PCM data not readable.");return;
+                EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
+                GUILayout.Label(AudioSourcePreviewPane.SourceFormat(source)+" · "+source.frequency+" Hz",EditorStyles.miniLabel);GUILayout.FlexibleSpace();DrawWaveformZoom();
+                if(GUILayout.Button("Play source (dry)",EditorStyles.toolbarButton,GUILayout.Width(126))){StopAudition();notice="";EditorAudioPreview.Play(source);}
+                if(GUILayout.Button("Stop",EditorStyles.toolbarButton,GUILayout.Width(46)))EditorAudioPreview.Stop();
+                if(GUILayout.Button("Import settings",EditorStyles.toolbarButton,GUILayout.Width(108)))Selection.activeObject=source;
+                EditorGUILayout.EndHorizontal();GUILayout.Space(8);
+                Rect r=GUILayoutUtility.GetRect(100,84,GUILayout.ExpandWidth(true));DrawSourceWaveform(source,r);
+                EditorGUILayout.LabelField("Click waveform to audition from here · source channels are shown separately",EditorStyles.miniLabel);return;
             }
             if(deckTarget is MusicArrangement score){DrawArrangementDeck(score);if(deckSerialized.ApplyModifiedProperties())TrackEdit(deckTarget);return;}
             if(deckTarget is SoundParameter parameter){DrawLiveParameter(parameter);}
@@ -27,19 +33,7 @@ namespace AudioMW.Editor
             {
                 DrawSoundDeck(sound);
             }
-            else if(deckTarget is MusicTrack music)
-            {
-                int laneIndex=-1;
-                if(selectedLane.StartsWith("legacy:"))int.TryParse(selectedLane.Substring(7),out laneIndex);
-                int layerIndex=laneIndex-1-(music.IntroClip!=null?1:0);
-                if(layerIndex>=0&&layerIndex<music.Layers.Length)
-                {
-                    var layer=deckSerialized.FindProperty("layers").GetArrayElementAtIndex(layerIndex);
-                    EditorGUILayout.LabelField(music.Layers[layerIndex].Name,EditorStyles.boldLabel);
-                    EditorGUILayout.PropertyField(layer,true);
-                }
-                else DrawFields(new[]{"introClip","loopClip","loop","volume","mixerGroup","tempo","beatsPerBar","markers"});
-            }
+            else if(deckTarget is MusicTrack music)DrawLegacyMusicDeck(music);
             else
             {
                 var iterator=deckSerialized.GetIterator();bool children=true;while(iterator.NextVisible(children)){children=false;if(iterator.name=="m_Script")continue;EditorGUILayout.PropertyField(iterator,true);}
@@ -130,40 +124,108 @@ namespace AudioMW.Editor
             EditorGUILayout.BeginHorizontal();int middle=(names.Length+1)/2;float previousLabel=EditorGUIUtility.labelWidth;EditorGUIUtility.labelWidth=126;
             for(int col=0;col<2;col++){EditorGUILayout.BeginVertical(GUILayout.Width(Mathf.Clamp((deckScroll.contentRect.width-36)/2,220,390)));for(int i=col*middle;i<Math.Min(names.Length,(col+1)*middle);i++){var property=deckSerialized.FindProperty(names[i]);if(property!=null)EditorGUILayout.PropertyField(property,true);}EditorGUILayout.EndVertical();GUILayout.Space(16);}GUILayout.FlexibleSpace();EditorGUILayout.EndHorizontal();EditorGUIUtility.labelWidth=previousLabel;
         }
+        private void MusicDeckTabs()
+        {
+            EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
+            foreach(string section in new[]{"Properties","Modulation","Routing"})
+                if(GUILayout.Toggle(musicDeckSection==section,section,EditorStyles.toolbarButton,GUILayout.Width(100)))musicDeckSection=section;
+            GUILayout.FlexibleSpace();EditorGUILayout.EndHorizontal();GUILayout.Space(6);
+        }
+        private void PropertyRow(SerializedProperty property,string label,float height=22)
+        {
+            if(property==null)return;
+            var rect=EditorGUILayout.GetControlRect(false,height);
+            if((property.propertyType==SerializedPropertyType.Float||property.propertyType==SerializedPropertyType.Integer)&&property.name!="volume"&&property.name!="Gain")rect.width=Mathf.Min(rect.width,260);
+            EditorGUI.PropertyField(rect,property,new GUIContent(label),true);
+        }
+        private void DrawWeightPanel(SerializedProperty parameter,SerializedProperty curve)
+        {
+            PropertyRow(parameter,"Parameter");
+            if(parameter.objectReferenceValue==null)
+            {
+                EditorGUILayout.HelpBox("No parameter binding. The authored constant weight is used.",MessageType.None);return;
+            }
+            EditorGUILayout.LabelField("Layer weight · normalized 0–1",EditorStyles.miniLabel);
+            EditorGUI.BeginChangeCheck();
+            var edited=EditorGUILayout.CurveField(GUIContent.none,curve.animationCurveValue,new Color(.66f,.81f,.46f),new Rect(0,0,1,1),GUILayout.Height(position.height<850?66:104));
+            if(EditorGUI.EndChangeCheck())curve.animationCurveValue=edited;
+            EditorGUILayout.BeginHorizontal();GUILayout.Label("0 · Parameter min",EditorStyles.miniLabel);GUILayout.FlexibleSpace();GUILayout.Label("Parameter max · 1",EditorStyles.miniLabel);EditorGUILayout.EndHorizontal();
+        }
+        public static int LegacyLayerIndex(MusicTrack track,int laneIndex)
+        {
+            int slot=(track.IntroClip!=null?1:0)+(track.LoopClip!=null?1:0);
+            for(int i=0;i<track.Layers.Length;i++)
+            {
+                if(track.Layers[i]==null||!track.Layers[i].IsValid)continue;
+                if(slot++==laneIndex)return i;
+            }
+            return -1;
+        }
+        private void DrawLegacyMusicDeck(MusicTrack music)
+        {
+            int laneIndex=-1;if(selectedLane.StartsWith("legacy:"))int.TryParse(selectedLane.Substring(7),out laneIndex);
+            int layerIndex=LegacyLayerIndex(music,laneIndex);
+            SerializedProperty layer=layerIndex>=0?deckSerialized.FindProperty("layers").GetArrayElementAtIndex(layerIndex):null;
+            MusicDeckTabs();float previous=EditorGUIUtility.labelWidth;EditorGUIUtility.labelWidth=100;
+            EditorGUILayout.BeginHorizontal();EditorGUILayout.BeginVertical(GUILayout.Width(Mathf.Clamp(deckScroll.contentRect.width*.34f,270,370)));
+            if(layer!=null)
+            {
+                PropertyRow(layer.FindPropertyRelative("layerName"),"Track name");PropertyRow(layer.FindPropertyRelative("clip"),"Source");
+                using(new EditorGUI.DisabledScope(layer.FindPropertyRelative("parameter").objectReferenceValue!=null))PropertyRow(layer.FindPropertyRelative("defaultWeight"),"Fallback weight");PropertyRow(layer.FindPropertyRelative("fadeSeconds"),"Response (s)");
+            }
+            else
+            {
+                PropertyRow(deckSerialized.FindProperty("introClip"),"Intro source");PropertyRow(deckSerialized.FindProperty("loopClip"),"Body source");
+                PropertyRow(deckSerialized.FindProperty("volume"),"Event gain");PropertyRow(deckSerialized.FindProperty("loop"),"Loop body");
+            }
+            EditorGUILayout.EndVertical();GUILayout.Space(20);EditorGUILayout.BeginVertical();
+            if(musicDeckSection=="Routing")
+            {
+                PropertyRow(deckSerialized.FindProperty("mixerGroup"),"Event output");
+                EditorGUILayout.LabelField("All legacy layers inherit this event route.",EditorStyles.wordWrappedMiniLabel);
+                if(GUILayout.Button("Open native Mixer",GUILayout.Width(160)))AudioWorkspace.Mixer();
+            }
+            else if(layer!=null)DrawWeightPanel(layer.FindPropertyRelative("parameter"),layer.FindPropertyRelative("weightCurve"));
+            else if(musicDeckSection=="Modulation")EditorGUILayout.HelpBox("Select a music layer above to edit its parameter and weight curve.",MessageType.None);
+            else
+            {
+                PropertyRow(deckSerialized.FindProperty("tempo"),"Tempo (BPM)");PropertyRow(deckSerialized.FindProperty("beatsPerBar"),"Beats / bar");
+                EditorGUILayout.PropertyField(deckSerialized.FindProperty("markers"),new GUIContent("Music markers"),true);
+                EditorGUILayout.LabelField("Legacy timing is fixed. Use an editable arrangement for trim, placement and pause.",EditorStyles.wordWrappedMiniLabel);
+            }
+            EditorGUILayout.EndVertical();EditorGUILayout.EndHorizontal();EditorGUIUtility.labelWidth=previous;
+        }
         private void DrawArrangementDeck(MusicArrangement score)
         {
+            MusicDeckTabs();
             var lanes=deckSerialized.FindProperty("Lanes");int laneIndex=score.Lanes.FindIndex(l=>l.Id==selectedLane);
             if(laneIndex>=0)
             {
                 var lane=score.Lanes[laneIndex];var laneProperty=lanes.GetArrayElementAtIndex(laneIndex);int clipIndex=lane.Clips.FindIndex(c=>selectedClips.Contains(c.Id));
-                EditorGUILayout.BeginHorizontal();bool selectArrangement=GUILayout.Button("Arrangement",EditorStyles.miniButton,GUILayout.Width(100));EditorGUILayout.LabelField(lane.Name+(clipIndex>=0?" › "+lane.Clips[clipIndex].Source?.name:""));EditorGUILayout.EndHorizontal();
-                if(selectArrangement){selectedLane="";selectedClips.Clear();CurrentDocument.Selection="";return;}
                 var property=clipIndex>=0?laneProperty.FindPropertyRelative("Clips").GetArrayElementAtIndex(clipIndex):laneProperty;
-                string[] fields=clipIndex>=0?new[]{"Source","Start","Trim","Duration","Repeat","FadeIn","FadeOut","Gain"}:new[]{"Name","Gain","Output","Parameter","Weight"};
-                EditorGUILayout.BeginHorizontal();
-                float previousLabel=EditorGUIUtility.labelWidth;EditorGUIUtility.labelWidth=100;
+                EditorGUILayout.BeginHorizontal();float previousLabel=EditorGUIUtility.labelWidth;EditorGUIUtility.labelWidth=100;
                 EditorGUILayout.BeginVertical(GUILayout.Width(Mathf.Clamp(deckScroll.contentRect.width*.40f,270,380)));
-                foreach(string field in fields)
+                foreach(string field in clipIndex>=0?new[]{"Source","Start","Duration","Gain"}:new[]{"Name","Gain"})
+                    PropertyRow(property.FindPropertyRelative(field),field+(field=="Start"||field=="Duration"?" (s)":""));
+                if(clipIndex<0)EditorGUILayout.LabelField(lane.Clips.Count+" clips · session M/S in track header",EditorStyles.miniLabel);
+                EditorGUILayout.EndVertical();GUILayout.Space(24);EditorGUILayout.BeginVertical();
+                if(musicDeckSection=="Routing")
                 {
-                    if(field=="Weight"||field=="Parameter")continue;
-                    if(clipIndex>=0&&(field=="Trim"||field=="FadeOut"))continue;
-                    bool paired=clipIndex>=0&&(field=="Start"||field=="FadeIn");
-                    if(paired)EditorGUILayout.BeginHorizontal();
-                    EditorGUILayout.PropertyField(property.FindPropertyRelative(field),new GUIContent(field+(field=="Start"||field=="Duration"||field.StartsWith("Fade")?" (s)":"")),true);
-                    if(paired){EditorGUIUtility.labelWidth=65;string other=field=="Start"?"Trim":"FadeOut";EditorGUILayout.PropertyField(property.FindPropertyRelative(other),new GUIContent(other+" (s)"));EditorGUIUtility.labelWidth=100;EditorGUILayout.EndHorizontal();}
+                    PropertyRow(laneProperty.FindPropertyRelative("Output"),"Track output");
+                    EditorGUILayout.LabelField("Fallback: "+(score.Output!=null?score.Output.name:"Unity default output"),EditorStyles.miniLabel);
+                    if(GUILayout.Button("Open native Mixer",GUILayout.Width(160)))AudioWorkspace.Mixer();
                 }
-                EditorGUILayout.EndVertical();GUILayout.Space(24);
-                EditorGUILayout.BeginVertical();
-                EditorGUILayout.LabelField("Parameter response",EditorStyles.boldLabel);
-                EditorGUILayout.PropertyField(laneProperty.FindPropertyRelative("Parameter"),new GUIContent("Binding"));
-                if(lane.Parameter!=null)
+                else if(clipIndex>=0&&musicDeckSection=="Properties")
                 {
-                    EditorGUILayout.PropertyField(laneProperty.FindPropertyRelative("Weight"),GUIContent.none,GUILayout.Height(position.height<850?64:104));
-                    EditorGUILayout.LabelField("Normalized parameter 0–1  /  Layer weight 0–1",EditorStyles.miniLabel);
+                    PropertyRow(property.FindPropertyRelative("Trim"),"Source trim (s)");
+                    PropertyRow(property.FindPropertyRelative("Repeat"),"Repeat source");
+                    PropertyRow(property.FindPropertyRelative("FadeIn"),"Fade in (s)");
+                    PropertyRow(property.FindPropertyRelative("FadeOut"),"Fade out (s)");
                 }
-                else EditorGUILayout.HelpBox("No parameter binding. This track uses its authored gain.",MessageType.None);
+                else DrawWeightPanel(laneProperty.FindPropertyRelative("Parameter"),laneProperty.FindPropertyRelative("Weight"));
                 EditorGUILayout.EndVertical();EditorGUILayout.EndHorizontal();EditorGUIUtility.labelWidth=previousLabel;
                 EditorGUILayout.BeginHorizontal();
+                if(GUILayout.Button("Arrangement",GUILayout.Width(100))){selectedLane="";selectedClips.Clear();CurrentDocument.Selection="";}
                 if(clipIndex>=0){if(GUILayout.Button("Duplicate",GUILayout.Width(100))){deckSerialized.ApplyModifiedProperties();ArrangementAuthoring.Duplicate(score,selectedClips);deckSerialized.Update();}if(GUILayout.Button("Delete clip",GUILayout.Width(100))){deckSerialized.ApplyModifiedProperties();ArrangementAuthoring.Delete(score,selectedClips);selectedClips.Clear();deckSerialized.Update();}}
                 else
                 {
@@ -173,9 +235,11 @@ namespace AudioMW.Editor
                 }
                 EditorGUILayout.EndHorizontal();
             }
-            else DrawFields(new[]{"Tempo","BeatsPerBar","Entry","Exit","Loop","LoopStart","LoopEnd","Gain","Output","Markers"});
+            else if(musicDeckSection=="Routing")DrawFields(new[]{"Output","Gain"});
+            else if(musicDeckSection=="Modulation")EditorGUILayout.HelpBox("Select a track to edit its parameter response.",MessageType.None);
+            else DrawFields(new[]{"Tempo","BeatsPerBar","Entry","Exit","Loop","LoopStart","LoopEnd","Gain","Markers"});
             string issue=score.Validate();if(issue!="")EditorGUILayout.HelpBox(issue,MessageType.Error);
-            EditorGUILayout.LabelField("Seconds are stored. Tempo changes the grid, not clip speed. Playback takes a snapshot; authored changes apply on restart.",EditorStyles.wordWrappedMiniLabel);
+            if(breadcrumb!=null)breadcrumb.tooltip=breadcrumb.text+"\nTiming is in seconds. Tempo changes the grid, not speed. Authored arrangement edits apply on restart; pause/resume retains the playing snapshot.";
         }
     }
 }

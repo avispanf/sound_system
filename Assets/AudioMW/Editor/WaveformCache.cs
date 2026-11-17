@@ -13,6 +13,7 @@ namespace AudioMW.Editor
         {
             public int Frames, Channels, Stride;
             public readonly List<Vector2[]> Levels = new List<Vector2[]>();
+            public readonly List<Vector2[]> Energy = new List<Vector2[]>();
             public Texture2D Texture;
         }
         private const int MaxEntries = 32;
@@ -35,6 +36,7 @@ namespace AudioMW.Editor
             int buckets = (clip.samples + stride - 1) / stride;
             var envelope = new Envelope { Frames = clip.samples, Channels = clip.channels, Stride = stride };
             var values = new Vector2[buckets * clip.channels];
+            var energy = new Vector2[values.Length];
             for (int i = 0; i < values.Length; i++) values[i] = new Vector2(float.PositiveInfinity, float.NegativeInfinity);
             int blockFrames = Math.Min(16384, clip.samples);
             var data = new float[blockFrames * clip.channels];
@@ -50,21 +52,25 @@ namespace AudioMW.Editor
                         if (float.IsNaN(sample) || float.IsInfinity(sample)) sample = 0;
                         values[index].x = Mathf.Min(values[index].x, sample);
                         values[index].y = Mathf.Max(values[index].y, sample);
+                        energy[index] += new Vector2(sample * sample, 1);
                     }
             }
-            envelope.Levels.Add(values);
+            envelope.Levels.Add(values); envelope.Energy.Add(energy);
             while (buckets > 1)
             {
                 int nextCount = (buckets + 1) / 2;
                 var next = new Vector2[nextCount * clip.channels];
+                var nextEnergy = new Vector2[next.Length];
                 for (int i = 0; i < nextCount; i++)
                     for (int channel = 0; channel < clip.channels; channel++)
                     {
                         var a = values[i * 2 * clip.channels + channel];
                         var b = values[Math.Min(i * 2 + 1, buckets - 1) * clip.channels + channel];
                         next[i * clip.channels + channel] = new Vector2(Mathf.Min(a.x, b.x), Mathf.Max(a.y, b.y));
+                        nextEnergy[i * clip.channels + channel] = energy[i * 2 * clip.channels + channel];
+                        if(i * 2 + 1 < buckets) nextEnergy[i * clip.channels + channel] += energy[(i * 2 + 1) * clip.channels + channel];
                     }
-                values = next; buckets = nextCount; envelope.Levels.Add(next);
+                values = next; energy = nextEnergy; buckets = nextCount; envelope.Levels.Add(next); envelope.Energy.Add(nextEnergy);
             }
             Cache.Add(key, envelope); Order.Enqueue(key);
             while (Order.Count > MaxEntries)
@@ -92,6 +98,24 @@ namespace AudioMW.Editor
             }
             return result;
         }
+        private static float Rms(Envelope envelope,int channel,double start,double end)
+        {
+            double span=(end-start)/envelope.Stride;
+            int level=Math.Min(envelope.Energy.Count-1,Math.Max(0,(int)Math.Floor(Math.Log(Math.Max(1,span),2))));
+            double step=envelope.Stride*Math.Pow(2,level);var values=envelope.Energy[level];int count=values.Length/envelope.Channels;
+            int first=Math.Max(0,Math.Min(count-1,(int)Math.Floor(start/step)));
+            int last=Math.Max(first,Math.Min(count-1,(int)Math.Ceiling(end/step)-1));
+            Vector2 sum=Vector2.zero;for(int i=first;i<=last;i++)sum+=values[i*envelope.Channels+channel];
+            return sum.y>0?Mathf.Sqrt(sum.x/sum.y):0;
+        }
+        public static bool TryGetRange(AudioClip clip,int channel,double start,double duration,out Vector3 sample)
+        {
+            sample=Vector3.zero;var envelope=Read(clip);
+            if(envelope==null||channel<0||channel>=envelope.Channels||!MusicArrangement.Finite(start)||!MusicArrangement.Finite(duration)||duration<=0)return false;
+            double a=Math.Max(0,start*clip.frequency),b=Math.Min(envelope.Frames,(start+duration)*clip.frequency);
+            if(b<=a)return false;
+            var range=Range(envelope,channel,a,b);sample=new Vector3(range.x,range.y,Rms(envelope,channel,a,b));return true;
+        }
         public static Texture2D Get(AudioClip clip)
         {
             var envelope = Read(clip); if (envelope == null) return null;
@@ -111,25 +135,38 @@ namespace AudioMW.Editor
             var texture = new Texture2D(width, height, TextureFormat.RGBA32, false) { hideFlags = HideFlags.HideAndDontSave, filterMode = FilterMode.Point };
             texture.SetPixels32(pixels); texture.Apply(); envelope.Texture = texture; return texture;
         }
-        public static bool Draw(AudioClip clip, Rect rect, double start = 0, double duration = -1, float verticalScale = 1)
+        public static bool Draw(AudioClip clip, Rect rect, double start = 0, double duration = -1, float verticalScale = 1, Color? tint = null, bool combineChannels = false)
         {
-            var envelope = Read(clip); if (envelope == null) return false;
-            if (Event.current.type != EventType.Repaint || rect.width <= 0 || rect.height <= 0) return true;
-            if (duration < 0) duration = clip.samples / (double)clip.frequency - start;
-            int columns = Math.Max(1, (int)Math.Ceiling(rect.width * EditorGUIUtility.pixelsPerPoint));
-            float pixel = rect.width / columns, channelHeight = rect.height / envelope.Channels;
-            for (int channel = 0; channel < envelope.Channels; channel++)
+            var envelope=Read(clip);if(envelope==null)return false;
+            if(Event.current.type!=EventType.Repaint||rect.width<=0||rect.height<=0)return true;
+            if(duration<0)duration=clip.samples/(double)clip.frequency-start;
+            if(verticalScale<=0)
             {
-                float center = rect.y + (channel + .5f) * channelHeight, scale = channelHeight * .43f;
-                EditorGUI.DrawRect(new Rect(rect.x, center, rect.width, 1 / EditorGUIUtility.pixelsPerPoint), new Color(.25f, .34f, .36f));
-                for (int x = 0; x < columns; x++)
+                float peak=0;foreach(var range in envelope.Levels[envelope.Levels.Count-1])peak=Mathf.Max(peak,Mathf.Abs(range.x),Mathf.Abs(range.y));
+                verticalScale=peak>0?.9f/peak:1;
+            }
+            int columns=Math.Max(1,(int)Math.Ceiling(rect.width*EditorGUIUtility.pixelsPerPoint));
+            int displayed=combineChannels?1:envelope.Channels;
+            float pixel=rect.width/columns,channelHeight=rect.height/displayed,hairline=1/EditorGUIUtility.pixelsPerPoint;
+            Color color=tint??new Color(.50f,.71f,.74f),peakColor=new Color(color.r,color.g,color.b,.6f);
+            for(int channel=0;channel<displayed;channel++)
+            {
+                float center=rect.y+(channel+.5f)*channelHeight,scale=channelHeight*.43f;
+                EditorGUI.DrawRect(new Rect(rect.x,center,rect.width,hairline),new Color(color.r,color.g,color.b,.20f));
+                for(int x=0;x<columns;x++)
                 {
-                    double a = (start + duration * x / columns) * clip.frequency;
-                    double b = (start + duration * (x + 1) / columns) * clip.frequency;
-                    var range = Range(envelope, channel, a, b);
-                    float top = center - Mathf.Clamp(range.y * verticalScale, -1, 1) * scale;
-                    float bottom = center - Mathf.Clamp(range.x * verticalScale, -1, 1) * scale;
-                    EditorGUI.DrawRect(new Rect(rect.x + x * pixel, top, pixel, Mathf.Max(1 / EditorGUIUtility.pixelsPerPoint, bottom - top)), new Color(.50f, .71f, .74f));
+                    double a=(start+duration*x/columns)*clip.frequency,b=(start+duration*(x+1)/columns)*clip.frequency;
+                    var range=Range(envelope,channel,a,b);float rms=Rms(envelope,channel,a,b);
+                    if(combineChannels)for(int other=1;other<envelope.Channels;other++)
+                    {
+                        var next=Range(envelope,other,a,b);range.x=Mathf.Min(range.x,next.x);range.y=Mathf.Max(range.y,next.y);
+                        rms=Mathf.Max(rms,Rms(envelope,other,a,b));
+                    }
+                    float top=center-Mathf.Clamp(range.y*verticalScale,-1,1)*scale,bottom=center-Mathf.Clamp(range.x*verticalScale,-1,1)*scale;
+                    EditorGUI.DrawRect(new Rect(rect.x+x*pixel,top,pixel,Mathf.Max(hairline,bottom-top)),peakColor);
+                    float inner=rms*verticalScale*scale;
+                    float upper=Mathf.Max(top,center-inner),lower=Mathf.Min(bottom,center+inner);
+                    if(lower>upper)EditorGUI.DrawRect(new Rect(rect.x+x*pixel,upper,pixel,lower-upper),color);
                 }
             }
             return true;

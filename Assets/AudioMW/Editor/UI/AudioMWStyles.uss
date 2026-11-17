@@ -466,3 +466,8 @@
 .audiomw-event-editor-v2 #studio-audition-status { flex-direction: row; flex-wrap: wrap; align-items: center; padding: 3px 10px; background-color: rgb(29,31,34); border-bottom-width: 1px; border-bottom-color: rgb(56,59,64); min-height: 26px; }
 .audiomw-event-editor-v2 #studio-audition-message { flex-grow: 1; flex-shrink: 1; min-width: 120px; white-space: normal; color: rgb(184,192,202); margin-right: 8px; }
 .audiomw-event-editor-v2 #studio-audio-mute { min-width: 130px; }
+
+.audiomw-event-editor-v2 #studio-transport-position { width: 148px; min-width: 148px; -unity-text-align: middle-center; color: rgb(230,233,235); }
+.audiomw-event-editor-v2 #studio-return { width: 30px; padding: 0; }
+.audiomw-event-editor-v2 #studio-pause { min-width: 76px; }
+.audiomw-event-editor-v2 #studio-play { min-width: 110px; }
