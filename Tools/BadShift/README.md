@@ -173,3 +173,7 @@ Music profile native Inspector now groups states, default timing, route override
 ### Editor UI preview.34
 
 Music transition rules show source → destination and consistent timing labels. Narrow native Inspector alignment now handles nested controls; wide alignment is restored on resize. Fresh 328/328 EditMode and 5/5 package checks, muted native Inspector captures at 300/520 px. QA profile only; no new gameplay build or listening check.
+
+### Editor UI preview.35
+
+Native mixer routing profiles now have grouped fields, honest exposed-name checks and a native mixer action. Multi-edit remains supported. Fresh 329/329 EditMode and 5/5 package checks; muted QA Inspector captures at 300/520 px. Runtime unchanged; no new gameplay build or listening test.

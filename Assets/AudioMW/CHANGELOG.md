@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0-preview.35 — Routing profile Inspector
+
+- Add a native, multi-edit capable mixer routing Inspector with target mixer, parameter bindings and exposed-name checks.
+- Explain input normalization and target-specific output units; report missing mixer, invalid bindings and absent exposed parameters without writing mixer values.
+- Share responsive native field alignment with music profiles.
+
 ## 0.5.0-preview.34 — Music transition authoring
 
 - Show both source and destination states in transition-rule headings, updating through native editing and Undo.

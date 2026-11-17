@@ -320,6 +320,41 @@ namespace AudioMW.Tests
         }
 
         [UnityTest]
+        public IEnumerator RoutingInspectorKeepsMissingMixerHonestAndPreservesMultiEdit()
+        {
+            var first = MixerRoutingProfile.CreateRuntime(null); temporary.Add(first);
+            var second = MixerRoutingProfile.CreateRuntime(null); temporary.Add(second);
+            first.ExpectedExposedNames = new[] { "MusicVolume" };
+            second.ExpectedExposedNames = new[] { "EffectsVolume" };
+            var beforeFirst = EditorJsonUtility.ToJson(first);
+            var beforeSecond = EditorJsonUtility.ToJson(second);
+            var editor = UnityEditor.Editor.CreateEditor(new Object[] { first, second });
+            var window = ScriptableObject.CreateInstance<EditorWindow>();
+            try
+            {
+                window.Show(); window.position = new Rect(100,100,300,750);
+                var view = editor.CreateInspectorGUI(); window.rootVisualElement.Add(view); view.Bind(editor.serializedObject);
+                yield return null; yield return null; yield return null;
+                Assert.IsInstanceOf<MixerRoutingProfileInspector>(editor);
+                StringAssert.Contains("unavailable", view.Q<HelpBox>("routing-profile-validation").text);
+                Assert.IsFalse(view.Q<Button>("routing-open-mixer").enabledSelf);
+                Assert.IsTrue(editor.serializedObject.FindProperty("expectedExposedNames").GetArrayElementAtIndex(0).hasMultipleDifferentValues);
+                Assert.AreEqual(beforeFirst, EditorJsonUtility.ToJson(first));
+                Assert.AreEqual(beforeSecond, EditorJsonUtility.ToJson(second));
+                var names = editor.serializedObject.FindProperty("expectedExposedNames");
+                names.GetArrayElementAtIndex(0).stringValue = "MasterVolume";
+                editor.serializedObject.ApplyModifiedProperties();
+                Assert.AreEqual("MasterVolume", first.ExpectedExposedNames[0]);
+                Assert.AreEqual("MasterVolume", second.ExpectedExposedNames[0]);
+                Undo.PerformUndo();
+                yield return null; yield return null;
+                Assert.AreEqual(beforeFirst, EditorJsonUtility.ToJson(first));
+                Assert.AreEqual(beforeSecond, EditorJsonUtility.ToJson(second));
+            }
+            finally { window.Close(); Object.DestroyImmediate(editor); }
+        }
+
+        [UnityTest]
         public IEnumerator NarrowWeightedInspectorKeepsLongSourceNamesAboveValues()
         {
             var item = Event("LongWeightName", Clip("Concrete footsteps corridor heavy boots variation twelve"));
