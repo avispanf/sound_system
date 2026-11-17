@@ -116,8 +116,11 @@ namespace AudioMW
             get { return pendingTrack; }
         }
 
-        public MusicPlayer(Transform parent)
+        private readonly ParameterStore auditionParameters;
+        public MusicPlayer(Transform parent) : this(parent, null) { }
+        public MusicPlayer(Transform parent, ParameterStore parameters)
         {
+            auditionParameters = parameters;
             this.parent = parent;
             introSource = CreateSource("Music Intro");
         }
@@ -717,14 +720,14 @@ namespace AudioMW
             }
         }
 
-        private static float ResolveWeight(MusicLayer layer)
+        private float ResolveWeight(MusicLayer layer)
         {
             if (layer.Parameter == null)
             {
                 return layer.EvaluateWeight(0f);
             }
 
-            float raw = AudioRuntime.Exists
+            float raw = auditionParameters != null ? auditionParameters.Get(layer.Parameter) : AudioRuntime.Exists
                 ? AudioRuntime.Instance.GlobalParameters.Get(layer.Parameter)
                 : layer.Parameter.DefaultValue;
 

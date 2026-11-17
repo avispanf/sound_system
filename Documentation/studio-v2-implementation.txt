@@ -1,0 +1,102 @@
+Studio V2 implementation journal — 2026-11-17
+Canonical: supplied audiomw-studio-v2/GUIDE.txt and IMAGE-REVIEW.txt.
+Baseline: main 41b5830; only pre-existing dirty EditorSettings.asset (excluded).
+Unity: Sound System@0fb85599, Edit Mode, unnamed clean scene, master muted.
+
+M0 matrix
+Existing: native serializable inspectors, source catalog/waveform, bank membership,
+MusicTrack intro/body/layers/markers, MusicPlayer scheduling/transitions, global
+parameter leases, bounded performance sampler and request history.
+Missing: browser/document separation; stable document/subselection; bottom Deck;
+shared audition session; embedded capture; offset/trim/move/seek timeline backend.
+Current MusicLayer has no placement/trim fields. Legacy projection must be read-only
+for time placement, retain native parameter curves and explicit property edits.
+
+Implementation decisions
+New reusable Event Editor shell; legacy menu/API routes remain compatible.
+Versioned MusicArrangement asset and explicit legacy adapter; no automatic writes
+on opening legacy documents. New player is opt-in; old MusicPlayer remains intact.
+Times are seconds, musical grid is a projection through tempo/signature.
+Timeline source trim is non-destructive. Runtime snapshots isolate authored edits.
+Native Unity Mixer remains second window. No remote, Unreal or invented meters.
+
+M1 implementation
+Window/AudioMW/Event Editor and the Studio menu entry use the new shell.
+Four independent browsers, per-browser search, pinned/preview documents, dirty
+indicators, Save shortcut scoped to the window and native serializable Deck.
+Container sources are actual project references. Source preview is explicitly dry.
+Properties, Sources, Variation, Spatial, Bindings and Limits stay in the Deck.
+Bank membership is explicit, Undoable and does not delete source assets.
+Advanced tools and Inspector remain available; agent review is unchanged.
+
+M2 implementation
+MusicTrack has a cached read-only placement projection, real waveforms, seconds /
+bars-beats, cues and grid. Curves remain native serialized fields. State profile
+rules and current/pending/captured fade use the existing MusicPlayer backend.
+Legacy conversion creates a separate arrangement; it never redirects gameplay.
+Conversion caveat: arrangement parameter weights apply immediately, whereas the
+legacy player smooths MusicLayer changes. Marker positions are copied as seconds.
+
+M3 implementation
+MusicArrangement version 1 stores stable lane/clip/cue identities and source refs.
+ArrangementAuthoring provides Undoable add/move/duplicate/delete commands.
+Timeline supports reference drop, drag placement, edge trim, session M/S, zoom,
+scroll and Deck editing of routing, curves, fades and bounds. Tempo changes only
+the grid. Clip time is seconds. Exit/loop bounds are explicit: clips outside the
+playback interval do not extend it automatically. No time stretch is promised.
+MusicArrangementPlayer is opt-in via its component/API, not a replacement for
+MusicTrack or the existing music-state system. It snapshots on Play; authored
+edits apply on restart. Seek cancels owned queued voices, reschedules from the
+new position with 100 ms lead and applies source trim / loop modulo / fades.
+Stop affects only that player. Four concurrent lanes are runtime-tested.
+
+M4 implementation
+Local Editor identity, pause/disconnected state, explicit global leases and
+release are backed by the real runtime. Save does not promote overrides. An
+explicit Save runtime value as default action is separate and Undoable.
+The capture stores up to 600 timestamped samples at 10 Hz; records SFX physical /
+virtual voices, capacity, requests/rejections/steals, AudioMW main-thread tick,
+whole-frame main-thread timing and whole-frame GC. Missing recorders are NaN /
+blank CSV, not zero. No DSP CPU, RMS/peak, LUFS or remote data is invented.
+
+Observed Editor checks
+Sound System, Unity 6000.3.21f1, master mute true. Temporary QA copies only; original
+unnamed scene remained clean. Native UI drag moved a clip by 1 s, trimmed its
+right edge by 1 s, duplicated it with Cmd+D, and Undo removed the duplicate.
+Cmd+S initially invoked Unity Save Scene; fixed with an EditorWindow-context
+shortcut and rechecked: only the audio document became clean, scene unchanged.
+Native Assets-to-Random drop added a source; Undo returned 4 sources to 3.
+Native Local override changed runtime from .25 to .76, Save left default at 0,
+gameplay then wrote .4, and Release preserved .4 and removed the lease.
+Real capture reached 600 samples; CSV saved beside screenshots.
+
+Remaining beyond this MVP
+Browser virtual folders, multi-resolution waveform envelope cache, cross-lane
+clip moves, marquee selection, richer transition matrix, consolidated audit
+subviews and custom Mixer remain follow-up work. Existing Inspector multi-edit
+is preserved; the embedded Deck edits one selected asset/subobject at a time.
+Legacy layer session M/S and arrangement state-profile transitions are not
+advertised. Local audition requires Play Mode and exactly one active listener;
+SoundEvent audition additionally requires an explicit emitter Transform.
+125% OS scaling and external FMOD/Wwise user usability sessions are not verified.
+Listening is not performed (silent testing requested). Native Player is not
+revalidated in this block. Generated design images are not evidence.
+
+Final evidence
+Tested artifact preview.47 sha256:
+6808cb012505288d5be2a6c15fb75ffe406f7fe796095a73f6c64bc3bf65c22d
+Unity 6 EditMode 353/353; Unity 2022.3 EditMode 353/353; Unity 6 PlayMode 194/194.
+195 C#/USS files matched the tested archive byte-for-byte.
+Live capture, screenshots and verification.json: workspace work/studio-v2/.
+Native screenshots cover 1600x1000, 1440x900 and 1366x768 editor targets.
+Local audition integration: a second listener correctly blocked Play. With one
+listener, arrangement audition started; seek to 2.5 s scheduled 5 voices.
+Stopping Studio audition left independently started game music playing.
+The console returned zero errors after the checks. Listening was not performed.
+
+Open acceptance limitation: native drop into a new timeline lane was not
+rechecked after its final handler fix because desktop coordinate input became
+unavailable. Five-lane creation through the authoring command and runtime seek
+were verified. Do not present that as a completed physical drag acceptance.
+Temporary QA assets were saved and moved to workspace work/studio-v2/qa-original
+with their metadata; they are not part of the main repository or delivery.

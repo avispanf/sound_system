@@ -11,7 +11,7 @@ namespace AudioMW.Editor
     {
         private static readonly Dictionary<Object, EditorWindow> pinnedWindows = new Dictionary<Object, EditorWindow>();
         [MenuItem("Window/AudioMW/Studio", false, 0)]
-        public static void Sounds() { AudioBrowserWindow.Open(); }
+        public static void Sounds() { AudioEventEditorWindow.Open(); }
         [MenuItem("Window/AudioMW/Panels/Authoring/Music", false, 1)]
         public static void Music() { MusicStatePreviewWindow.OpenMenu(); }
         [MenuItem("Window/AudioMW/Diagnostics", false, 2)]

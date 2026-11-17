@@ -416,3 +416,23 @@
 .audiomw-studio #studio-properties .unity-base-field__label { min-width: 85px; max-width: 150px; flex-shrink: 1; }
 .audiomw-studio #studio-properties .unity-base-field__input { min-width: 0; flex-shrink: 1; }
 .audiomw-studio .studio-bank-member { min-height: 28px; -unity-text-align: middle-left; margin: 3px 0; }
+
+.audiomw-event-editor-v2 { background-color: rgb(32,34,37); color: rgb(230,233,235); }
+.audiomw-event-editor-v2 .unity-toolbar { height: 28px; flex-shrink: 0; padding: 2px 4px; background-color: rgb(40,43,46); }
+.audiomw-event-editor-v2 #studio-v2-toolbar { height: 32px; }
+.audiomw-event-editor-v2 #studio-v2-toolbar > .unity-label { -unity-font-style: bold; -unity-text-align: middle-left; }
+.audiomw-event-editor-v2 #studio-v2-transport { height: 36px; }
+.audiomw-event-editor-v2 #studio-v2-transport > .unity-label { -unity-text-align: middle-left; margin: 0 8px; }
+.audiomw-event-editor-v2 #studio-v2-main { min-height: 0; }
+.audiomw-event-editor-v2 #studio-v2-browser { background-color: rgb(35,38,41); }
+.audiomw-event-editor-v2 #studio-v2-browser .unity-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 2px 8px; }
+.audiomw-event-editor-v2 #studio-v2-browser > .unity-toolbar { flex-wrap: nowrap; }
+.audiomw-event-editor-v2 #studio-v2-browser .unity-toolbar-button { padding: 0 5px; min-width: 0; flex-shrink: 1; }
+.audiomw-event-editor-v2 #studio-v2-center { min-height: 0; }
+.audiomw-event-editor-v2 #studio-v2-overview { width: 220px; flex-shrink: 0; padding: 12px; border-left-width: 1px; border-left-color: rgb(68,73,78); }
+.audiomw-event-editor-v2 #studio-v2-overview .unity-label { white-space: normal; margin-bottom: 8px; }
+.audiomw-event-editor-v2 #studio-v2-deck { background-color: rgb(40,43,46); border-top-width: 1px; border-top-color: rgb(68,73,78); padding: 6px 12px; flex-shrink: 0; }
+.audiomw-event-editor-v2 #studio-v2-deck > .unity-label { height: 24px; -unity-font-style: bold; }
+.audiomw-event-editor-v2 #studio-v2-dock { flex-shrink: 0; padding: 8px 12px; background-color: rgb(40,43,46); }
+.audiomw-event-editor-v2 .studio-v2-active { background-color: rgb(56,73,54); color: rgb(169,207,118); }
+.audiomw-event-editor-v2 #studio-v2-documents .unity-toolbar-button { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }

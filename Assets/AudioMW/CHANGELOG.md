@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0-preview.47 — Studio V2 authoring and arrangement MVP
+
+- Add a dockable Event Editor with independent browsers, document tabs, an editable Deck, Author/Audition/Local Live, and embedded diagnostics.
+- Add an opt-in versioned MusicArrangement model, explicit legacy adapter, source-referenced clip placement/trim/repeat/fades, lane routing and parameter curves.
+- Schedule arrangement voices on DSP time with owned stop/seek and session mute/solo; preserve legacy MusicTrack playback.
+- Add bounded real Local capture and conflict-safe global overrides; document Save never promotes overrides into defaults.
+- Keep Unity AudioMixer and existing advanced tools available. Remote and custom Mixer are not implemented.
+
 ## 0.5.0-preview.45 — Production workflow and compact authoring
 
 - Enforce Mobile 2D spatial/occlusion flags at voice playback and respect the DSP flag for distance filtering.
