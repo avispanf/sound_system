@@ -436,3 +436,21 @@
 .audiomw-event-editor-v2 #studio-v2-dock { flex-shrink: 0; padding: 8px 12px; background-color: rgb(40,43,46); }
 .audiomw-event-editor-v2 .studio-v2-active { background-color: rgb(56,73,54); color: rgb(169,207,118); }
 .audiomw-event-editor-v2 #studio-v2-documents .unity-toolbar-button { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+
+.audiomw-event-editor-v2 .unity-toolbar-button { margin: 1px 2px; padding: 0 10px; border-width: 1px; border-color: rgb(68,73,78); border-radius: 3px; background-color: rgb(40,43,46); }
+.audiomw-event-editor-v2 .unity-toolbar-button:hover { background-color: rgb(55,60,63); }
+.audiomw-event-editor-v2 .studio-v2-active { background-color: rgb(56,73,54); border-color: rgb(169,207,118); color: rgb(230,233,235); }
+.audiomw-event-editor-v2 #studio-v2-transport { height: 42px; padding: 5px 10px; background-color: rgb(32,34,37); }
+.audiomw-event-editor-v2 #studio-play { background-color: rgb(56,73,54); border-color: rgb(169,207,118); }
+.audiomw-event-editor-v2 #studio-view-tabs { height: 32px; background-color: rgb(32,34,37); }
+.audiomw-event-editor-v2 #studio-v2-browser > .unity-toolbar-search-field { margin: 8px; height: 26px; }
+.audiomw-event-editor-v2 .studio-browser-row { flex-direction: row; align-items: center; padding: 0 10px; height: 24px; }
+.audiomw-event-editor-v2 .studio-browser-row > .unity-image { width: 16px; height: 16px; flex-shrink: 0; }
+.audiomw-event-editor-v2 .studio-browser-row > .unity-label { flex-grow: 1; }
+.audiomw-event-editor-v2 .unity-collection-view__item--selected { background-color: rgb(56,73,54); }
+.audiomw-event-editor-v2 #studio-v2-documents { height: 32px; background-color: rgb(28,30,32); }
+.audiomw-event-editor-v2 .studio-document-tab { flex-direction: row; border-width: 1px; border-color: rgb(68,73,78); border-radius: 3px; margin: 1px 4px 1px 0; }
+.audiomw-event-editor-v2 .studio-document-tab .unity-toolbar-button { border-width: 0; background-color: rgba(0,0,0,0); margin: 0; }
+.audiomw-event-editor-v2 #studio-v2-deck { padding: 6px 12px; }
+.audiomw-event-editor-v2 #studio-v2-deck > .unity-label { border-bottom-width: 1px; border-bottom-color: rgb(68,73,78); margin-bottom: 8px; padding-bottom: 5px; }
+.audiomw-event-editor-v2 #studio-v2-dock-tabs { background-color: rgb(32,34,37); }

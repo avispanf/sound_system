@@ -100,3 +100,9 @@ unavailable. Five-lane creation through the authoring command and runtime seek
 were verified. Do not present that as a completed physical drag acceptance.
 Temporary QA assets were saved and moved to workspace work/studio-v2/qa-original
 with their metadata; they are not part of the main repository or delivery.
+
+2026-11-17 VISUAL FOLLOW-UP
+The earlier M1-M4 implementation is not visual parity with Studio V2. This pass changes editor presentation only: document tab groups, browser icons/selected tabs, transport/view selection, full-width adaptive timeline fit, aligned track names/M/S/gain/output, clip outlines and grid, bounded Deck columns and a separate editable lane-response curve beside clip properties. Legacy track root properties now use the same bounded columns. Zero-distance clip clicks no longer create an authored dirty change.
+Native checks: real source Editor, dark skin, audioMasterMute=true, clean unnamed scene preserved. Physical clip selection and Save then selection confirmed IsDirty=false. Music was inspected at 1600-wide (OS constrained height to 974), 1366x768 and 1440x900. Latest screenshots: workspace work/studio-v2/visual48-1366.png and visual48-1440.png. Five actual QA lanes are visible; no synthetic extra lanes or waveform data. Native curve editor remains Unity's curve control; not a custom graph with persistent axes.
+Fresh Unity 6 EditMode before final layout adjustment: 353/353 (visual48-edit.xml). Final candidate: 353/353 passed in visual48-final-edit.xml (2026-11-17 15:04 UTC). No new PlayMode, Unity 2022, native-player or listening claim for this visual pass.
+Remaining visual work: hierarchical browser, Container composition, compact Overview/reference preview, transport parameter strip and refined curve presentation. Full reference fidelity is not complete. QA assets are removed from source after checks and retained in workspace; EditorSettings.asset is excluded.

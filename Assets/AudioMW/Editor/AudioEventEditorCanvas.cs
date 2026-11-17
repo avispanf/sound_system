@@ -74,15 +74,17 @@ namespace AudioMW.Editor
             EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
             bars=GUILayout.Toggle(bars,"Bars:Beats",EditorStyles.toolbarButton,GUILayout.Width(90));if(!bars)GUILayout.Label("Seconds",GUILayout.Width(60));
             GUILayout.Label(score.Tempo+" BPM · "+score.BeatsPerBar+"/4",GUILayout.Width(120));snap=EditorGUILayout.Popup(snap,new[]{"Snap off","Beat","Bar"},GUILayout.Width(85));
-            doc.Zoom=GUILayout.HorizontalSlider(doc.Zoom,10,240,GUILayout.Width(100));
-            if(GUILayout.Button("Fit all",EditorStyles.toolbarButton))doc.Zoom=Mathf.Clamp((canvas.layout.width-200)/(float)Math.Max(1,score.Exit),10,240);
-            using(new EditorGUI.DisabledScope(legacy))if(GUILayout.Button("+ Track",EditorStyles.toolbarButton)){Undo.RecordObject(score,"Add lane");score.Lanes.Add(new ArrangementLane{Name="Track "+(score.Lanes.Count+1)});EditorUtility.SetDirty(score);}
-            EditorGUILayout.EndHorizontal();
-            Rect viewport=GUILayoutUtility.GetRect(200,Mathf.Max(120,canvas.layout.height-85),GUILayout.ExpandWidth(true));
-            float header=180,rowHeight=54,totalWidth=Mathf.Max(viewport.width-18,header+(float)score.Exit*doc.Zoom+40),height=70+Math.Max(4,score.Lanes.Count+(legacy?0:1))*rowHeight;
+            if(doc.Zoom>0){EditorGUI.BeginChangeCheck();doc.Zoom=GUILayout.HorizontalSlider(doc.Zoom,10,240,GUILayout.Width(100));if(EditorGUI.EndChangeCheck())doc.FitTimeline=false;}
+            if(GUILayout.Button("Fit all",EditorStyles.toolbarButton,GUILayout.Width(60)))doc.FitTimeline=true;
+            using(new EditorGUI.DisabledScope(legacy))if(GUILayout.Button("+ Track",EditorStyles.toolbarButton,GUILayout.Width(70))){Undo.RecordObject(score,"Add lane");score.Lanes.Add(new ArrangementLane{Name="Track "+(score.Lanes.Count+1)});EditorUtility.SetDirty(score);}
+            GUILayout.FlexibleSpace();EditorGUILayout.EndHorizontal();
+            Rect viewport=GUILayoutUtility.GetRect(200,Mathf.Max(120,canvas.layout.height-(legacy?48:24)),GUILayout.ExpandWidth(true));
+            float header=250,rowHeight=48;
+            if(doc.FitTimeline||doc.Zoom<=0)doc.Zoom=Mathf.Clamp((viewport.width-header-24)/(float)Math.Max(1,score.Exit),10,240);
+            float totalWidth=Mathf.Max(viewport.width-18,header+(float)score.Exit*doc.Zoom+16),height=70+Math.Max(4,score.Lanes.Count+(legacy?0:1))*rowHeight;
             if(Event.current.type==EventType.ScrollWheel&&viewport.Contains(Event.current.mousePosition))
             {
-                if(Event.current.control||Event.current.command){float point=Event.current.mousePosition.x-viewport.x-header;float time=(point+doc.Scroll.x)/doc.Zoom;doc.Zoom=Mathf.Clamp(doc.Zoom*Mathf.Pow(1.1f,-Event.current.delta.y),10,240);doc.Scroll.x=Mathf.Max(0,time*doc.Zoom-point);Event.current.Use();}
+                if(Event.current.control||Event.current.command){doc.FitTimeline=false;float point=Event.current.mousePosition.x-viewport.x-header;float time=(point+doc.Scroll.x)/doc.Zoom;doc.Zoom=Mathf.Clamp(doc.Zoom*Mathf.Pow(1.1f,-Event.current.delta.y),10,240);doc.Scroll.x=Mathf.Max(0,time*doc.Zoom-point);Event.current.Use();}
                 else if(Event.current.shift){doc.Scroll.x=Mathf.Max(0,doc.Scroll.x+Event.current.delta.y*16);Event.current.Use();}
             }
             if(!legacy&&viewport.Contains(Event.current.mousePosition))
@@ -102,23 +104,28 @@ namespace AudioMW.Editor
             Handles.EndGUI();
             GUI.Label(new Rect(6,27,170,22),"Logic / cues");
             Cue(score.Loop&&score.Entry==score.LoopStart?"Entry / Loop in":"Entry",score.Entry,header,doc.Zoom);
-            Cue(score.Loop&&score.Exit==score.LoopEnd?"Loop out / Exit":"Exit",score.Exit,header,doc.Zoom);
+            Cue(score.Loop&&score.Exit==score.LoopEnd?"Loop out / Exit":"Exit",score.Exit,header,doc.Zoom,true);
             if(score.Loop){if(score.LoopStart!=score.Entry)Cue("Loop in",score.LoopStart,header,doc.Zoom);if(score.LoopEnd!=score.Exit)Cue("Loop out",score.LoopEnd,header,doc.Zoom);}
             foreach(var cue in score.Markers)GUI.Label(new Rect(header+(float)cue.Seconds*doc.Zoom,45,120,20),new GUIContent("◆ "+cue.Name,cue.Seconds+" s"),EditorStyles.miniLabel);
             for(int i=0;i<score.Lanes.Count;i++)
             {
-                var lane=score.Lanes[i];float y=68+i*rowHeight;Rect laneHeader=new Rect(0,y,header-4,26);
-                if(selectedLane==(legacy?"legacy:"+i:lane.Id))EditorGUI.DrawRect(new Rect(0,y,header-4,rowHeight-2),new Color(.22f,.29f,.21f));
-                if(GUI.Button(laneHeader,new GUIContent(lane.Name,lane.Name),EditorStyles.toolbarButton)){selectedLane=legacy?"legacy:"+i:lane.Id;CurrentDocument.Selection="lane:"+lane.Id;selectedClips.Clear();ShowDeck(CurrentAsset);}
+                var lane=score.Lanes[i];float y=68+i*rowHeight;
+                bool selected=selectedLane==(legacy?"legacy:"+i:lane.Id);
+                EditorGUI.DrawRect(new Rect(0,y,totalWidth,rowHeight-1),new Color(.14f,.15f,.16f));
+                EditorGUI.DrawRect(new Rect(0,y,header-1,rowHeight-1),selected?new Color(.22f,.29f,.21f):new Color(.17f,.18f,.19f));
+                if(selected)EditorGUI.DrawRect(new Rect(0,y,3,rowHeight-1),new Color(.66f,.81f,.46f));
+                var nameStyle=new GUIStyle(EditorStyles.boldLabel){clipping=TextClipping.Clip,alignment=TextAnchor.MiddleLeft};
+                if(GUI.Button(new Rect(12,y+4,header-112,22),new GUIContent(lane.Name,lane.Name),nameStyle)){selectedLane=legacy?"legacy:"+i:lane.Id;CurrentDocument.Selection="lane:"+lane.Id;selectedClips.Clear();ShowDeck(CurrentAsset);}
+                GUI.Label(new Rect(12,y+26,header-24,18),new GUIContent(lane.Output!=null?lane.Output.name:"Event output",lane.Parameter!=null?"Binding: "+lane.Parameter.name:"No parameter binding"),EditorStyles.miniLabel);
                 if(!legacy)
                 {
-                    bool mute=GUI.Toggle(new Rect(8,y+28,32,22),mutedLanes.Contains(lane.Id),"M",EditorStyles.miniButton);
-                    bool solo=GUI.Toggle(new Rect(44,y+28,32,22),soloLanes.Contains(lane.Id),"S",EditorStyles.miniButton);
+                    bool mute=GUI.Toggle(new Rect(header-102,y+7,22,20),mutedLanes.Contains(lane.Id),"M",EditorStyles.miniButton);
+                    bool solo=GUI.Toggle(new Rect(header-77,y+7,22,20),soloLanes.Contains(lane.Id),"S",EditorStyles.miniButton);
                     if(mute)mutedLanes.Add(lane.Id);else mutedLanes.Remove(lane.Id);if(solo)soloLanes.Add(lane.Id);else soloLanes.Remove(lane.Id);
                     if(arrangementPlayer!=null)arrangementPlayer.SetLaneAudition(lane.Id,mute,solo);
-                    GUI.Label(new Rect(80,y+28,95,22),new GUIContent(AudioGain.ToDecibels(lane.Gain).ToString("0.#")+" dB",(lane.Output!=null?lane.Output.name:"Arrangement output")+(lane.Parameter!=null?" · "+lane.Parameter.name:"")),EditorStyles.miniLabel);
-                    
                 }
+                GUI.Label(new Rect(header-52,y+7,50,20),AudioGain.ToDecibels(lane.Gain).ToString("0.#")+" dB",EditorStyles.miniLabel);
+                for(double t=0;t<=score.Exit;t+=grid)EditorGUI.DrawRect(new Rect(header+(float)t*doc.Zoom,y,1,rowHeight),new Color(.24f,.26f,.28f));
                 foreach(var clip in lane.Clips)
                 {
                     double start=clip.Start,duration=clip.Duration;
@@ -127,8 +134,13 @@ namespace AudioMW.Editor
                     if(clip.Id==dragClip&&dragKind==3)duration+=dragDelta;
                     Rect rect=new Rect(header+(float)start*doc.Zoom,y+3,Mathf.Max(4,(float)duration*doc.Zoom),rowHeight-8);
                     if((rect.xMax<doc.Scroll.x||rect.x>doc.Scroll.x+viewport.width)&&dragClip!=clip.Id)continue;
-                    EditorGUI.DrawRect(rect,selectedClips.Contains(clip.Id)?new Color(.35f,.43f,.27f):new Color(.22f,.34f,.35f));
+                    EditorGUI.DrawRect(rect,selectedClips.Contains(clip.Id)?new Color(.33f,.41f,.24f):new Color(.16f,.25f,.26f));
                     DrawClipWaveform(clip,rect,duration,doc.Scroll.x,viewport.width);
+                    Color edge=selectedClips.Contains(clip.Id)?new Color(.66f,.81f,.46f):new Color(.32f,.45f,.46f);
+                    EditorGUI.DrawRect(new Rect(rect.x,rect.y,rect.width,1),edge);
+                    EditorGUI.DrawRect(new Rect(rect.x,rect.yMax-1,rect.width,1),edge);
+                    EditorGUI.DrawRect(new Rect(rect.x,rect.y,1,rect.height),edge);
+                    EditorGUI.DrawRect(new Rect(rect.xMax-1,rect.y,1,rect.height),edge);
                     GUI.Label(new Rect(rect.x+6,rect.y,Mathf.Max(0,rect.width-12),22),new GUIContent(clip.Source!=null?clip.Source.name:"Missing",clip.Id),EditorStyles.miniLabel);
                     if(!legacy)HandleClipDrag(score,lane,clip,rect,doc.Zoom);
                     else if(Event.current.type==EventType.MouseDown&&rect.Contains(Event.current.mousePosition)){selectedLane="legacy:"+i;ShowDeck(CurrentAsset);Event.current.Use();}
@@ -163,7 +175,7 @@ namespace AudioMW.Editor
             }
         }
         private static string Musical(double seconds,MusicArrangement score){double beat=seconds/score.BeatSeconds;return (1+(int)(beat/score.BeatsPerBar))+":"+(1+(int)(beat%score.BeatsPerBar));}
-        private static void Cue(string name,double time,float header,float zoom){GUI.Label(new Rect(header+(float)time*zoom,25,100,32),new GUIContent("▼ "+name,name+" · "+time.ToString("0.###")+" s"),EditorStyles.miniLabel);}
+        private static void Cue(string name,double time,float header,float zoom,bool end=false){GUI.Label(new Rect(header+(float)time*zoom-(end?100:0),25,100,32),new GUIContent("▼ "+name,name+" · "+time.ToString("0.###")+" s"),EditorStyles.miniLabel);}
         private double Snap(double value,MusicArrangement score)=>snap==0?value:Math.Round(value/(score.BeatSeconds*(snap==2?score.BeatsPerBar:1)))*score.BeatSeconds*(snap==2?score.BeatsPerBar:1);
         private void TimelineDrop(MusicArrangement score,string laneId,Rect area,float header,float zoom)
         {
@@ -184,6 +196,7 @@ namespace AudioMW.Editor
             if(e.type==EventType.MouseDrag){dragDelta=(float)Snap((e.mousePosition.x-dragOrigin)/zoom,score);if(dragKind==1)dragDelta=Mathf.Max(-(float)score.Lanes.SelectMany(l=>l.Clips).Where(c=>selectedClips.Contains(c.Id)).Min(c=>c.Start),dragDelta);if(dragKind==2)dragDelta=Mathf.Clamp(dragDelta,-(float)Math.Min(dragStart,dragTrim),(float)dragDuration-.001f);if(dragKind==3)dragDelta=Mathf.Max(-(float)dragDuration+.001f,Mathf.Min(dragDelta,clip.Repeat?float.MaxValue:(float)(MusicTrack.GetExactDuration(clip.Source)-clip.Trim-clip.Duration)));e.Use();}
             if(e.type==EventType.MouseUp)
             {
+                if(Mathf.Abs(dragDelta)<.00001f){CancelDrag();e.Use();return;}
                 if(dragKind==1)ArrangementAuthoring.Move(score,selectedClips,dragDelta);
                 else{Undo.RecordObject(score,"Trim timeline clip");if(dragKind==2){clip.Start=dragStart+dragDelta;clip.Trim=dragTrim+dragDelta;clip.Duration=dragDuration-dragDelta;}else clip.Duration=dragDuration+dragDelta;clip.FadeIn=Math.Min(clip.FadeIn,clip.Duration);clip.FadeOut=Math.Min(clip.FadeOut,clip.Duration-clip.FadeIn);EditorUtility.SetDirty(score);}
                 CancelDrag();ShowDeck(score);e.Use();

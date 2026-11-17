@@ -16,7 +16,8 @@ namespace AudioMW.Editor
         {
             public string Guid;
             public bool Pinned;
-            public float Zoom = 60;
+            public float Zoom;
+            public bool FitTimeline=true;
             public Vector2 Scroll;
             public string Selection = "";
         }
@@ -76,11 +77,12 @@ namespace AudioMW.Editor
             top.Add(new ToolbarButton(SaveDocument) { text="Save",name="studio-save" }); rootVisualElement.Add(top);
             var main = new TwoPaneSplitView(0,260,TwoPaneSplitViewOrientation.Horizontal) { viewDataKey="AudioMW.V2.BrowserWidth",name="studio-v2-main" }; mainSplit=main;main.style.flexGrow=1; rootVisualElement.Add(main);
             var library = new VisualElement { name="studio-v2-browser" }; library.style.minWidth=220; library.style.maxWidth=360; main.Add(library);libraryPanel=library;
-            var tabs = new Toolbar(); string[] names={"Events","Banks","Assets","Parameters"};
-            for(int i=0;i<4;i++) { int index=i; tabs.Add(new ToolbarButton(()=>SwitchBrowser(index)) {text=names[i]}); } library.Add(tabs);
+            var tabs = new Toolbar{name="studio-browser-tabs"}; string[] names={"Events","Banks","Assets","Parameters"};
+            for(int i=0;i<4;i++) { int index=i; tabs.Add(new ToolbarButton(()=>SwitchBrowser(index)) {text=names[i],name="browser-tab-"+i}); } library.Add(tabs);
             search=new ToolbarSearchField(); search.SetValueWithoutNotify(queries[browserTab]); search.RegisterValueChangedCallback(e=>{queries[browserTab]=e.newValue;RefreshBrowser();}); library.Add(search);
             browser=new ListView { fixedItemHeight=24,selectionType=SelectionType.Multiple,name="studio-v2-library" }; browser.style.flexGrow=1;
-            browser.makeItem=()=>new Label(); browser.bindItem=(e,i)=>{ var label=(Label)e;label.text=browserAssets[i].name;label.tooltip=AssetDatabase.GetAssetPath(browserAssets[i]);};
+            browser.makeItem=()=>{var row=new VisualElement();row.AddToClassList("studio-browser-row");row.Add(new Image());row.Add(new Label());return row;};
+            browser.bindItem=(e,i)=>{var asset=browserAssets[i];e.Q<Image>().image=AssetDatabase.GetCachedIcon(AssetDatabase.GetAssetPath(asset));e.Q<Label>().text=asset.name;e.tooltip=AssetDatabase.GetAssetPath(asset);};
             browser.selectionChanged+=items=>{if(browserRefreshing)return;foreach(Object item in items){if(browserTab==0)OpenDocument(item,false);else ShowDeck(item);break;}};
             browser.itemsChosen+=items=>{foreach(Object item in items){OpenDocument(item,true);break;}};
             browser.RegisterCallback<PointerDownEvent>(e=>{browserPointer=e.position;browserDragArmed=e.button==0;},TrickleDown.TrickleDown);
@@ -123,7 +125,7 @@ namespace AudioMW.Editor
         public void SwitchBrowser(int index) {browserTab=Mathf.Clamp(index,0,3);search?.SetValueWithoutNotify(queries[browserTab]);EditorAudioPreview.Stop();RefreshBrowser();}
         private void RefreshBrowser()
         {
-            if(browser==null)return;browserRefreshing=true;browser.ClearSelection();browserAssets.Clear();string[] types=browserTab==0?new[]{"SoundEvent","MusicTrack","MusicArrangement","MusicStateProfile","VoiceLine"}:new[]{browserTab==1?"SoundBank":browserTab==2?"AudioClip":"SoundParameter"};
+            if(browser==null)return;for(int i=0;i<4;i++)rootVisualElement.Q<ToolbarButton>("browser-tab-"+i)?.EnableInClassList("studio-v2-active",i==browserTab);browserRefreshing=true;browser.ClearSelection();browserAssets.Clear();string[] types=browserTab==0?new[]{"SoundEvent","MusicTrack","MusicArrangement","MusicStateProfile","VoiceLine"}:new[]{browserTab==1?"SoundBank":browserTab==2?"AudioClip":"SoundParameter"};
             foreach(string type in types)foreach(string guid in AssetDatabase.FindAssets("t:"+type)){var asset=AssetDatabase.LoadAssetAtPath<Object>(AssetDatabase.GUIDToAssetPath(guid));if(asset!=null&&asset.name.IndexOf(queries[browserTab],StringComparison.OrdinalIgnoreCase)>=0)browserAssets.Add(asset);}
             browserAssets.Sort((a,b)=>string.CompareOrdinal(a.name,b.name));browser.itemsSource=browserAssets;browser.Rebuild();browserRefreshing=false;
         }
@@ -153,15 +155,16 @@ namespace AudioMW.Editor
             string stamp=documentIndex+string.Join("|",documents.Select(d=>{var a=AssetDatabase.LoadAssetAtPath<Object>(AssetDatabase.GUIDToAssetPath(d.Guid));return d.Guid+":"+(a!=null?a.name:"")+":"+(a!=null&&EditorUtility.IsDirty(a))+":"+d.Pinned;}));
             if(documentsStamp==stamp)return;documentsStamp=stamp;documentTabs.Clear();
             for(int i=0;i<documents.Count;i++){int index=i;var asset=AssetDatabase.LoadAssetAtPath<Object>(AssetDatabase.GUIDToAssetPath(documents[i].Guid));if(asset==null)continue;if(EditorUtility.IsDirty(asset))documents[i].Pinned=true;
-                var b=new ToolbarButton(()=>OpenDocument(asset,documents[index].Pinned)){text=asset.name+(EditorUtility.IsDirty(asset)?" •":""),tooltip=AssetDatabase.GetAssetPath(asset)};b.EnableInClassList("studio-v2-active",index==documentIndex);documentTabs.Add(b);
-                documentTabs.Add(new ToolbarButton(()=>{StopAudition();documents.RemoveAt(index);if(index<documentIndex)documentIndex--;documentIndex=Math.Min(documentIndex,documents.Count-1);selectedClips.Clear();selectedLane="";ShowDeck(CurrentAsset);RefreshDocuments();RefreshOverview();}){text="×"});}
+                var tabGroup=new VisualElement();tabGroup.AddToClassList("studio-document-tab");tabGroup.EnableInClassList("studio-v2-active",index==documentIndex);documentTabs.Add(tabGroup);
+                var b=new ToolbarButton(()=>OpenDocument(asset,documents[index].Pinned)){text=asset.name+(EditorUtility.IsDirty(asset)?" •":""),tooltip=AssetDatabase.GetAssetPath(asset)};b.EnableInClassList("studio-v2-active",index==documentIndex);tabGroup.Add(b);
+                tabGroup.Add(new ToolbarButton(()=>{StopAudition();documents.RemoveAt(index);if(index<documentIndex)documentIndex--;documentIndex=Math.Min(documentIndex,documents.Count-1);selectedClips.Clear();selectedLane="";ShowDeck(CurrentAsset);RefreshDocuments();RefreshOverview();}){text="×"});}
         }
         public void SaveDocument(){if(CurrentAsset is MusicArrangement score && score.Validate()!=""){notice=score.Validate();return;}if(deckTarget!=null)AssetDatabase.SaveAssetIfDirty(deckTarget);if(CurrentAsset!=null)AssetDatabase.SaveAssetIfDirty(CurrentAsset);RefreshDocuments();}
         private void ShowDeck(Object target)
         {
             deckSerialized?.Dispose();deckSerialized=null;deckTarget=target;
             if(target!=null)deckSerialized=new SerializedObject(target);
-            if(breadcrumb!=null)breadcrumb.text=(CurrentAsset!=null?CurrentAsset.name:"No event")+"  ›  "+(target!=null?target.name:"Select an object");
+            if(breadcrumb!=null)breadcrumb.text=target==CurrentAsset?(target!=null?target.name:"Select an object"):(CurrentAsset!=null?CurrentAsset.name:"No event")+"  ›  "+(target!=null?target.name:"Select an object");
         }
         private void CreateAsset(string kind)
         {

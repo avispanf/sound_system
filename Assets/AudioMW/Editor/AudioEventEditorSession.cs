@@ -29,11 +29,12 @@ namespace AudioMW.Editor
             var context=new PopupField<string>(new List<string>{"Author","Audition","Live"},mode);context.RegisterValueChangedCallback(e=>{if(mode=="Live")ReleaseLive();StopAudition();mode=e.newValue;notice="";});transport.Add(context);
             var target=new ObjectField("Emitter position"){name="studio-emitter",objectType=typeof(Transform),allowSceneObjects=true,value=auditionTarget};target.style.width=260;target.RegisterValueChangedCallback(e=>auditionTarget=e.newValue as Transform);transport.Add(target);
             sessionLabel=new Label();transport.Add(sessionLabel);parent.Add(transport);
-            var local=new Toolbar();local.Add(new ToolbarButton(()=>{overviewOpen=!overviewOpen;overview.style.display=overviewOpen?DisplayStyle.Flex:DisplayStyle.None;RefreshOverview();}){text="Overview"});
-            foreach(string label in new[]{"Container","Timeline","Parameters","Transitions"}){string next=label;local.Add(new ToolbarButton(()=>{view=next;canvas.MarkDirtyRepaint();}){text=label,name="view-"+label});}parent.Add(local);
+            var local=new Toolbar{name="studio-view-tabs"};
+            foreach(string label in new[]{"Container","Timeline","Parameters","Transitions"}){string next=label;local.Add(new ToolbarButton(()=>{view=next;RefreshTransport();canvas.MarkDirtyRepaint();}){text=label,name="view-"+label});}local.Add(new ToolbarSpacer{flex=true});local.Add(new ToolbarButton(()=>{overviewOpen=!overviewOpen;overview.style.display=overviewOpen?DisplayStyle.Flex:DisplayStyle.None;RefreshOverview();}){text="Overview"});parent.Add(local);
         }
         private void RefreshTransport()
         {
+            foreach(string tab in new[]{"Container","Timeline","Parameters","Transitions"})rootVisualElement.Q<ToolbarButton>("view-"+tab)?.EnableInClassList("studio-v2-active",tab==view);
             bool music=CurrentAsset is MusicTrack||CurrentAsset is MusicArrangement||CurrentAsset is MusicStateProfile;
             foreach(string name in new[]{"Container","Timeline","Transitions"})
             {
