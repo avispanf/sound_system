@@ -57,6 +57,14 @@ namespace AudioMW.Tests
                 var scroll = root.Q<ScrollView>("review-content");
                 var apply = root.Q<Button>("agent-approve");
                 Assert.IsNotNull(apply); Assert.IsTrue(apply.enabledSelf);
+                var route = root.Q<Label>("review-event-route");
+                var channels = root.Q<Label>("review-event-channels");
+                Assert.NotNull(route); Assert.NotNull(channels);
+                StringAssert.Contains(reply.Plan.Changes[0].Routing, route.text);
+                StringAssert.Contains("1 keep source layout · 0 force mono", channels.text);
+                Assert.IsFalse(route.GetFirstAncestorOfType<Foldout>() != null);
+                Assert.IsFalse(channels.GetFirstAncestorOfType<Foldout>() != null);
+                Assert.IsTrue(root.Query<Label>().ToList().Any(label => label.text.Contains("Channels: Source layout")));
                 Assert.IsFalse(scroll.Contains(apply));
                 Assert.LessOrEqual(apply.worldBound.xMax, root.worldBound.xMax + 1);
                 Assert.LessOrEqual(apply.worldBound.yMax, root.worldBound.yMax + 1);

@@ -177,3 +177,7 @@ Music transition rules show source → destination and consistent timing labels.
 ### Editor UI preview.35
 
 Native mixer routing profiles now have grouped fields, honest exposed-name checks and a native mixer action. Multi-edit remains supported. Fresh 329/329 EditMode and 5/5 package checks; muted QA Inspector captures at 300/520 px. Runtime unchanged; no new gameplay build or listening test.
+
+### Editor UI preview.36
+
+Review shows routing and channel handling before expanding details, with captured platform/Unity context. Fresh 329/329 EditMode and 5/5 package checks; native QA pending-plan screenshots at 1200/360 px. No plan applied, no new gameplay build or listening check.

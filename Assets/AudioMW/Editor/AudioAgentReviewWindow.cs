@@ -17,6 +17,15 @@ namespace AudioMW.Editor
         private void OnDisable() { AudioAgentBridge.Changed -= Refresh; }
         private void Refresh() { EditorApplication.delayCall += () => { if (this != null) CreateGUI(); }; }
         private static Label Text(string value) => new Label(value) { style = { whiteSpace = WhiteSpace.Normal, marginTop = 5, marginBottom = 7 } };
+        private static string Channels(AudioAgentFile[] files)
+        {
+            int mono = files.Count(file => file.ForceToMono);
+            return "Channel handling · " + (files.Length - mono) + " keep source layout · " + mono + " force mono";
+        }
+        private static string FileDetails(AudioAgentFile file)
+        {
+            return file.Source + "\n→ " + file.Destination + "\nChannels: " + (file.ForceToMono ? "Force mono (Unity downmix)" : "Source layout (mono/stereo preserved)") + " · " + (file.Bytes / 1024f).ToString("0.0") + " KB · SHA256 " + file.Sha256.Substring(0, 12);
+        }
         public void CreateGUI()
         {
             rootVisualElement.Clear(); AudioWorkspace.Style(rootVisualElement);
@@ -62,6 +71,7 @@ namespace AudioMW.Editor
             var stateLabel = Text(plan.State + " · " + review.Changes.Length + " events · " + review.Music.Length + " tracks" + (review.HasProfile ? " · state profile" : "")); stateLabel.AddToClassList("audiomw-eyebrow"); scroll.Add(stateLabel);
             scroll.Add(Text(review.Intent));
             context.Add(Text("Scope · Entire plan"));
+            context.Add(Text("Captured target · " + review.BuildTarget + "\nUnity " + review.Unity));
             context.Add(Text("To change the scope, reject this plan and request a revised proposal."));
             foreach (var heading in new[] { "Before apply", "After apply", "Conflicts" })
             {
@@ -75,12 +85,14 @@ namespace AudioMW.Editor
                 var heading = Text(change.Name); heading.AddToClassList("audiomw-review-heading"); item.Add(heading);
                 var operation = Text(string.IsNullOrEmpty(change.ReplaceEventGuid) ? "Create event · Gameplay hook required" : "Replace source clips · Preserve event identity"); operation.AddToClassList("audiomw-eyebrow"); item.Add(operation);
                 item.Add(Text(change.Playback));
+                var route = Text("Route: " + change.Routing); route.name = "review-event-route"; item.Add(route);
+                var channels = Text(Channels(change.Files)); channels.name = "review-event-channels"; item.Add(channels);
                 item.Add(Text("After: " + change.Files.Length + " source clip(s) · " + string.Join(", ", change.Files.Select(file => System.IO.Path.GetFileName(file.Source)))));
                 var why = new Foldout { text = "Why / exact change", value = false, viewDataKey = "AudioMW.Review.Why." + review.Id + change.EventPath }; item.Add(why);
-                why.Add(Text(change.Purpose + "\nRoute: " + change.Routing));
+                why.Add(Text(change.Purpose));
                 var files = new Foldout { text = "File details · " + change.Files.Length, value = false, viewDataKey = "AudioMW.Review.Files." + review.Id + change.EventPath }; why.Add(files);
                 files.Add(Text(change.EventPath));
-                foreach (var file in change.Files) files.Add(Text(file.Source + "\n→ " + file.Destination + "\n" + (file.Bytes / 1024f).ToString("0.0") + " KB · SHA256 " + file.Sha256.Substring(0, 12)));
+                foreach (var file in change.Files) files.Add(Text(FileDetails(file)));
             }
             foreach (var change in review.Music)
             {
@@ -91,12 +103,13 @@ namespace AudioMW.Editor
                 item.Add(Text(change.Before));
                 item.Add(Text("After: " + settings.Tempo + " BPM · " + settings.BeatsPerBar + " beats/bar · loop on"));
                 item.Add(Text("Route: " + change.Route));
+                item.Add(Text(Channels(change.Files)));
                 var why = new Foldout { text = "Why / exact change", value = false, viewDataKey = "AudioMW.Review.MusicWhy." + review.Id + settings.Name }; item.Add(why);
                 why.Add(Text(settings.Purpose + "\n" + change.Target.Path));
                 why.Add(Text("Intro: " + (string.IsNullOrEmpty(settings.Intro) ? "none" : settings.Intro) + "\nBody: " + (string.IsNullOrEmpty(settings.Body) ? "stems only" : settings.Body)));
                 foreach (var stem in settings.Stems) why.Add(Text("Stem " + stem.Name + " · " + (string.IsNullOrEmpty(stem.ParameterGuid) ? "constant weight " + stem.LowWeight : change.Parameters.First(p => p.Guid == stem.ParameterGuid).Path + " · normalized 0→1 maps to " + stem.LowWeight + "→" + stem.HighWeight) + " · fade " + stem.FadeSeconds + "s"));
                 var files = new Foldout { text = "File details · " + change.Files.Length, value = false, viewDataKey = "AudioMW.Review.MusicFiles." + review.Id + settings.Name }; item.Add(files);
-                foreach (var file in change.Files) files.Add(Text(file.Source + "\n→ " + file.Destination + "\nChannels: " + (file.ForceToMono ? "Force mono (Unity downmix)" : "Source layout (mono/stereo preserved)") + " · " + (file.Bytes / 1024f).ToString("0.0") + " KB · SHA256 " + file.Sha256.Substring(0, 12)));
+                foreach (var file in change.Files) files.Add(Text(FileDetails(file)));
             }
             if (review.HasProfile)
             {

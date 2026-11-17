@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0-preview.36 — Visible review routing and channels
+
+- Show event routing and source-layout versus force-mono counts before expanding proposal details.
+- Include channel policy in event file details as well as music, and show the captured build target/Unity version in review context.
+
 ## 0.5.0-preview.35 — Routing profile Inspector
 
 - Add a native, multi-edit capable mixer routing Inspector with target mixer, parameter bindings and exposed-name checks.
