@@ -212,6 +212,7 @@ namespace AudioMW.Editor
                 summary.style.display = foldout.value ? DisplayStyle.None : DisplayStyle.Flex;
             };
             foldout.RegisterValueChangedCallback(evt => { if (evt.target == foldout) update(); });
+            foldout.RegisterCallback<GeometryChangedEvent>(_ => update());
             foldout.TrackSerializedObjectValue(serializedObject, _ => update());
             update();
             parent.Add(foldout);

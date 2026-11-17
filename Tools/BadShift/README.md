@@ -161,3 +161,5 @@ Preview.28 restores selected diagnostic details after rebuilding and exposes act
 Preview.29 adds a real project-event library and identity-based request filtering to Diagnostics. Requested-event scope stays visible in narrow windows; native selection and captured detail are preserved. See DARK-UI-VERIFICATION.json for fresh runtime and Editor evidence.
 
 Preview.30 separates Events source overview and asset context, with narrow reflow preserving source selection and audition controls. Native Inspector authoring and pin/follow remain unchanged. See DARK-UI-VERIFICATION.json for validation scope.
+
+Preview.31 improves narrow native Inspector object references and restored foldout summaries. Review changes remains a separate human-confirmation workflow; fresh test and native audit scope are recorded in DARK-UI-VERIFICATION.json.

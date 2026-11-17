@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0-preview.31 — Native Inspector reference readability
+
+- Give object references their full available width in narrow native Inspectors, including mixer output and concurrency groups.
+- Synchronize section summaries after restored foldout layout so expanded sections do not retain stale collapsed summaries.
+
 ## 0.5.0-preview.30 — Events overview and context
 
 - Separate source inspection from native Inspector actions, routing, parameters and runtime audition in a right context column.

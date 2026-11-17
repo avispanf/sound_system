@@ -302,3 +302,7 @@
 .audiomw-events #asset-context .unity-base-field__label { margin-bottom: 4px; }
 .audiomw-events .audiomw-events-narrow #events-context-host { display: none; }
 .audiomw-events .audiomw-events-narrow #asset-context { margin-top: 16px; padding-top: 8px; border-top-width: 1px; border-top-color: rgb(61, 66, 67); }
+
+#audiomw-event-inspector.audiomw-inspector-narrow .unity-object-field { flex-direction: column; align-items: stretch; }
+#audiomw-event-inspector.audiomw-inspector-narrow .unity-object-field > .unity-base-field__label { min-width: 0; width: auto; margin-bottom: 4px; }
+#audiomw-event-inspector.audiomw-inspector-narrow .unity-object-field > .unity-base-field__input { min-width: 0; width: auto; }

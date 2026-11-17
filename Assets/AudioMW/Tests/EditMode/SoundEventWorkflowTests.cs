@@ -220,6 +220,35 @@ namespace AudioMW.Tests
         }
 
         [UnityTest]
+        public IEnumerator NarrowInspectorShowsObjectReferencesAndRestoredFoldoutState()
+        {
+            var item = Event("NarrowReferences", Clip("Source"));
+            var editor = UnityEditor.Editor.CreateEditor(item);
+            var window = ScriptableObject.CreateInstance<EditorWindow>();
+            try
+            {
+                window.Show(); window.position = new Rect(100,100,300,650);
+                var view = editor.CreateInspectorGUI(); window.rootVisualElement.Add(view); view.Bind(editor.serializedObject);
+                yield return null; yield return null; yield return null;
+                var limits = view.Q<Foldout>("section-Playback limits");
+                limits.SetValueWithoutNotify(true);
+                yield return null; yield return null; yield return null;
+                Assert.AreEqual(DisplayStyle.None, limits.Q<Label>("summary").resolvedStyle.display);
+                foreach (var name in new[] { "mixerGroup", "concurrencyGroup" })
+                {
+                    var field = view.Q<PropertyField>(name).Q<ObjectField>();
+                    var input = field.Q(className: "unity-base-field__input");
+                    Assert.Greater(input.worldBound.width, field.worldBound.width * .85f);
+                    Assert.LessOrEqual(input.worldBound.xMax, window.rootVisualElement.worldBound.xMax + 1);
+                }
+                limits.SetValueWithoutNotify(false);
+                yield return null; yield return null; yield return null;
+                Assert.AreEqual(DisplayStyle.Flex, limits.Q<Label>("summary").resolvedStyle.display);
+            }
+            finally { window.Close(); Object.DestroyImmediate(editor); }
+        }
+
+        [UnityTest]
         public IEnumerator NarrowGainKeepsNumberResetAndMuteInsideTheInspector()
         {
             var item = Event("NarrowGain", Clip("Source"));
