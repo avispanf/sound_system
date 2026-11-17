@@ -18,6 +18,8 @@ namespace AudioMW.Editor
             public bool Pinned;
             public float Zoom;
             public bool FitTimeline=true;
+            public float LaneHeight=56;
+            public double Cursor;
             public Vector2 Scroll;
             public string Selection = "";
         }
