@@ -53,6 +53,7 @@ public sealed class BadShiftClayMotion : MonoBehaviour
             float beat = Mathf.Floor(phase * 12) / 12;
             float amount = i == 0 ? (Demo.Game.MovementSpeed > .15f ? .055f : .018f) : i == 1 ? (dancing ? .11f : .025f) : speaking ? .065f : .02f;
             float rhythm = i == 1 && dancing ? (float)(AudioSystem.Music.Clock.GetBeat(AudioSettings.dspTime) * Mathf.PI * 2) : beat * (i == 0 ? 13 : speaking ? 11 : 3);
+            if (i == 1 && Demo.NightStaff) { rhythm = beat * (dancing ? 2.4f : 1.3f); amount = dancing ? .042f : .018f; }
             float stretch = Mathf.Sin(rhythm) * amount + (i == 0 ? spring : 0);
             float width = 1 / Mathf.Sqrt(1 + stretch);
             bodies[i].localScale = Vector3.Scale(scales[i], new Vector3(width, 1 + stretch, width));

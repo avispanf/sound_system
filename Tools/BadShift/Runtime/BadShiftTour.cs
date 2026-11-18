@@ -14,6 +14,7 @@ public sealed class BadShiftTour : MonoBehaviour
     public string Heading { get; private set; } = "Your audio playground";
     public string Explanation { get; private set; } = "Explore freely, or watch the guided demo. All sounds use AudioMW. Audio clips are placeholders.";
     private Coroutine routine;
+    private bool tourTap;
     private IEnumerator Start()
     {
         bool start = StartOnLoad; StartOnLoad = false;
@@ -28,6 +29,8 @@ public sealed class BadShiftTour : MonoBehaviour
     public void Stop()
     {
         if (routine != null) StopCoroutine(routine);
+        if(tourTap && Game.Soundscape!=null) Game.Soundscape.StopTap();
+        tourTap=false;
         routine = null; Running = false; Direction = Vector3.zero;
         Heading = "Your audio playground";
         Explanation = "WASD move, Shift run, Space jump. X interacts with the nearest station; Q switches its variation. Watch demo starts a fresh guided tour.";
@@ -84,6 +87,20 @@ public sealed class BadShiftTour : MonoBehaviour
             Explanation="Flushing the cistern starts the water pump beside the bathroom. Leaving the room fades out the tiled reflections.";
             Game.Soundscape.FlushToilet();
             yield return new WaitForSeconds(2.2f);
+            if (Game.Soundscape.TapOccluder != null && !Game.Soundscape.Water.IsPlaying)
+            {
+                Game.Soundscape.ToggleTap();
+                tourTap = true;
+                yield return WalkTo(Game.Soundscape.Room.TransformPoint(new Vector3(1.22f,0,-3.48f)));
+                if (!Running) yield break;
+                Heading = "Door / Listen from one position";
+                Explanation = "The same tap keeps running. The door blocks its high frequencies and lowers its level. Watch the obstruction reading as it reopens.";
+                yield return new WaitForSeconds(1);
+                Game.Door.SetOpen(false); yield return new WaitForSeconds(2.2f);
+                Game.Door.SetOpen(true); yield return new WaitForSeconds(1.6f);
+                Game.Soundscape.StopTap();
+                tourTap = false;
+            }
         }
         Heading = "06 / Distance attenuation";
         Explanation = "Move the listener near and far from the fixed fridge. Music is muted here. E / lower door, G / upper door. Camera zoom does not change audio distance.";

@@ -46,6 +46,8 @@ public sealed class BadShiftCafeReactions : MonoBehaviour
         float pose=Mathf.Floor(Time.time*12)/12;
         arm.localPosition=armPosition;
         arm.localRotation=armRest*Quaternion.Euler(Mathf.Sin(pose*2)*8,Mathf.Sin(pose*1.3f)*12,Mathf.Sin(pose*(reaction>0?14:3))*(reaction>0?30:8));
+        if (Life.Demo.BossSleeping)
+            arm.localRotation = armRest * Quaternion.Euler(14 + Mathf.Sin(pose*1.4f)*2, 0, -19);
         float outcome=0,t=0;
         bool win=battle!=null&&battle.Phase==BadShiftBattlePhase.Victory;
         if(battle!=null&&battle.Finished)
@@ -139,6 +141,13 @@ public sealed class BadShiftCafeReactions : MonoBehaviour
                 if(enemy){pitch=-block*18;tilt+=wobble*17;headLag+=wobble*24;stretch-=block*.09f;}
                 else{stretch-=block*.07f;headLag+=wobble*9;}
             }
+        }
+        if (enemy && Life.Demo.NightStaff)
+        {
+            float sway = Mathf.Sin(Time.time * (Life.Demo.DancerSleeping ? 1.4f : 2.4f));
+            headLag += 8 + 4*sway;
+            pitch += Life.Demo.DancerSleeping ? 15 : 6;
+            lift -= .04f;
         }
         rig.localRotation=rest*Quaternion.Euler(pitch,twist,tilt);
         rig.localPosition=position+Vector3.up*lift;

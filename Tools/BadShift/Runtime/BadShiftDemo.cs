@@ -8,6 +8,13 @@ public sealed class BadShiftDemo : MonoBehaviour
     public SoundEvent MicrowaveRandom;
     public SoundEvent MicrowaveBag;
     public SoundEvent FridgeSound;
+    public SoundEvent DancerMusic;
+    public SoundHandle DancerMusicHandle { get; private set; }
+    private float retryDanceAt, retryFridgeAt;
+    public bool NightStaff => Game.Soundscape != null && Game.Soundscape.AfterHours && (Game.Life == null || !Game.Life.Duel);
+    public bool BossSleeping => NightStaff && !AudioSystem.VoiceOver.IsSpeaking;
+    public bool DancerSleeping => NightStaff && !EmployeeDancing;
+    private float drowsiness;
     public Transform Microwave;
     public Transform MicrowaveVisual;
     public float MicrowaveResponseUntil => responseUntil;
@@ -27,7 +34,7 @@ public sealed class BadShiftDemo : MonoBehaviour
     private float bossYaw;
     private bool wasNearBoss;
     private float nextGreeting;
-    public string BossQuote => Game.Life!=null&&Game.Life.Battle!=null&&Game.Life.Battle.Finished?Game.Life.Battle.BossOutcomeQuote:AudioRuntime.Exists && AudioSystem.VoiceOver.IsSpeaking ? AudioSystem.VoiceOver.CurrentLine.Subtitle : Game.Life!=null?Game.Life.ReactionQuote:"";
+    public string BossQuote => Game.Life!=null&&Game.Life.Battle!=null&&Game.Life.Battle.Finished?Game.Life.Battle.BossOutcomeQuote:BossSleeping?((Game.transform.position-Boss.position).sqrMagnitude<25 && Mathf.Repeat(reactionTime,5)<2?"Zzz...":""):AudioRuntime.Exists && AudioSystem.VoiceOver.IsSpeaking ? AudioSystem.VoiceOver.CurrentLine.Subtitle : Game.Life!=null?Game.Life.ReactionQuote:"";
     private Quaternion dancerRest;
     private float reactionTime;
     private Transform[] eyes;
@@ -47,7 +54,24 @@ public sealed class BadShiftDemo : MonoBehaviour
     private string answer = "Ready for questionable cuisine";
     private Vector3 danceBase;
     private float dancePhase;
-    public bool EmployeeDancing => (Game.Life==null||!Game.Life.Duel) && ((AudioSystem.Music.CurrentTrack!=null&&AudioSystem.Music.CurrentTrack.name=="Combat") || Vector3.Distance(Game.transform.position,Dancer.position)<3.5f);
+    private bool danceEngaged;
+    public bool EmployeeDancing
+    {
+        get
+        {
+            if (Game.Life != null && Game.Life.Duel) return false;
+            if (NightStaff)
+            {
+                float wakeDistance = danceEngaged ? 4.8f : 3.5f;
+                return (Game.transform.position-Dancer.position).sqrMagnitude < wakeDistance*wakeDistance;
+            }
+            if (AudioSystem.Music.CurrentTrack != null && AudioSystem.Music.CurrentTrack.name == "Combat") return true;
+            float radius = 3.5f;
+            if (danceEngaged && DancerMusic != null)
+                radius = Mathf.Max(radius, DancerMusic.AttenuationPreset != null ? DancerMusic.AttenuationPreset.MaxDistance : DancerMusic.MaxDistance);
+            return (Game.transform.position - Dancer.position).sqrMagnitude < radius * radius;
+        }
+    }
     public string LastAnswer => answer;
     public int EffectMode => effect;
     public float ListenerDistance => Vector3.Distance(Game.Listener.position, Fridge.position);
@@ -57,7 +81,7 @@ public sealed class BadShiftDemo : MonoBehaviour
         BadShiftImpactProp.ResetCounters();
         MicrowaveBag.ResetSelection(); MicrowaveRandom.ResetSelection();
         danceBase = Dancer.localPosition; dancerRest = Dancer.localRotation; bossRest = Boss.localRotation;
-        fridgeHandle = AudioSystem.PlayTrackedAtPosition(FridgeSound, Fridge.position);
+        EnsureCompressor();
         microwaveMaterial = (MicrowaveVisual != null ? MicrowaveVisual : Microwave).GetComponent<Renderer>().material; microwaveColor = microwaveMaterial.color;
         var found = new System.Collections.Generic.List<Transform>();
         foreach (Transform child in Boss.GetComponentsInChildren<Transform>()) if (child.name == "Sphere") found.Add(child);
@@ -83,9 +107,16 @@ public sealed class BadShiftDemo : MonoBehaviour
         if (Vector3.Distance(p, Microwave.position) < 3) return 1;
         if (Vector3.Distance(p, Boss.position) < 4) return 2;
         if (Vector3.Distance(p, Room.position) < 3) return 3;
-        if (p.x > 5) return 4;
+        if ((Game.Tour != null && Game.Tour.ComparingFridge) || (p - Fridge.position).sqrMagnitude < 16f) return 4;
         return 0;
     }
+    private void EnsureCompressor()
+    {
+        if (FridgeSound == null || fridgeHandle.IsPlaying || Time.unscaledTime < retryFridgeAt) return;
+        fridgeHandle = AudioSystem.PlayTrackedAttached(FridgeSound, Fridge);
+        retryFridgeAt = Time.unscaledTime + .75f;
+    }
+
     private void Update()
     {
         Keyboard k = Keyboard.current;
@@ -94,31 +125,38 @@ public sealed class BadShiftDemo : MonoBehaviour
         {
             if (k.tabKey.wasPressedThisFrame) CycleAudioVisuals();
             if (k.qKey.wasPressedThisFrame) { if (Station() == 1) ToggleSelection(); if (Station() == 3) SetEffect((effect + 1) % 3); }
-            if (k.xKey.wasPressedThisFrame) { if (Station() == 1) PlayMicrowave(); if (Station() == 2) Game.Speak(); if (Station() == 3) PlayRoom(); }
+            if (k.xKey.wasPressedThisFrame) { if (Station() == 1) PlayMicrowave(); if (Station() == 2 && !BossSleeping) Game.Speak(); if (Station() == 3) PlayRoom(); }
         }
+        EnsureCompressor();
         bool speaking = AudioSystem.VoiceOver.IsSpeaking;
+        drowsiness = Mathf.MoveTowards(drowsiness, NightStaff ? 1 : 0, Time.deltaTime * 2);
         Game.FreezeForVoice = speaking || (Game.Life!=null&&(Game.Life.PlayerDead||(Game.Life.Battle!=null&&Game.Life.Battle.LocksMovement)));
         reactionTime += Time.deltaTime;
-        for (int i=0;i<eyes.Length;i++) eyes[i].localScale = Vector3.Scale(eyeScales[i], new Vector3(1,Mathf.Repeat(reactionTime,4)<.12f?.15f:1,1));
+        for (int i=0;i<eyes.Length;i++) eyes[i].localScale = Vector3.Scale(eyeScales[i], new Vector3(1,BossSleeping?.1f:Mathf.Repeat(reactionTime,4)<.12f?.15f:1,1));
         Vector3 towardPlayer = Game.transform.position - Boss.position;
         bool nearBoss = towardPlayer.sqrMagnitude < 16;
-        if (nearBoss && !wasNearBoss && Time.time >= nextGreeting && !speaking)
+        if (!BossSleeping && nearBoss && !wasNearBoss && Time.time >= nextGreeting && !speaking)
         {
             Game.Speak(); nextGreeting = Time.time + 15;
         }
-        wasNearBoss = nearBoss;
+        wasNearBoss = nearBoss && !BossSleeping;
         float look = (Game.Life!=null&&Game.Life.Battle!=null&&Game.Life.Battle.Finished)||towardPlayer.sqrMagnitude < 81 ? Mathf.Clamp(Mathf.Atan2(-towardPlayer.x, -towardPlayer.z) * Mathf.Rad2Deg, -30, 30) : Mathf.Sin(reactionTime * .65f) * 12;
         bossYaw = Mathf.LerpAngle(bossYaw, look, 1 - Mathf.Exp(-3 * Time.deltaTime));
         Boss.localRotation = Quaternion.Euler(speaking ? Mathf.Sin(reactionTime*9)*5 : Mathf.Sin(reactionTime*1.2f)*1.2f, bossYaw, Mathf.Sin(reactionTime*.8f)*1.3f) * bossRest;
-        MusicPlayer music = AudioSystem.Music;
+        if (BossSleeping)
+            Boss.localRotation = bossRest * Quaternion.Euler(13 + Mathf.Sin(reactionTime*1.2f)*2, -4, 8);
         bool combat = EmployeeDancing;
+        danceEngaged = combat;
+        UpdateDanceMusic(combat && !speaking && !Game.MusicMuted && Station() != 4);
         if (!speaking && !AudioListener.pause && combat && (Game.Life==null||!Game.Life.Duel))
         {
-            dancePhase += Time.deltaTime * 7;
-            Dancer.localRotation = dancerRest * Quaternion.Euler(0, Mathf.Sin(dancePhase) * 25, Mathf.Sin(dancePhase * 2) * 12);
-            Dancer.localPosition = danceBase + Vector3.up * Mathf.Abs(Mathf.Sin(dancePhase)) * 0.15f;
+            dancePhase += Time.deltaTime * Mathf.Lerp(7, 2.4f, drowsiness);
+            Dancer.localRotation = dancerRest * Quaternion.Euler(drowsiness*(10+5*Mathf.Cos(dancePhase)), Mathf.Sin(dancePhase) * Mathf.Lerp(25,13,drowsiness), Mathf.Sin(dancePhase * 2) * 12);
+            Dancer.localPosition = danceBase + Vector3.up * Mathf.Abs(Mathf.Sin(dancePhase)) * Mathf.Lerp(.15f,.045f,drowsiness);
         }
         if (!combat && !speaking) { Dancer.localPosition = danceBase; Dancer.localRotation = Game.Life!=null&&Game.Life.Duel?Quaternion.identity:dancerRest; }
+        if (DancerSleeping)
+            Dancer.localRotation = dancerRest * Quaternion.Euler(15 + 2*Mathf.Sin(reactionTime*1.4f), 0, -9);
         string desiredPlayer = !Game.IsGrounded ? "Jump" : Time.time < Mathf.Max(responseUntil, Game.LastInteractionTime + .65f) ? "Interact" : Game.MovementSpeed > 4.2f ? "Run" : Game.MovementSpeed > .15f ? "Walk" : "Idle";
         if (PlayerAnimator != null)
         {
@@ -128,14 +166,34 @@ public sealed class BadShiftDemo : MonoBehaviour
         string desiredStaff = combat ? "Cheer" : Game.Life!=null&&Game.Life.Battle!=null&&Game.Life.Battle.EnemySpeed>.15f?"Walk":"Idle";
         if (DanceAnimator != null)
         {
-            DanceAnimator.speed = speaking || (Game.Life!=null&&Game.Life.EnemyDead) ? 0 : 1;
+            DanceAnimator.speed = speaking || (Game.Life!=null&&Game.Life.EnemyDead) ? 0 : NightStaff ? (combat ? .45f : .13f) : 1;
             if (staffPose != desiredStaff) { DanceAnimator.CrossFadeInFixedTime(desiredStaff, .15f); staffPose = desiredStaff; }
         }
         microwaveMaterial.color = Time.time < responseUntil ? Color.Lerp(microwaveColor, Color.white, .45f) : microwaveColor;
         Game.AuditionMixGain = Game.Life!=null&&Game.Life.Duel?(Game.Life.Battle.Finished?.25f:1):Station() == 4 ? 0 : Station() == 3 ? .15f : 1;
         RaveLight.color = combat ? Color.Lerp(new Color(1,.3f,.5f), new Color(.6f,.4f,1), .5f + .5f * Mathf.Sin(dancePhase)) : new Color(1,.85f,.65f);
-        RaveLight.intensity = combat ? 4 : 1;
+        RaveLight.intensity = combat ? Mathf.Lerp(4,1.8f,drowsiness) : Mathf.Lerp(1,.25f,drowsiness);
     }
+    private void UpdateDanceMusic(bool dancing)
+    {
+        if (!dancing || DancerMusic == null || Dancer == null)
+        {
+            StopDanceMusic();
+            return;
+        }
+        if (DancerMusicHandle.IsPlaying || Time.unscaledTime < retryDanceAt) return;
+        DancerMusicHandle = AudioSystem.PlayTrackedAttached(DancerMusic, Dancer);
+        retryDanceAt = Time.unscaledTime + .5f;
+    }
+
+    private void StopDanceMusic()
+    {
+        if (DancerMusicHandle.IsAssigned) DancerMusicHandle.Stop();
+        DancerMusicHandle = SoundHandle.None;
+        retryDanceAt = 0;
+    }
+
+    private void OnDisable() { StopDanceMusic(); fridgeHandle.Stop(); retryFridgeAt = 0; }
     private GUIStyle TextStyle(int size, Color color, bool bold=false)
     {
         GUIStyle style=new GUIStyle(GUI.skin.label){fontSize=size,wordWrap=true,fontStyle=bold?FontStyle.Bold:FontStyle.Normal};style.normal.textColor=color;return style;

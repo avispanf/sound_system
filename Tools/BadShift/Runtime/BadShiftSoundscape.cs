@@ -4,6 +4,7 @@ using UnityEngine;
 [DefaultExecutionOrder(320)]
 public sealed class BadShiftSoundscape : MonoBehaviour
 {
+    public SoundOccluder TapOccluder;
     public BadShiftCoffeeMill Mill;
     public BadShiftDaylight Sky;
     public BadShiftNightTraffic Street;
@@ -73,10 +74,24 @@ public sealed class BadShiftSoundscape : MonoBehaviour
     public void ToggleTap()
     {
         if(!Inside) return;
-        if(Water.IsPlaying){Water.Stop();Water=SoundHandle.None;}
+        if(Water.IsPlaying) StopTap();
+        else if(TapOccluder!=null)
+        {
+            TapOccluder.Event=TapLoop;
+            TapOccluder.Play();
+            var voice=TapOccluder.ActiveVoice;
+            Water=voice==null ? SoundHandle.None : new SoundHandle(voice.HandleId);
+        }
         else Water=AudioSystem.PlayTrackedAttached(TapLoop,Tap);
         Stream.SetActive(Water.IsPlaying);
         Notify(Water.IsPlaying?"Tap open · flowing water starts the yard pump":"Tap closed · water stops");
+    }
+
+    public void StopTap()
+    {
+        Water.Stop();
+        Water=SoundHandle.None;
+        if (Stream!=null) Stream.SetActive(false);
     }
 
     public void FlushToilet()
@@ -99,7 +114,9 @@ public sealed class BadShiftSoundscape : MonoBehaviour
     {
         get
         {
-            if(Inside) return "Tiled reflections " + Mathf.RoundToInt(RoomMix*100) + "% · " + (Time.time<flushUntil?"cistern refilling / pump running":Water.IsPlaying?"water flowing / pump running":"tap closed");
+            if(Inside) return "Tiled reflections " + Mathf.RoundToInt(RoomMix*100) + "% · " + (Time.time<flushUntil?"cistern refilling / pump running":Water.IsPlaying?"tap running · step outside and close the door":"tap closed");
+            if(TapOccluder!=null && Water.IsPlaying && Vector3.Distance(Game.Listener.position,Tap.position)<8)
+                return "Running tap · obstruction " + Mathf.RoundToInt(TapOccluder.Occlusion*100) + "% · move the door to compare";
             if(Mill!=null && Vector3.Distance(Game.Listener.position,Mill.transform.position)<2.8f)
                 return Mill.Momentum>0 ? "Coffee grinder · speed " + Mathf.RoundToInt(Mill.Momentum*100) + "% raises pitch and volume" : "Coffee grinder · tap E to spin faster, then listen as it slows";
             if(Time.time<messageUntil) return LastChange;

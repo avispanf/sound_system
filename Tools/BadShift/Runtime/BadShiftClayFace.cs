@@ -31,7 +31,7 @@ public sealed class BadShiftClayFace : MonoBehaviour
         }
         clock+=Time.deltaTime;
         float pose=Mathf.Floor(clock*12)/12+(Employee?.7f:0);
-        bool dance=Employee&&AudioSystem.Music.CurrentTrack!=null&&AudioSystem.Music.CurrentTrack.name=="Combat";
+        bool dance=Employee&&Demo.EmployeeDancing;
         float energy=dance?1:Demo.Game.MovementSpeed>.15f&&!Employee?.55f:.2f;
         float sway=gait!=null&&gait.IsWalking?gait.Cycle*Mathf.PI*2-.8f:pose*3.2f;
         Head.localRotation=rest*Quaternion.Euler(Mathf.Sin(sway*2-.5f)*energy*9,Mathf.Sin(pose*1.7f)*12,Mathf.Sin(sway)*energy*12);
@@ -39,6 +39,11 @@ public sealed class BadShiftClayFace : MonoBehaviour
         Head.localScale=Vector3.Scale(scale,new Vector3(1/Mathf.Sqrt(stretch),stretch,1/Mathf.Sqrt(stretch)));
         float blink=Mathf.Repeat(clock+(Employee?1.1f:0),3.7f);
         float open=blink<.16f?Mathf.Max(.08f,Mathf.Abs(blink-.08f)/.08f):1;
+        if(Employee && Demo.NightStaff)
+        {
+            open = Demo.DancerSleeping ? .09f : open*(.42f+.12f*Mathf.Sin(pose*1.8f));
+            Head.localRotation *= Quaternion.Euler(Demo.DancerSleeping ? 12 : 5+4*Mathf.Sin(pose*2.1f),0,-4);
+        }
         for(int i=0;i<Eyes.Length;i++)Eyes[i].localScale=Vector3.Scale(eyeScales[i],new Vector3(1,open,1));
     }
     private void OnDisable()

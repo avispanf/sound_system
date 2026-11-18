@@ -135,7 +135,7 @@ public sealed class AudioMWPlayground : MonoBehaviour
         if ((keys != null && keys.fKey.wasPressedThisFrame)) Fire();
         if ((keys != null && keys.eKey.wasPressedThisFrame)) Interact();
         if (keys != null && keys.gKey.wasPressedThisFrame && FridgeDoors != null) FridgeDoors.ToggleUpperNear(transform.position,character);
-        if ((keys != null && keys.vKey.wasPressedThisFrame)) Speak();
+        if (keys != null && keys.vKey.wasPressedThisFrame && (Life == null || !Life.Demo.BossSleeping)) Speak();
         if ((keys != null && keys.lKey.wasPressedThisFrame)) StressLimit();
         if ((keys != null && keys.mKey.wasPressedThisFrame)) RequestMusic(!requestedCombat);
         if (!complete && collected == Pickups.Length && (GetComponent<BadShiftDemo>()!=null || Vector3.Distance(transform.position, Exit.position) < 2.5f))

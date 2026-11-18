@@ -53,7 +53,7 @@ public sealed class BadShiftCafeLife : MonoBehaviour
         get
         {
             if(Duel)return Battle.Status;
-            var target=Nearest();string label=target==null?"":target.Kind==BadShiftUseKind.Sink?(Demo.Game.Soundscape!=null && Demo.Game.Soundscape.Water.IsPlaying?"Turn tap off":"Turn tap on"):target.Kind==BadShiftUseKind.Toilet?"Flush toilet":target.Label;return target!=null?"E / "+label+(target.Kind==BadShiftUseKind.Fridge?" · G / upper door":""):"E / Use nearby objects · Shift / Run · Space / Jump";
+            var target=Nearest();string label=target==null?"":target.Kind==BadShiftUseKind.Boss && Demo.BossSleeping?"Manager asleep":target.Kind==BadShiftUseKind.Sink?(Demo.Game.Soundscape!=null && Demo.Game.Soundscape.Water.IsPlaying?"Turn tap off":"Turn tap on"):target.Kind==BadShiftUseKind.Toilet?"Flush toilet":target.Label;if(target!=null && target.Kind==BadShiftUseKind.Boss && Demo.BossSleeping)return label;return target!=null?"E / "+label+(target.Kind==BadShiftUseKind.Fridge?" · G / upper door":""):"E / Use nearby objects · Shift / Run · Space / Jump";
         }
     }
     public void Interact()
@@ -67,7 +67,7 @@ public sealed class BadShiftCafeLife : MonoBehaviour
         switch(target.Kind)
         {
             case BadShiftUseKind.Microwave:Demo.PlayMicrowave();break;
-            case BadShiftUseKind.Boss:Demo.Game.Speak();React("I am the boss. The broccoli boss.",false);break;
+            case BadShiftUseKind.Boss:if(Demo.BossSleeping)break;Demo.Game.Speak();React("I am the boss. The broccoli boss.",false);break;
             case BadShiftUseKind.Bathroom:target.Door.ToggleFor(GetComponent<CharacterController>());break;
             case BadShiftUseKind.Fridge:Demo.Game.FridgeDoors.Lower.ToggleFor(GetComponent<CharacterController>());break;
             case BadShiftUseKind.Spar:Battle.Begin();break;

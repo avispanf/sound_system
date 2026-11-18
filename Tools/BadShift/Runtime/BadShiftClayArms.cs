@@ -36,12 +36,12 @@ public sealed class BadShiftClayArms : MonoBehaviour
             windupWeight=Mathf.MoveTowards(windupWeight,Employee&&life!=null&&life.Battle!=null&&life.Battle.EnemyWindingUp?1:0,Time.deltaTime*7);
             bool dance=Employee&&Demo.EmployeeDancing;
             float response=1-Mathf.Exp(-9*Time.deltaTime);
-            danceWeight=Mathf.Lerp(danceWeight,dance?1:0,response);
+            danceWeight=Mathf.Lerp(danceWeight,dance?(Demo.NightStaff?.46f:1):0,response);
             runWeight=Mathf.Lerp(runWeight,!Employee?Mathf.Clamp01(Demo.Game.MovementSpeed/6):0,response);
             airWeight=Mathf.Lerp(airWeight,!Employee&&!Demo.Game.IsGrounded?1:0,response);
             float stride=gait.Cycle*Mathf.PI*2;
             float music=(float)AudioSystem.Music.Clock.GetBeat(AudioSettings.dspTime);
-            float beat=Mathf.Floor(music*6)/6*Mathf.PI;
+            float beat=Mathf.Floor((Employee && Demo.NightStaff ? clock*.72f : music)*6)/6*Mathf.PI;
             float idle=Mathf.Floor(clock*12)/12;
             for(int side=0;side<2;side++)
             {
