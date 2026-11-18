@@ -8,6 +8,8 @@ namespace AudioMW.Editor
     public sealed partial class AudioEventEditorWindow
     {
         private string deckSection="Properties";
+        private int attenuationPage;
+        private static readonly string[] AttenuationPages = { "Distance", "Width & pan", "Low-pass" };
         private string musicDeckSection="Properties";
         private SoundBank membership;
         private int deckSourceIndex=-1,deckChildIndex=-1;
@@ -78,7 +80,7 @@ namespace AudioMW.Editor
             DeckField("volume","Gain");DeckField("pitch","Pitch ratio");DeckField("maxInstances","Max voices");DeckField("limitPolicy","On limit");
             EditorGUILayout.EndVertical();GUILayout.Space(18);EditorGUILayout.BeginVertical();
             EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
-            foreach(string section in new[]{"Properties","Sources","Variation","Spatial","Bindings","Limits"})if (DeckTab(deckSection, section)) deckSection = section;
+            foreach(string section in new[]{"Properties","Sources","Variation","Attenuation","Bindings","Limits"})if (DeckTab(deckSection, section)) deckSection = section;
             EditorGUILayout.EndHorizontal();GUILayout.Space(6);
             if(deckSection=="Properties")
             {
@@ -93,24 +95,7 @@ namespace AudioMW.Editor
                 else if(sound.ContainerMode==ContainerMode.Blend)DeckField("blendLayers","Blend layers");
                 else DeckField("children","Child events");
             }
-            else if(deckSection=="Spatial")
-            {
-                bool beside = deckScroll.contentRect.width >= 920;
-                if (beside) EditorGUILayout.BeginHorizontal();
-                if (beside) EditorGUILayout.BeginVertical(GUILayout.Width(255));
-                DeckField("attenuationPreset","Preset");
-                if(sound.AttenuationPreset!=null)
-                {
-                    EditorGUILayout.LabelField("Preset owns spatial settings",EditorStyles.miniLabel);
-                    if(GUILayout.Button("Edit shared preset in Deck"))EditorApplication.delayCall+=()=>{if(this!=null&&sound!=null)ShowDeck(sound.AttenuationPreset);};
-                }
-                else {DeckField("spatialBlend","2D / 3D");DeckField("minDistance","Min (m)");DeckField("maxDistance","Max (m)");DeckField("rolloffMode","Rolloff");}
-                if (beside) { EditorGUILayout.EndVertical(); GUILayout.Space(12); }
-                EditorGUILayout.BeginVertical();
-                DrawDistancePreview(sound);
-                EditorGUILayout.EndVertical();
-                if (beside) EditorGUILayout.EndHorizontal();
-            }
+            else if(deckSection=="Attenuation") DrawAttenuationDeck(sound);
             else if(deckSection=="Variation")
             {
                 DeckField("volumeVariationMode","Gain mode");
@@ -127,6 +112,127 @@ namespace AudioMW.Editor
             else {DeckField("maxInstancesPerEmitter","Per emitter");DeckField("cooldownSeconds","Cooldown (s)");DeckField("concurrencyGroup","Group");DeckField("priority","Priority");DeckField("allowVirtualization","Virtualization");}
             EditorGUILayout.EndVertical();EditorGUILayout.EndHorizontal();EditorGUIUtility.labelWidth=oldLabel;
         }
+        private void DrawAttenuationDeck(SoundEvent sound)
+        {
+            if (AudioInspectionData.IsParent(sound))
+            {
+                EditorGUILayout.LabelField("Select a child event to edit its attenuation.", EditorStyles.wordWrappedMiniLabel);
+                return;
+            }
+            var preset = sound.AttenuationPreset;
+            if (preset == null)
+            {
+                DeckField("attenuationPreset", "Preset");
+                DeckField("spatialBlend", "2D / 3D");
+                DeckField("minDistance", "Near (units)");
+                DeckField("maxDistance", "Far (units)");
+                DeckField("rolloffMode", "Rolloff");
+                if (GUILayout.Button("Create preset for curves, width and filter"))
+                    EditorApplication.delayCall += () => CreateAttenuationPreset(sound);
+                DrawDistancePreview(sound);
+                return;
+            }
+
+            bool beside = deckScroll.contentRect.width >= 900;
+            if (beside) EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.PropertyField(deckSerialized.FindProperty("attenuationPreset"), new GUIContent("Shared preset", "Edits affect all events using this preset."));
+            attenuationPage = GUILayout.Toolbar(attenuationPage, AttenuationPages);
+            if (beside) EditorGUILayout.EndHorizontal();
+            if (beside)
+            {
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.BeginVertical(GUILayout.Width(250));
+            }
+            using (var data = new SerializedObject(preset))
+            using (new EditorGUI.DisabledScope(!AssetDatabase.IsOpenForEdit(preset)))
+            {
+                if (attenuationPage == 0)
+                {
+                    SpatialField(data, "spatialBlend", "2D / 3D");
+                    SpatialField(data, "minDistance", "Near (units)");
+                    SpatialField(data, "maxDistance", "Far (units)");
+                    SpatialField(data, "rolloffMode", "Rolloff");
+                    if (data.FindProperty("rolloffMode").intValue == (int)AudioRolloffMode.Custom)
+                        SpatialField(data, "customRolloff", "Unity rolloff");
+                }
+                else if (attenuationPage == 1)
+                {
+                    SpatialField(data, "sourceRadius", "Radius (units)");
+                    SpatialField(data, "spread", "Spread (°)");
+                    SpatialField(data, "stereoPan", "Stereo pan");
+                    SpatialField(data, "distanceSpread", "Distance spread");
+                    if (data.FindProperty("distanceSpread").boolValue) SpatialField(data, "spreadByDistance", "Spread (°)");
+                    EditorGUILayout.LabelField("Radius sets a minimum angular width. The emitter stays at its world position.", EditorStyles.wordWrappedMiniLabel);
+                }
+                else
+                {
+                    SpatialField(data, "distanceFiltering", "Distance filter");
+                    if (data.FindProperty("distanceFiltering").boolValue) SpatialField(data, "cutoffByDistance", "Cutoff (Hz)");
+                    EditorGUILayout.LabelField("Curve X runs from near to far. With occlusion the lower cutoff wins. Custom DSP must be enabled on the platform tier.", EditorStyles.wordWrappedMiniLabel);
+                }
+                if (data.ApplyModifiedProperties()) TrackEdit(preset);
+            }
+            if (beside)
+            {
+                EditorGUILayout.EndVertical();
+                GUILayout.Space(14);
+                EditorGUILayout.BeginVertical();
+            }
+            if (attenuationPage == 0) DrawDistancePreview(sound);
+            else DrawSpatialProcessingPreview(preset);
+            if (beside)
+            {
+                EditorGUILayout.EndVertical();
+                EditorGUILayout.EndHorizontal();
+            }
+        }
+
+        private void DrawSpatialProcessingPreview(AttenuationPreset preset)
+        {
+            bool width = attenuationPage == 1;
+            if (!width && !preset.DistanceFiltering) return;
+            EditorGUILayout.LabelField(width ? "Angular spread · degrees" : "Distance cutoff · Hz", EditorStyles.miniLabel);
+            var area = GUILayoutUtility.GetRect(96, 72, GUILayout.ExpandWidth(true));
+            if (Event.current.type == EventType.Repaint)
+            {
+                var plot = DrawPlotGrid(area, width ? "360" : "22k", width ? "0" : "10");
+                for (int i = 0; i < responsePoints.Length; i++)
+                {
+                    float t = i / (float)(responsePoints.Length - 1);
+                    float distance = t * preset.MaxDistance;
+                    float fraction = width ? preset.EvaluateSpread(distance) / 360f
+                        : Mathf.InverseLerp(1f, Mathf.Log10(22000f), Mathf.Log10(preset.EvaluateCutoff(distance)));
+                    responsePoints[i] = new Vector3(plot.x + t * plot.width, plot.yMax - fraction * plot.height);
+                }
+                DrawPlotLine(new Color(.66f,.81f,.46f));
+            }
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.Label("0 m", EditorStyles.miniLabel);
+            GUILayout.FlexibleSpace();
+            GUILayout.Label(preset.MaxDistance.ToString("0.##") + " m", EditorStyles.miniLabel);
+            EditorGUILayout.EndHorizontal();
+        }
+
+        private static void SpatialField(SerializedObject data, string property, string caption)
+        {
+            EditorGUILayout.PropertyField(data.FindProperty(property), new GUIContent(caption));
+        }
+
+        private void CreateAttenuationPreset(SoundEvent sound)
+        {
+            if (this == null || sound == null || sound.AttenuationPreset != null || !AssetDatabase.IsOpenForEdit(sound)) return;
+            string path = EditorUtility.SaveFilePanelInProject("Create attenuation preset", sound.name + " Attenuation", "asset", "Choose a new preset location.");
+            if (string.IsNullOrEmpty(path) || AssetDatabase.LoadMainAssetAtPath(path) != null) return;
+            var preset = AttenuationPreset.CreateRuntime(sound.SpatialBlend, sound.MinDistance, sound.MaxDistance, sound.RolloffMode);
+            AssetDatabase.CreateAsset(preset, path);
+            Undo.RegisterCreatedObjectUndo(preset, "Create attenuation preset");
+            Undo.RecordObject(sound, "Assign attenuation preset");
+            sound.AttenuationPreset = preset;
+            EditorUtility.SetDirty(sound);
+            TrackEdit(sound);
+            Repaint();
+        }
+
         private void DrawFields(string[] names)
         {
             EditorGUILayout.BeginHorizontal();int middle=(names.Length+1)/2;float previousLabel=EditorGUIUtility.labelWidth;EditorGUIUtility.labelWidth=126;

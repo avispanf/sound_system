@@ -37,6 +37,8 @@ namespace AudioMW.Editor
             Field(root, "spatialBlend", "3D blend");
             Field(root, "stereoPan", "Stereo pan");
             Field(root, "spread", "Spread (degrees)");
+            Field(root, "sourceRadius", "Source radius (units)");
+            root.Add(new Label("Radius sets the minimum apparent width at the listener. The source stays centered on its emitter."));
             Heading(root, "Distance processing");
             Field(root, "distanceFiltering", "Distance low-pass");
             var cutoff = Field(root, "cutoffByDistance", "Cutoff (Hz)");

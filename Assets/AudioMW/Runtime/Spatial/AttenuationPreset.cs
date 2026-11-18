@@ -11,6 +11,7 @@ namespace AudioMW
         [SerializeField] private AudioRolloffMode rolloffMode = AudioRolloffMode.Logarithmic;
         [SerializeField] private AnimationCurve customRolloff = AnimationCurve.EaseInOut(0f, 1f, 1f, 0f);
         [SerializeField, Range(0f, 360f)] private float spread;
+        [SerializeField, Min(0f)] private float sourceRadius;
         [SerializeField, Range(0f, 5f)] private float dopplerLevel = 1f;
 
         [SerializeField, Range(-1f, 1f)] private float stereoPan;
@@ -24,9 +25,21 @@ namespace AudioMW
         public bool DistanceSpread { get { return distanceSpread; } set { distanceSpread = value; } }
         public AnimationCurve CutoffByDistance { get { return cutoffByDistance; } set { cutoffByDistance = value; } }
         public AnimationCurve SpreadByDistance { get { return spreadByDistance; } set { spreadByDistance = value; } }
-        public bool UsesDistanceProcessing { get { return spatialBlend > 0f && (distanceFiltering || distanceSpread); } }
+        public float SourceRadius
+        {
+            get => sourceRadius;
+            set => sourceRadius = float.IsNaN(value) || float.IsInfinity(value) ? 0f : Mathf.Max(0f, value);
+        }
+
+        public bool UsesDistanceProcessing { get { return spatialBlend > 0f && (distanceFiltering || distanceSpread || sourceRadius > 0f); } }
         public float EvaluateCutoff(float distance) { return distanceFiltering ? EvaluateDistanceCurve(cutoffByDistance, distance, 22000f, 10f, 22000f) : 22000f; }
-        public float EvaluateSpread(float distance) { return distanceSpread ? EvaluateDistanceCurve(spreadByDistance, distance, spread, 0f, 360f) : spread; }
+        public float EvaluateSpread(float distance)
+        {
+            float authored = distanceSpread ? EvaluateDistanceCurve(spreadByDistance, distance, spread, 0f, 360f) : spread;
+            if (!(sourceRadius > 0f)) return authored;
+            float angularWidth = 2f * Mathf.Atan2(sourceRadius, Mathf.Max(0f, distance)) * Mathf.Rad2Deg;
+            return Mathf.Max(authored, angularWidth);
+        }
         private float EvaluateDistanceCurve(AnimationCurve curve, float distance, float fallback, float low, float high)
         {
             if (curve == null || curve.length == 0) return fallback;

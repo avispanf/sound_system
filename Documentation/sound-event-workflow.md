@@ -130,3 +130,9 @@ For an automated content gate, run the editor on an isolated project with
 Exit 0 means no hard audit errors, 1 means reported content errors, and 2 means
 the scan/export could not complete. Warnings do not fail the gate. This command
 does not certify assets outside the chosen scope or the missing release gates.
+
+### Distance authoring in the Event Editor
+
+Select a leaf Sound Event, then open **Deck → Attenuation**. Gain belongs to the event. Near and far distance, rolloff and 2D/3D blend can live on the event or in an assigned preset. The shared preset exposes Distance, Width & pan, and Low-pass pages in place. Changes affect every event using that preset. The Create preset action starts from the selected event's current distance settings.
+
+Source radius is in Unity world units. It sets a minimum angular spread of twice the arctangent of radius over listener distance. A wider authored spread wins. Zero radius keeps the authored spread unchanged. The emitter stays at its transform, including when attached to a moving character. Radius does not move the gain curve, make a mono clip stereo or simulate acoustic geometry. Distance filter and distance spread curves use a normalized near-to-far axis. Cutoff uses Hz.

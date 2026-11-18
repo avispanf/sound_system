@@ -6,6 +6,30 @@ namespace AudioMW.Tests
     public sealed class AttenuationPresetTests
     {
         [Test]
+        public void RadiusAddsAngularWidthWithoutChangingGainOrOverridingWiderAuthoredSpread()
+        {
+            var preset = AttenuationPreset.CreateRuntime(1, 1, 10, AudioRolloffMode.Linear);
+            try
+            {
+                float before = preset.EvaluateAttenuation(5);
+                Assert.IsFalse(preset.UsesDistanceProcessing);
+                preset.SourceRadius = 2;
+                Assert.IsTrue(preset.UsesDistanceProcessing);
+                Assert.AreEqual(90, preset.EvaluateSpread(2), .01f);
+                Assert.AreEqual(180, preset.EvaluateSpread(0), .01f);
+                Assert.Less(preset.EvaluateSpread(8), preset.EvaluateSpread(2));
+                Assert.AreEqual(before, preset.EvaluateAttenuation(5));
+                preset.DistanceSpread = true;
+                preset.SpreadByDistance = AnimationCurve.Constant(0, 1, 230);
+                Assert.AreEqual(230, preset.EvaluateSpread(2));
+                preset.SourceRadius = -1;
+                preset.DistanceSpread = false;
+                Assert.IsFalse(preset.UsesDistanceProcessing);
+            }
+            finally { Object.DestroyImmediate(preset); }
+        }
+
+        [Test]
         public void FullVolumeInsideMinDistance()
         {
             AttenuationPreset preset = AttenuationPreset.CreateRuntime(1f, 2f, 20f, AudioRolloffMode.Linear);
