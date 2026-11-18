@@ -167,7 +167,7 @@ namespace AudioMW.Editor
             Caption(new Rect(sx,38,62,24),"Snapshot",small);
             if (snapshot != null)
             {
-                if (EditorGUI.DropdownButton(new Rect(sx+62,40,146,21), new GUIContent(snapshot.name), FocusType.Keyboard))
+                if (EditorGUI.DropdownButton(new Rect(sx+62,40,Mathf.Min(146, width - 216 - (sx + 62)),21), new GUIContent(snapshot.name), FocusType.Keyboard))
                 {
                     var menu = new GenericMenu();
                     foreach (var item in snapshots) menu.AddItem(new GUIContent(item.name), snapshot == item, () => { snapshot = item; Refresh(); });
@@ -272,24 +272,39 @@ namespace AudioMW.Editor
             if(channel.Icon!=null) GUI.DrawTexture(new Rect(inner.x+7,11,14,14),channel.Icon,ScaleMode.ScaleToFit);
             Caption(new Rect(inner.x+26,2,inner.width-27,34),channel.Group.name,active ? bright : label);
             if (GUI.Button(new Rect(inner.x,1,inner.width,36),GUIContent.none,GUIStyle.none)) Choose(channel.Group);
-            var field = new Rect(inner.x+8,62,inner.width-16,21);
-            Caption(new Rect(field.x,40,field.width,20),"Gain · dB",small);
-            var graph = new Rect(field.x,93,field.width,Mathf.Max(40,inner.height-222));
+            bool compact = rect.height < 290;
+            var field = new Rect(inner.x+8,compact ? 42 : 62,inner.width-16,21);
+            if (!compact) Caption(new Rect(field.x,40,field.width,20),"Gain · dB",small);
+            float switchY = rect.yMax - (compact ? 68 : 112);
+            float graphTop = field.yMax + 12;
+            var graph = new Rect(field.x,graphTop,field.width,Mathf.Max(1,switchY - 13 - graphTop));
             if (levels.TryGetValue(channel.Group,out float db))
             {
                 using (new EditorGUI.DisabledScope(!StudioMixerChannel.Editable(snapshot)))
                 {
                     EditorGUI.BeginChangeCheck();
-                    float next = EditorGUI.DelayedFloatField(field,db);
+                    Rect valueField = field;
+                    if (compact)
+                    {
+                        valueField.width -= 22;
+                        Caption(new Rect(valueField.xMax+4,field.y,18,field.height),"dB",small);
+                    }
+                    float next = EditorGUI.DelayedFloatField(valueField,db);
                     if (EditorGUI.EndChangeCheck()) SetLevel(channel,next);
                     Fader(graph,channel,db);
                 }
             }
             else Caption(field,"Native only",small);
-            float switchY = rect.yMax - 112;
+
             DrawChannelSwitch(new Rect(field.x,switchY,(field.width-5)*.5f,23),channel,false);
             DrawChannelSwitch(new Rect(field.x+(field.width+5)*.5f,switchY,(field.width-5)*.5f,23),channel,true);
-            float y = rect.yMax-80;
+            float y = switchY + 27;
+            if (compact)
+            {
+                Caption(new Rect(field.x,y,field.width,17),inputs[channel.Group].Count + " inputs",small);
+                Caption(new Rect(field.x,y+18,field.width,18),"→ " + Destination(channel),label);
+                return;
+            }
             Caption(new Rect(field.x,y,field.width,20),inputs[channel.Group].Count+" inputs",small);
             Fill(new Rect(field.x,y+23,field.width,1),Line);
             Caption(new Rect(field.x,y+27,field.width,18),"Output",small);
@@ -328,11 +343,14 @@ namespace AudioMW.Editor
             Fill(meter,Back);
             GUI.Label(meter,new GUIContent("","Bus peak feed unavailable. Use Unity’s Audio Mixer meters."));
             Fill(new Rect(x-4,area.y,8,area.height),Back);
+            float markSpacing = area.height / (Marks.Length - 1);
+            int labelStep = Mathf.Max(1, Mathf.CeilToInt(16 / markSpacing));
             for(int i=0;i<Marks.Length;i++)
             {
-                float y=area.y+area.height*i/(Marks.Length-1);
+                float y=area.y+markSpacing*i;
                 Fill(new Rect(x-13,y,8,1),Line);
-                Caption(new Rect(area.x,y-8,37,16),Marks[i].ToString("+0;-0;0"),small);
+                if (i == Marks.Length-1 || (i % labelStep == 0 && (Marks.Length-1-i) * markSpacing >= 16))
+                    Caption(new Rect(area.x,y-8,37,16),Marks[i].ToString("+0;-0;0"),small);
             }
             float at=Normalized(db);
             EditorGUI.BeginChangeCheck();

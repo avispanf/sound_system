@@ -11,6 +11,8 @@ namespace AudioMW.Editor
         [SerializeField] private SoundEventPreset preset;
         [SerializeField] private SoundEvent created;
         private Label selection;
+        private ScrollView form;
+        private HelpBox result;
         private Button create;
 
         [MenuItem("Window/AudioMW/Panels/Authoring/Create Sound Event")]
@@ -25,18 +27,23 @@ namespace AudioMW.Editor
         {
             VisualElement root = rootVisualElement;
             root.Clear(); AudioWorkspace.Style(root); root.Add(AudioWorkspace.Navigation("Create event"));
-            root.style.paddingLeft = root.style.paddingRight = 12;
-            root.style.paddingTop = root.style.paddingBottom = 12;
-            root.Add(new Label("Create a playable event") { style = { unityFontStyleAndWeight = FontStyle.Bold, marginBottom = 8 } });
-            root.Add(new HelpBox("Select audio clips or a folder in the Project window. The preset provides a starting point you can edit in the Inspector.", HelpBoxMessageType.Info));
+            root.AddToClassList("audiomw-setup");
+            form = new ScrollView();
+            form.contentContainer.AddToClassList("audiomw-setup-form");
+            root.Add(form);
+            form.Add(new Label("Create a playable event") { style = { unityFontStyleAndWeight = FontStyle.Bold, marginBottom = 8 } });
+            form.Add(new HelpBox("Select clips or a folder in the Project window, then choose a preset.", HelpBoxMessageType.Info));
             EnumField choice = new EnumField("Preset", preset);
             choice.RegisterValueChangedCallback(evt => preset = (SoundEventPreset)evt.newValue);
-            root.Add(choice);
+            form.Add(choice);
             selection = new Label();
             selection.style.marginTop = selection.style.marginBottom = 12;
-            root.Add(selection);
+            form.Add(selection);
             create = new Button(CreateEvent) { text = "Create event" };
-            root.Add(create);
+            form.Add(create);
+            result = new HelpBox();
+            result.style.display = DisplayStyle.None;
+            form.Add(result);
             OnSelectionChange();
         }
 
@@ -55,7 +62,10 @@ namespace AudioMW.Editor
             string path = EditorUtility.SaveFilePanelInProject("Create sound event", "SFX_" + preset, "asset", "Choose a folder for the event.");
             if (string.IsNullOrEmpty(path)) return;
             created = SoundEventAuthoring.CreateAsset(clips, preset, path);
-            rootVisualElement.Add(new HelpBox("Created " + created.name + ". Next: Inspector > Use this sound in Unity to assign a Sound Emitter.", HelpBoxMessageType.Info));
+            result.text = "Created " + created.name + ". In the Inspector, open Use this sound in Unity to assign a Sound Emitter.";
+            result.messageType = HelpBoxMessageType.Info;
+            result.style.display = DisplayStyle.Flex;
+            form.ScrollTo(result);
         }
     }
 }

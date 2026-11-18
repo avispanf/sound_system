@@ -47,14 +47,17 @@ namespace AudioMW.Editor
         private string containerDocument="";
         private SoundEvent containerFocus;
         private readonly HashSet<string> collapsedContainers=new HashSet<string>();
-        private Vector2 sourceScroll,structureScroll;
+        private Vector2 sourceScroll,structureScroll,containerScroll;
         private void DrawContainer()
         {
-            string guid=CurrentDocument.Guid;if(containerDocument!=guid){containerDocument=guid;containerFocus=CurrentAsset as SoundEvent;containerSource=0;sourceScroll=Vector2.zero;structureScroll=Vector2.zero;collapsedContainers.Clear();}
+            string guid=CurrentDocument.Guid;if(containerDocument!=guid){containerDocument=guid;containerFocus=CurrentAsset as SoundEvent;containerSource=0;sourceScroll=Vector2.zero;structureScroll=Vector2.zero;containerScroll=Vector2.zero;collapsedContainers.Clear();}
             if(containerFocus==null&&CurrentAsset is SoundEvent currentSound)containerFocus=currentSound;
             var sources=AudioSourceCatalog.Collect(containerFocus!=null?(Object)containerFocus:CurrentAsset);
             containerSource=Mathf.Clamp(containerSource,-1,sources.Count-1);
-            Rect area=new Rect(0,0,canvas.contentRect.width,Mathf.Max(120,canvas.contentRect.height-4));
+            Rect viewport = new Rect(0, 0, canvas.contentRect.width, Mathf.Max(1, canvas.contentRect.height - 4));
+            bool shortCanvas = viewport.height < 230;
+            Rect area = new Rect(0, 0, Mathf.Max(1, viewport.width - (shortCanvas ? 16 : 0)), Mathf.Max(230, viewport.height));
+            if (shortCanvas) containerScroll = GUI.BeginScrollView(viewport, containerScroll, area);
             HandleContainerDrop(area);
             float structureWidth=Mathf.Clamp(area.width*.30f,160,250);
             Rect structure=new Rect(area.x+6,area.y+6,structureWidth-10,area.height-12);
@@ -102,6 +105,7 @@ namespace AudioMW.Editor
             }
             else GUILayout.Label("Select a source to inspect its waveform.",EditorStyles.miniLabel);
             GUILayout.EndArea();
+            if (shortCanvas) GUI.EndScrollView();
         }
         private void DrawContainerBranch(SoundEvent item,SoundEvent parent,int childIndex,string path,int depth,HashSet<SoundEvent> visited)
         {

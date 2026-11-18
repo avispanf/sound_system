@@ -59,7 +59,7 @@ namespace AudioMW.Editor
             videoRate.RegisterValueChangedCallback(e => frameRateIndex = Array.IndexOf(FrameRates,e.newValue));
             transport.Add(videoRate);
             auditionMode=new PopupField<string>(new List<string>{"Author","Audition","Live"},mode);auditionMode.RegisterValueChangedCallback(e=>{if(mode=="Live")ReleaseLive();StopAudition();mode=e.newValue;notice="";});transport.Add(auditionMode);
-            var target=new ObjectField("Emitter position"){name="studio-emitter",objectType=typeof(Transform),allowSceneObjects=true,value=auditionTarget};target.style.width=260;target.RegisterValueChangedCallback(e=>auditionTarget=e.newValue as Transform);transport.Add(target);
+            var target=new ObjectField("Emitter"){name="studio-emitter",tooltip="Position used for event audition. Leave empty to use the listener.",objectType=typeof(Transform),allowSceneObjects=true,value=auditionTarget};target.RegisterValueChangedCallback(e=>auditionTarget=e.newValue as Transform);transport.Add(target);
             parent.Add(transport);
             var status=new VisualElement{name="studio-audition-status"};
             auditionStatus=new Label{name="studio-audition-message"};status.Add(auditionStatus);
@@ -239,6 +239,7 @@ namespace AudioMW.Editor
                 int meter=CurrentAsset is MusicArrangement a?a.BeatsPerBar:CurrentAsset is MusicTrack m?m.BeatsPerBar:4;
                 double seconds = sourceActive ? EditorAudioPreview.Position : AuditionPosition;
                 bool timed = sourceActive || musicActive || CurrentAsset is MusicTrack || CurrentAsset is MusicArrangement || CurrentAsset is AudioClip;
+                transportPosition.EnableInClassList("studio-clock-visible", timed);
                 transportPosition.text = timed ? FormatClockAndFrame(seconds,frameRateIndex) : auditionHandle.IsPlaying ? "Playing" : "Stopped";
                 transportPosition.tooltip = timed && !sourceActive ? FormatTransportTime(seconds,true,tempo,meter) : "Source position";
                 var rate = rootVisualElement.Q("studio-frame-rate");
@@ -249,7 +250,7 @@ namespace AudioMW.Editor
         }
         private void RefreshDock()
         {
-            if(bottom==null)return;bottom.Clear();bool open=bottomTab!="";bottom.style.display=open?DisplayStyle.Flex:DisplayStyle.None;bottom.style.height=open?210:0;deck.style.display=DisplayStyle.Flex;deck.style.minHeight=open?28:160;deck.style.height=open?28:Mathf.Clamp(deckHeight,160,position.height<850?200:320);deckScroll.style.display=open?DisplayStyle.None:DisplayStyle.Flex;
+            if(bottom==null)return;bottom.Clear();bool open=bottomTab!="";bottom.style.display=open?DisplayStyle.Flex:DisplayStyle.None;bottom.style.height=open?210:0;deck.style.display=DisplayStyle.Flex;deck.style.minHeight=open?28:160;deck.style.height=open?28:VisibleDeckHeight;deckScroll.style.display=open?DisplayStyle.None:DisplayStyle.Flex;
             foreach (var tab in rootVisualElement.Q<Toolbar>("studio-v2-dock-tabs").Children().OfType<ToolbarButton>())
                 tab.EnableInClassList("studio-v2-active", tab.text == bottomTab);
             if (bottomTab == "Audits")
@@ -295,7 +296,12 @@ namespace AudioMW.Editor
             }
             else
             {
-                if(CurrentAsset is SoundEvent sound)EditorGUILayout.HelpBox(SoundEventValidation.Describe(sound),MessageType.Info);
+                if (CurrentAsset is SoundEvent sound)
+                {
+                    string issue = SoundEventValidation.Describe(sound);
+                    if (string.IsNullOrEmpty(issue)) EditorGUILayout.LabelField("Event validation passed.");
+                    else EditorGUILayout.HelpBox(issue, MessageType.Warning);
+                }
                 if(CurrentAsset is MusicArrangement arrangement){string issue=arrangement.Validate();EditorGUILayout.HelpBox(issue==""?"Arrangement validation passed.":issue,issue==""?MessageType.Info:MessageType.Error);}
                 DrawRequests();
             }

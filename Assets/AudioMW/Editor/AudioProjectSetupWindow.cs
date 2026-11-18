@@ -36,7 +36,9 @@ namespace AudioMW.Editor
             rootVisualElement.Clear(); AudioWorkspace.Style(rootVisualElement);
             rootVisualElement.Add(AudioWorkspace.Navigation("Project setup"));
             rootVisualElement.AddToClassList("audiomw-setup");
-            ScrollView scroll = new ScrollView(); scroll.style.flexGrow = 1; rootVisualElement.Add(scroll);
+            ScrollView scroll = new ScrollView();
+            scroll.contentContainer.AddToClassList("audiomw-setup-form");
+            rootVisualElement.Add(scroll);
             Label title = new Label("Project Setup"); title.style.unityFontStyleAndWeight = FontStyle.Bold; scroll.Add(title);
             scroll.Add(new Button(AudioMixSetupWindow.Open) { text = "Configure routing and ducking", tooltip = "Prepare a separate executable mix plan using a saved setup profile." });
             scroll.Add(Wrap("Describe the game, inspect existing audio, then approve a saved setup plan. Routing, importers and gains stay unchanged in this first stage."));

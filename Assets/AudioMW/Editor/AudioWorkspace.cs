@@ -87,7 +87,6 @@ namespace AudioMW.Editor
         {
             ToolbarButton button = new ToolbarButton(action) { text = title };
             button.EnableInClassList("audiomw-nav-current", title == current);
-            button.SetEnabled(title != current);
             bar.Add(button);
         }
 

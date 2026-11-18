@@ -33,7 +33,9 @@ namespace AudioMW.Editor
             plan = null; rootVisualElement.Clear(); AudioWorkspace.Style(rootVisualElement);
             rootVisualElement.Add(AudioWorkspace.Navigation("Mix setup"));
             rootVisualElement.AddToClassList("audiomw-setup");
-            ScrollView scroll = new ScrollView(); scroll.style.flexGrow = 1; rootVisualElement.Add(scroll);
+            ScrollView scroll = new ScrollView();
+            scroll.contentContainer.AddToClassList("audiomw-setup-form");
+            rootVisualElement.Add(scroll);
             scroll.Add(Wrap("Routing and VO ducking"));
             scroll.Add(Wrap("Choose explicit asset categories, then review exact changes. Nothing is written until Approve and apply. Existing mixer graphs and category faders are preserved."));
             Reference<AudioProjectSetup>(scroll, "Saved project setup", draft.Setup, value => draft.Setup = value);
@@ -48,7 +50,7 @@ namespace AudioMW.Editor
             Float(scroll, "Ambience duck dB", draft.AmbienceDuckDb, value => draft.AmbienceDuckDb = value);
             Float(scroll, "Attack seconds", draft.AttackSeconds, value => draft.AttackSeconds = value);
             Float(scroll, "Release seconds", draft.ReleaseSeconds, value => draft.ReleaseSeconds = value);
-            Toggle replace = new Toggle("Allow replacing existing routes shown in review") { value = draft.AllowReroute };
+            Toggle replace = new Toggle { text = "Allow replacing existing routes shown in review", value = draft.AllowReroute };
             replace.RegisterValueChangedCallback(evt => { draft.AllowReroute = evt.newValue; Invalidate(); }); scroll.Add(replace);
             scroll.Add(Wrap("Unchanged leaves an asset untouched. Removing a source duck binding removes only Volume bindings for the selected existing VO duck parameter, preventing a second attenuation stage."));
             scroll.Add(new Button(() =>

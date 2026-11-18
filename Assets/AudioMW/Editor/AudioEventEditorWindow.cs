@@ -174,7 +174,7 @@ namespace AudioMW.Editor
             center=new VisualElement{name="studio-v2-center"};center.style.minWidth=480;center.style.flexGrow=1;main.Add(center);
             documentsStamp=null;documentTabs=new Toolbar{name="studio-v2-documents"};center.Add(documentTabs);
             BuildTransport(center);
-            var canvasRow=new VisualElement{name="studio-v2-canvas-row"};canvasRow.style.flexDirection=FlexDirection.Row;canvasRow.style.flexGrow=1;canvasRow.style.minHeight=160;center.Add(canvasRow);
+            var canvasRow=new VisualElement{name="studio-v2-canvas-row"};canvasRow.style.flexDirection=FlexDirection.Row;canvasRow.style.flexGrow=1;center.Add(canvasRow);
             canvasHost=new VisualElement{name="studio-v2-canvas"};canvasHost.style.flexGrow=1;canvasHost.style.minWidth=0;canvasRow.Add(canvasHost);
             canvas=new IMGUIContainer(DrawCanvas){focusable=true};canvas.style.flexGrow=1;canvasHost.Add(canvas);
             BuildMeter(canvasRow);
@@ -198,6 +198,7 @@ namespace AudioMW.Editor
             },TrickleDown.TrickleDown);
             RefreshBrowser();RefreshDocuments();RestoreDocumentSelection();ShowDeck(CurrentAsset);RefreshDock();RefreshTransport();RefreshOverview();
         }
+        private float VisibleDeckHeight => Mathf.Clamp(deckHeight, 160, Mathf.Clamp(position.height - 400, 160, position.height < 850 ? 200 : 320));
         private void OnGeometryChanged(GeometryChangedEvent e){UpdateCompactLayout();}
         private void UpdateCompactLayout()
         {
@@ -206,7 +207,7 @@ namespace AudioMW.Editor
             {
                 responsiveSize=position.size;
                 if(overview!=null)overview.style.display=(position.width >= 1400 ? overviewOpen : compactOverviewOpen) ?DisplayStyle.Flex:DisplayStyle.None;
-                if(deck!=null&&bottomTab=="")deck.style.height=Mathf.Clamp(deckHeight,160,position.height<850?200:320);
+                if(deck!=null&&bottomTab=="")deck.style.height=VisibleDeckHeight;
                 mainSplit.fixedPaneInitialDimension=position.width<1400?220:260;
             }
             bool compact=position.width<1000;

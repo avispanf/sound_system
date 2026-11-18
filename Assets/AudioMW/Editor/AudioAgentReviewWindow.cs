@@ -17,7 +17,23 @@ namespace AudioMW.Editor
         private void OnEnable() { AudioAgentBridge.Changed += Refresh; }
         private void OnDisable() { AudioAgentBridge.Changed -= Refresh; }
         private void Refresh() { EditorApplication.delayCall += () => { if (this != null) CreateGUI(); }; }
-        private static Label Text(string value) => new Label(value) { style = { whiteSpace = WhiteSpace.Normal, marginTop = 5, marginBottom = 7 } };
+        private static Label Text(string value)
+        {
+            var label = new Label(value);
+            label.AddToClassList("audiomw-review-text");
+            return label;
+        }
+
+        private static string ScopeSummary(AudioAgentReview review)
+        {
+            var parts = new List<string>();
+            if (review.Changes.Length > 0) parts.Add(review.Changes.Length + (review.Changes.Length == 1 ? " event" : " events"));
+            if (review.Music.Length > 0) parts.Add(review.Music.Length + (review.Music.Length == 1 ? " track" : " tracks"));
+            if (review.HasProfile) parts.Add("State profile");
+            if (review.HasTimeline) parts.Add("Timeline edits");
+            if (review.HasSceneBinding) parts.Add("Scene emitter");
+            return string.Join(" · ", parts);
+        }
         private static string Channels(AudioAgentFile[] files)
         {
             int mono = files.Count(file => file.ForceToMono);
@@ -103,11 +119,21 @@ namespace AudioMW.Editor
             if (!string.IsNullOrEmpty(error)) scroll.Add(new HelpBox(error, HelpBoxMessageType.Error));
             foreach (var pending in AudioAgentBridge.Plans)
             {
-                var data = pending.Read(); var proposal = new Button(() => { selectedId = data.Id; error = null; CreateGUI(); }) { text = pending.State + " · " + (data.HasSceneBinding ? "1 scene emitter" : (data.Changes.Length + data.Music.Length + (data.HasProfile ? 1 : 0) + (data.HasTimeline ? 1 : 0)) + " asset(s)") + " · " + data.Id.Substring(0, 8), tooltip = data.Intent }; proposal.EnableInClassList("audiomw-proposal-selected", data.Id == selectedId); proposals.Add(proposal);
+                var data = pending.Read();
+                string scope = ScopeSummary(data);
+                string subject = data.Changes.Length == 1 ? data.Changes[0].Name : scope;
+                var proposal = new Button(() => { selectedId = data.Id; error = null; CreateGUI(); })
+                {
+                    text = subject + "\n" + pending.State + " · " + data.Id.Substring(0, 8),
+                    tooltip = scope + "\n" + data.Intent
+                };
+                proposal.AddToClassList("audiomw-proposal");
+                proposal.EnableInClassList("audiomw-proposal-selected", data.Id == selectedId);
+                proposals.Add(proposal);
             }
             var plan = AudioAgentBridge.Find(selectedId); if (plan == null) { scroll.Add(Text("Send files through your agent, then choose a proposal here. No assets are imported while preparing a plan.")); return; }
             var review = plan.Read();
-            var stateLabel = Text(plan.State + " · " + review.Changes.Length + " events · " + review.Music.Length + " tracks" + (review.HasProfile ? " · state profile" : "") + (review.HasTimeline ? " · timeline edits" : "") + (review.HasSceneBinding ? " · scene emitter" : "")); stateLabel.AddToClassList("audiomw-eyebrow"); scroll.Add(stateLabel);
+            var stateLabel = Text(plan.State + " · " + ScopeSummary(review)); stateLabel.AddToClassList("audiomw-eyebrow"); scroll.Add(stateLabel);
             scroll.Add(Text(review.Intent));
             context.Add(Text("Scope · Entire plan"));
             context.Add(Text("Captured target · " + review.BuildTarget + "\nUnity " + review.Unity));
