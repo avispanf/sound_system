@@ -1,4 +1,4 @@
-# Local agent integration — preview.18
+# Local agent integration
 
 AudioMW now has an optional local stdio MCP adapter for Claude Code and Codex. It proposes local audio imports, SoundEvent changes and adaptive music arrangements. See [agent-music-mcp.md](agent-music-mcp.md) for stems, musical states and mono/stereo behavior. The Unity Agent Review window is the only approval path exposed by this integration.
 
@@ -6,7 +6,7 @@ AudioMW now has an optional local stdio MCP adapter for Claude Code and Codex. I
 
 Requires Node.js 20 or newer, the AudioMW editor package from this revision, and the Tools/AgentBridge companion directory. UPM archives also include it as AgentBridge~; copy that folder outside Unity's package cache before installing Node dependencies. In that directory run `npm ci --ignore-scripts`. No hosted service, API key or model is embedded in Unity. Keep the lockfile; this preview uses the official MCP TypeScript SDK 1.32.2.
 
-Open the intended Unity project, stay in Edit Mode, then Window > AudioMW > Agent Review > Enable local agent bridge. The bridge expires when the editor reloads scripts or closes; enable it again after compilation. This explicit session opt-in also prevents agents from choosing another running Unity project.
+Open the intended Unity project, stay in Edit Mode, then **Window > AudioMW > Panels > Authoring > Agent Review**, then **Enable local agent bridge**. The bridge expires when the editor reloads scripts or closes; enable it again after compilation. This explicit session opt-in also prevents agents from choosing another running Unity project.
 
 Configure clients using absolute paths, quoting paths containing spaces:
 
@@ -26,6 +26,14 @@ The prepared BAD SHIFT setup on this development machine uses `audiomw-bad-shift
 3. The agent sends an explicit proposal: purpose, destination folder, files grouped by event, and either an existing event GUID or an existing mixer group for a new event. Proposal IDs provide retry idempotency within the editor session.
 4. The agent opens Agent Review. Unity shows source and destination paths, file hashes/sizes, existing clips, preserved playback settings, routing, purpose and limitations. Approve and apply opens a final Unity confirmation. Reject changes no Assets.
 5. The agent polls plan status. Applied means Unity decoded the clips and persisted the reviewed event changes. Verify the actual gameplay action and listen before accepting audio quality.
+
+### Try a looping scene sound
+
+Open and save a scene with an object named Fridge. Use a local compressor WAV and an existing SFX mixer group. Send this prompt with the file to your connected agent.
+
+> Inspect the current scene and find Fridge. Create a looping Sound Event named KitchenFridge from this WAV and route it to SFX. Show me the import plan in Unity. After I approve, inspect the saved event and propose binding it to Fridge. Show me that review too.
+
+In **Review changes**, check the project, event name, **Loop on**, mixer group and source file. Select **Approve and apply in Unity**, then **Apply reviewed plan**. Wait for the import result. The next review names the scene object and shows its emitter before and after the binding. Confirm that review and save the scene. Reopen the scene, select Fridge and enter Play Mode. Expand **Live source · Why is it silent?** in Diagnostics to check the active clip and output group.
 
 Example prompt:
 

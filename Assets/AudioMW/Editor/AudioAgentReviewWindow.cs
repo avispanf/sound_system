@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
@@ -26,6 +27,44 @@ namespace AudioMW.Editor
         {
             return file.Source + "\n→ " + file.Destination + "\nChannels: " + (file.ForceToMono ? "Force mono (Unity downmix)" : "Source layout (mono/stereo preserved)") + " · " + (file.Bytes / 1024f).ToString("0.0") + " KB · SHA256 " + file.Sha256.Substring(0, 12);
         }
+        internal static string ConfirmationMessage(AudioAgentPlan plan)
+        {
+            var review = plan.Read();
+            string reference = "\n\nReview " + plan.Digest.Substring(0, 12);
+            if (review.HasSceneBinding)
+                return review.SceneBinding.After + "\n" + review.SceneBinding.ScenePath + " / " + review.SceneBinding.ObjectPath +
+                    "\nSave the scene after applying to keep this binding." + reference;
+            if (review.HasTimeline)
+                return "Apply " + review.Timeline.Edits.Length + " timeline edits to " + review.Timeline.Path + "?" + reference;
+
+            var operations = new List<string>();
+            if (review.Changes.Length == 1)
+            {
+                var change = review.Changes[0];
+                bool create = string.IsNullOrEmpty(change.ReplaceEventGuid);
+                operations.Add(create ? "Create Sound Event " + change.Name + (change.CreateLoop ? " (Loop on)" : " (One-shot)") : "Replace source clips in " + change.EventPath);
+                operations.Add("Route · " + change.Routing);
+            }
+            else
+            {
+                int created = review.Changes.Count(change => string.IsNullOrEmpty(change.ReplaceEventGuid));
+                AddCount(operations, created, "Create", "Sound Event");
+                AddCount(operations, review.Changes.Length - created, "Replace source clips in", "Sound Event");
+            }
+            int newTracks = review.Music.Count(change => string.IsNullOrEmpty(change.Target.Guid));
+            AddCount(operations, newTracks, "Create", "music track");
+            AddCount(operations, review.Music.Length - newTracks, "Update", "music track");
+            if (review.HasProfile)
+                operations.Add((string.IsNullOrEmpty(review.Profile.Target.Guid) ? "Create " : "Update ") + "music state profile " + review.Profile.Target.Path);
+            operations.Add("Import folder · " + review.Folder);
+            return string.Join("\n", operations) + reference;
+        }
+
+        private static void AddCount(List<string> operations, int count, string action, string noun)
+        {
+            if (count > 0) operations.Add(action + " " + count + " " + noun + (count == 1 ? "" : "s"));
+        }
+
         public void CreateGUI()
         {
             rootVisualElement.Clear(); AudioWorkspace.Style(rootVisualElement);
@@ -73,11 +112,21 @@ namespace AudioMW.Editor
             context.Add(Text("Scope · Entire plan"));
             context.Add(Text("Captured target · " + review.BuildTarget + "\nUnity " + review.Unity));
             context.Add(Text("To change the scope, reject this plan and request a revised proposal."));
-            foreach (var heading in new[] { "Before apply", "After apply", "Conflicts" })
+            string afterApply = "Check the result below and verify playback in the project.";
+            if (review.HasSceneBinding)
+                afterApply = "Save the scene in Unity to keep the reviewed emitter binding.";
+            else if (review.Changes.Any(change => string.IsNullOrEmpty(change.ReplaceEventGuid)))
+                afterApply = "For a new scene emitter, ask the agent to bind the imported event.";
+            void AddContext(string heading, string details)
             {
-                var label = Text(heading); label.AddToClassList("audiomw-review-heading"); context.Add(label);
-                context.Add(Text(heading == "Before apply" ? "Validate asset identity, source files and current plan state." : heading == "After apply" ? (review.HasSceneBinding ? "Save the scene in Unity to keep the reviewed emitter binding." : "Report the actual result below. Imported audio still needs gameplay wiring and listening checks.") : "Stale plans cannot be applied. Request a new proposal after changing the reviewed assets."));
+                var label = Text(heading);
+                label.AddToClassList("audiomw-review-heading");
+                context.Add(label);
+                context.Add(Text(details));
             }
+            AddContext("Before apply", "Validate asset identity, source files and current plan state.");
+            AddContext("After apply", afterApply);
+            AddContext("Conflicts", "Stale plans cannot be applied. Request a new proposal after changing the reviewed assets.");
             if (review.HasSceneBinding)
             {
                 var c = review.SceneBinding;
@@ -102,7 +151,7 @@ namespace AudioMW.Editor
             {
                 var item = new VisualElement(); item.AddToClassList("audiomw-review-item"); scroll.Add(item);
                 var heading = Text(change.Name); heading.AddToClassList("audiomw-review-heading"); item.Add(heading);
-                var operation = Text(string.IsNullOrEmpty(change.ReplaceEventGuid) ? "Create event · Gameplay hook required" : "Replace source clips · Preserve event identity"); operation.AddToClassList("audiomw-eyebrow"); item.Add(operation);
+                var operation = Text(string.IsNullOrEmpty(change.ReplaceEventGuid) ? "Create event · Scene binding is a separate review" : "Replace source clips · Preserve event identity"); operation.AddToClassList("audiomw-eyebrow"); item.Add(operation);
                 item.Add(Text(change.Playback));
                 var route = Text("Route: " + change.Routing); route.name = "review-event-route"; item.Add(route);
                 var channels = Text(Channels(change.Files)); channels.name = "review-event-channels"; item.Add(channels);
@@ -156,7 +205,7 @@ namespace AudioMW.Editor
                 try
                 {
                     string problem = AudioAgentPlanner.Check(plan, AudioAgentBridge.Session); if (problem.Length > 0) throw new InvalidOperationException(problem);
-                    if (!EditorUtility.DisplayDialog("Apply AudioMW integration?", review.HasSceneBinding ? review.SceneBinding.After + "\n" + review.SceneBinding.ScenePath + " / " + review.SceneBinding.ObjectPath + "\nThe scene will be marked as modified." : review.HasTimeline ? "Apply " + review.Timeline.Edits.Length + " timeline edits to " + review.Timeline.Path + "?\nReview " + plan.Digest.Substring(0, 12) + ". No import, playback or scene changes." : review.Changes.Length + " event changes, " + review.Music.Length + " music tracks" + (review.HasProfile ? " and a state profile" : "") + "; imported audio in " + review.Folder + ".\nReview " + plan.Digest.Substring(0, 12) + ".\nExisting asset content will be replaced exactly as shown. No gameplay code or mixer gains will be changed.", "Apply reviewed plan", "Cancel")) return;
+                    if (!EditorUtility.DisplayDialog("Apply AudioMW integration?", ConfirmationMessage(plan), "Apply reviewed plan", "Cancel")) return;
                     AudioAgentBridge.Approve(plan); error = null;
                 }
                 catch (Exception e) { error = e.Message; }

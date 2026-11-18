@@ -62,6 +62,53 @@ namespace AudioMW.Tests
             Undo.PerformUndo();Assert.IsNull(target.GetComponent<SoundEmitter>());
             Undo.PerformRedo();Assert.AreSame(sound,target.GetComponent<SoundEmitter>().Event);
         }
+        [Test] public void ImportedLoopBindsByGuidAndSurvivesSceneReload()
+        {
+            string wave = Path.GetFullPath("Library/agent-loop-" + Guid.NewGuid().ToString("N") + ".wav");
+            try
+            {
+                AudioAgentTests.WriteWave(wave);
+                var mixer = AssetDatabase.LoadAssetAtPath<UnityEngine.Audio.AudioMixer>(AudioMixPlanner.TemplatePath);
+                var route = mixer.FindMatchingGroups("SFX").Single(group => group.name == "SFX");
+                var import = AudioAgentPlanner.Prepare(new AudioAgentDraft
+                {
+                    Destination = folder, Intent = "Test compressor import",
+                    Events = new[] { new AudioAgentEventDraft
+                    {
+                        Name = "Compressor", Purpose = "Synthetic cooler", Files = new[] { wave },
+                        MixerGroupId = GlobalObjectId.GetGlobalObjectIdSlow(route).ToString(), CreateLoop = true
+                    } }
+                }, "test");
+                string eventPath = import.Read().Changes.Single().EventPath;
+                Assert.IsNull(AssetDatabase.LoadAssetAtPath<SoundEvent>(eventPath));
+                AudioAgentPlanner.Apply(import, "test");
+
+                var draft = Draft();
+                draft.EventGuid = AssetDatabase.AssetPathToGUID(eventPath);
+                var binding = AudioAgentScenePlanner.Prepare(draft, "test");
+                Assert.IsNull(target.GetComponent<SoundEmitter>());
+                AudioAgentPlanner.Apply(binding, "test");
+                Assert.IsTrue(EditorSceneManager.SaveScene(scene));
+                string targetName = target.name;
+                var holding = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
+                try
+                {
+                    Assert.IsTrue(EditorSceneManager.CloseScene(scene, true));
+                    scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Additive);
+                    Assert.IsTrue(SceneManager.SetActiveScene(scene));
+                    var emitter = scene.GetRootGameObjects().Single(go => go.name == targetName).GetComponent<SoundEmitter>();
+                    Assert.IsNotNull(emitter);
+                    Assert.AreEqual(draft.EventGuid, AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(emitter.Event)));
+                    Assert.IsTrue(emitter.PlayOnEnable);
+                    Assert.IsTrue(emitter.Event.Loop);
+                    Assert.AreSame(route, emitter.Event.MixerGroup);
+                    Assert.AreEqual(800, emitter.Event.Clips.Single().samples);
+                }
+                finally { EditorSceneManager.CloseScene(holding, true); }
+            }
+            finally { if (File.Exists(wave)) File.Delete(wave); }
+        }
+
         [Test] public void RejectsChangedSceneAndWrongSession()
         {
             var plan=AudioAgentScenePlanner.Prepare(Draft(),"test");

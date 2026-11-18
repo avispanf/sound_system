@@ -30,7 +30,7 @@ namespace AudioMW.Tests
             draft = new AudioAgentDraft { Destination = folder, Intent = "Use supplied microwave variation", Events = new[] { new AudioAgentEventDraft { Name = "Microwave", Purpose = "E interaction", ReplaceEventGuid = AssetDatabase.AssetPathToGUID(folder + "/Existing.asset"), Files = new[] { source } } } };
         }
         [TearDown] public void TearDown() { AudioAgentBridge.Disable(); AssetDatabase.DeleteAsset(folder); if (File.Exists(source)) File.Delete(source); }
-        private static void WriteWave(string path)
+        internal static void WriteWave(string path)
         {
             using (var w = new BinaryWriter(File.Create(path)))
             {
@@ -143,6 +143,32 @@ namespace AudioMW.Tests
             Assert.IsTrue(created.Loop);
             Assert.AreSame(group, created.MixerGroup);
             Assert.AreEqual(800, created.Clips.Single().samples);
+        }
+
+        [Test] public void ConfirmationDescribesEachReviewedOperation()
+        {
+            var review = new AudioAgentReview
+            {
+                Folder = folder,
+                Changes = new[] { new AudioAgentChange { Name = "Compressor", CreateLoop = true, Routing = "Kitchen / SFX" } }
+            };
+            string confirmation = AudioAgentReviewWindow.ConfirmationMessage(new AudioAgentPlan(review));
+            StringAssert.Contains("Create Sound Event Compressor (Loop on)", confirmation);
+            StringAssert.Contains("Kitchen / SFX", confirmation);
+            StringAssert.DoesNotContain("Replace", confirmation);
+            var replacement = new AudioAgentChange { ReplaceEventGuid = "existing", EventPath = "Assets/Footsteps.asset" };
+            review.Changes = new[] { review.Changes[0], replacement };
+            review.Music = new[] { new AudioAgentMusicChange { Target = new AudioAgentTarget() }, new AudioAgentMusicChange { Target = new AudioAgentTarget { Guid = "existing" } } };
+            review.HasProfile = true;
+            review.Profile = new AudioAgentProfileChange { Target = new AudioAgentTarget { Path = "Assets/States.asset", Guid = "existing" } };
+            confirmation = AudioAgentReviewWindow.ConfirmationMessage(new AudioAgentPlan(review));
+            StringAssert.Contains("Create 1 Sound Event", confirmation);
+            StringAssert.Contains("Replace source clips in 1 Sound Event", confirmation);
+            StringAssert.Contains("Create 1 music track", confirmation);
+            StringAssert.Contains("Update 1 music track", confirmation);
+            StringAssert.Contains("Update music state profile Assets/States.asset", confirmation);
+            review.Changes = new[] { replacement };
+            StringAssert.Contains("Replace source clips in Assets/Footsteps.asset", AudioAgentReviewWindow.ConfirmationMessage(new AudioAgentPlan(review)));
         }
 
         [Test] public void LoopRequestCannotChangePlaybackDuringClipReplacement()
