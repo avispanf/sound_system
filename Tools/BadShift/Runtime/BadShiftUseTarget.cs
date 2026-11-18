@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public enum BadShiftUseKind { Microwave, Boss, Bathroom, Fridge, Spar, Sink, Toilet, Prop, Pump }
+public enum BadShiftUseKind { Microwave, Boss, Bathroom, Fridge, Spar, Sink, Toilet, Prop, Pump, CoffeeMill }
 public sealed class BadShiftUseTarget : MonoBehaviour
 {
     public BadShiftUseKind Kind;

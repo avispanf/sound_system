@@ -132,7 +132,7 @@ The rival now alternates DOUBLE DIP (two separately telegraphed sideways swings)
 At 50 HP the rival enters OVERTIME with a short elastic tantrum, amber/violet lighting and two new combinations: TRIPLE SERVING and RUSH ORDER. Each strike keeps its own readable windup and direction cue. Frontal blocks cancel the remaining series; the transition remains vulnerable. See BATTLE-ARENA.md for timings, reset behavior and verification.
 
 
-See FINAL-HANDOFF.md for the final gameplay freeze, sound replacement map, central bathroom, collision enclosure, bounded clay deformation, overtime finishing sequence and live audio explanation overlay. The Audio button or Tab cycles labels → details → off. Labels are the default; details show the journal and nearby links. Invitations hide the overlay; combat retains short event labels.
+See FINAL-HANDOFF.md for the final gameplay freeze, sound replacement map, collision enclosure, bounded clay deformation, overtime finishing sequence and live audio explanation overlay. The Audio button or Tab cycles labels → details → off. Labels are the default; details show the journal and nearby links. Invitations hide the overlay; combat retains short event labels.
 
 ## Agent integration
 
@@ -219,14 +219,16 @@ Repeated Pin reuses native profile Inspectors by asset identity and leaves selec
 
 ### Café lighting and street traffic
 
-The lighting button in the top bar cycles through Auto, Night and Day. Auto starts at sunset and runs a 96-second cycle. Night brings up two neutral-white ceiling fixtures. Sunrise and sunset warm the directional light and reveal three shafts of light inside the café windows. The combat presentation blends over the current time of day.
+The lighting button in the top bar cycles through Auto, Night and Day. Auto starts at sunset and runs a 96-second cycle. Night brings up two neutral-white overhead lights. Sunrise and sunset warm the directional light and reveal three shafts of light inside the café windows. The combat presentation blends over the current time of day.
 
 One car uses the street at a time. Four finishes, alternating directions, different speeds, roof accessories and suspension movement distinguish successive passes. The motor follows the car as an AudioMW event. The transformer's hum stays at the sign beside the dining windows. Both loops are replaceable mono demo recordings synthesized by the supplied script. Motor Doppler is 2.1 and neon Doppler is zero.
 
 To reproduce the authored pass in a BAD SHIFT project, copy the matching runtime and editor sources, generate the two WAVs with `python3 Tools/BadShift/Audio/generate_street_audio.py <project>/Assets/BadShift/Night`, and place `Tools/BadShift/Art/CafeSunShaft.shader` in that folder. Run `BadShiftNightPass.Run` using the isolated batch authoring project. Save the authored scene, new assets and their Unity metadata together. The pass recognizes an already-authored street.
 
-The utility yard behind the bathroom demonstrates a connected sound source. Prime the motor with E or run the sink indoors. Flushing the cistern also starts the motor for the refill. Crossing the bathroom threshold fades the listener's reverb in or out. The control label reports the tap state, early room reflections and pump activity.
+The utility yard beside the bathroom demonstrates a connected sound source. Prime the motor with E or run the sink indoors. Flushing the cistern also starts the motor for the refill. Crossing the bathroom threshold fades the listener's reverb in or out. The control label reports the tap state, early room reflections and pump activity.
 
 The closing shift crossfades the ambience to crickets and requests the night score at a bar boundary. The neon sign has two separate relay clicks and a continuous transformer hum while lit. The opening shift restores birds and the daytime score. Combat keeps its own music priority. Daytime cars keep their position lamps. After dark the low beams light the road. Every fourth pass after the opening car carries a red/blue patrol lightbar and a separate positional siren.
 
 For the soundscape pass, first author the night street. Generate the additional demo WAVs with `python3 Tools/BadShift/Audio/generate_cafe_soundscape.py <project>/Assets/BadShift/Soundscape`. Run `BadShiftSoundscapePass.Run` in the isolated authoring project. The generated clips, events, attenuation presets and music profile are ordinary replaceable Unity assets.
+
+Run `BadShiftCoffeeCartPass.Run` after the soundscape pass to place the tiled room against the rear wall, keep the overhead lighting without visible fixtures, and install the courtyard coffee cart. Tap E at the cart to build speed. The local Grinder_Speed parameter drives pitch and gain on one spatial voice while the crank coasts to a stop.

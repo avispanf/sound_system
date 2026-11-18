@@ -4,6 +4,7 @@ using UnityEngine;
 [DefaultExecutionOrder(320)]
 public sealed class BadShiftSoundscape : MonoBehaviour
 {
+    public BadShiftCoffeeMill Mill;
     public BadShiftDaylight Sky;
     public BadShiftNightTraffic Street;
     public AudioMWPlayground Game;
@@ -99,6 +100,8 @@ public sealed class BadShiftSoundscape : MonoBehaviour
         get
         {
             if(Inside) return "Tiled reflections " + Mathf.RoundToInt(RoomMix*100) + "% · " + (Time.time<flushUntil?"cistern refilling / pump running":Water.IsPlaying?"water flowing / pump running":"tap closed");
+            if(Mill!=null && Vector3.Distance(Game.Listener.position,Mill.transform.position)<2.8f)
+                return Mill.Momentum>0 ? "Coffee grinder · speed " + Mathf.RoundToInt(Mill.Momentum*100) + "% raises pitch and volume" : "Coffee grinder · tap E to spin faster, then listen as it slows";
             if(Time.time<messageUntil) return LastChange;
             if(InServiceArea(Game.Listener.position))return PumpMotor.IsPlaying?"Service yard · pump motor running":"Service yard · E primes the pump; the sink and cistern also start it";
             if(Street.Siren.IsPlaying && Vector3.Distance(Game.Listener.position,Street.Car.position)<20)

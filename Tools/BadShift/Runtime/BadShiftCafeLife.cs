@@ -72,6 +72,7 @@ public sealed class BadShiftCafeLife : MonoBehaviour
             case BadShiftUseKind.Fridge:Demo.Game.FridgeDoors.Lower.ToggleFor(GetComponent<CharacterController>());break;
             case BadShiftUseKind.Spar:Battle.Begin();break;
             case BadShiftUseKind.Sink:if(Demo.Game.Soundscape!=null)Demo.Game.Soundscape.ToggleTap();else Demo.PlayRoom();React("Wash your bones before cooking.",false);break;
+            case BadShiftUseKind.CoffeeMill:Demo.Game.Soundscape?.Mill?.Turn();break;
             case BadShiftUseKind.Pump:Demo.Game.Soundscape?.PrimePump();break;
             case BadShiftUseKind.Toilet:if(Demo.Game.Soundscape!=null)Demo.Game.Soundscape.FlushToilet();else Demo.PlayRoom();React("That echo is not on the menu.",false);break;
             case BadShiftUseKind.Prop:

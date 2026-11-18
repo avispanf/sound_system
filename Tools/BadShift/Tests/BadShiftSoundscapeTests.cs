@@ -56,6 +56,32 @@ public sealed class BadShiftSoundscapeTests
     }
 
     [UnityTest]
+    public IEnumerator CourtyardMillControlsOneVoiceAndClearsTheDoorway()
+    {
+        var mill=sc.Mill;
+        Assert.IsNotNull(mill);
+        Assert.IsNull(GameObject.Find("Slim cafe ceiling fixture"));
+        Assert.IsNull(GameObject.Find("Neutral white diffuser"));
+        Assert.AreEqual(2,sc.Sky.OfficeLights.Length);
+        Assert.Greater(sc.Room.position.z-mill.transform.position.z,5);
+        Assert.IsTrue(sc.Stream.transform.IsChildOf(sc.Tap));
+        var approach=sc.Room.InverseTransformPoint(mill.transform.position+Vector3.back*.95f);
+        Move(approach.x,approach.z);yield return null;
+        Assert.AreEqual(BadShiftUseKind.CoffeeMill,sc.Game.Life.Nearest().Kind);
+        sc.Game.Interact();yield return new WaitForSeconds(.1f);
+        var voice=mill.Grinding;Assert.IsTrue(voice.IsPlaying);
+        float pitch=voice.Voice.Source.pitch, volume=voice.Voice.Source.volume;
+        var crank=mill.Crank.localRotation;
+        sc.Game.Interact();yield return new WaitForSeconds(.1f);
+        Assert.AreEqual(voice.Id,mill.Grinding.Id);
+        Assert.Greater(voice.Voice.Source.pitch,pitch);
+        Assert.Greater(voice.Voice.Source.volume,volume);
+        Assert.Greater(Quaternion.Angle(crank,mill.Crank.localRotation),1);
+        yield return new WaitForSeconds(4.8f);
+        Assert.IsFalse(voice.IsPlaying);Assert.AreEqual(0,mill.Momentum);
+    }
+
+    [UnityTest]
     public IEnumerator ClosingShiftControlsSignTrafficLampsAmbienceAndScore()
     {
         sc.Sky.SetMode(BadShiftSkyMode.Day);yield return new WaitForSeconds(1.5f);

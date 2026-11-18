@@ -11,8 +11,17 @@ public sealed class BadShiftTourTests
         yield return SceneManager.LoadSceneAsync("RelayField");yield return new WaitForSeconds(.5f);
         BadShiftTour tour=Object.FindFirstObjectByType<BadShiftTour>();tour.Begin();
         float deadline=Time.realtimeSinceStartup+120;
-        while(tour.Running&&Time.realtimeSinceStartup<deadline)yield return null;
+        bool heardMill = false, enteredRoom = false;
+        var soundscape = tour.Game.Soundscape;
+        while (tour.Running && Time.realtimeSinceStartup < deadline)
+        {
+            heardMill |= soundscape.Mill.Grinding.IsPlaying;
+            enteredRoom |= soundscape.Inside && soundscape.ListenerReverb.enabled;
+            yield return null;
+        }
         Assert.IsFalse(tour.Running);Assert.AreEqual("Demo complete / Your turn",tour.Heading,tour.Explanation);
+        Assert.IsTrue(heardMill, "The tour must crank the courtyard mill.");
+        Assert.IsTrue(enteredRoom, "The tour must cross the bathroom threshold.");
         Assert.GreaterOrEqual(tour.Game.Collected,3);
         Assert.Greater(tour.Game.GetComponent<BadShiftDemo>().ListenerDistance,8);
         Assert.IsTrue(AudioMW.AudioSystem.Debugger.Records.Count>10);

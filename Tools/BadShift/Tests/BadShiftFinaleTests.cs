@@ -65,9 +65,9 @@ public sealed class BadShiftFinaleTests
         }
         var edges=Object.FindObjectsByType<BoxCollider>(FindObjectsSortMode.None).Where(c=>c.name=="Invisible level boundary").ToArray();Assert.AreEqual(4,edges.Length);Assert.IsTrue(edges.All(c=>c.GetComponent<Renderer>()==null&&!c.isTrigger));
     }
-    [UnityTest] public IEnumerator LayoutHasCenteredBathroomInsetLetteringAndNoExitMarker()
+    [UnityTest] public IEnumerator LayoutHasRearBathroomInsetLetteringAndNoExitMarker()
     {
-        Assert.AreEqual(new Vector3(0,0,2),demo.Room.position);Assert.IsNull(GameObject.Find("Pendant cable"));Assert.IsNull(GameObject.Find("Coral pendant shade"));Assert.IsNull(GameObject.Find("Exit floor label"));
+        Assert.That(demo.Room.position.z,Is.InRange(7.4f,7.8f));Assert.That(Mathf.Abs(demo.Room.position.x),Is.LessThan(1));Assert.IsNull(GameObject.Find("Pendant cable"));Assert.IsNull(GameObject.Find("Coral pendant shade"));Assert.IsNull(GameObject.Find("Exit floor label"));
         Assert.IsTrue(game.Exit.GetComponentsInChildren<Renderer>().All(r=>!r.enabled));
         var band=GameObject.Find("Cafe sign cream band").GetComponent<Renderer>().bounds;var label=GameObject.Find("Cafe lettering").GetComponent<Renderer>().bounds;
         Assert.AreEqual(band.center.x,label.center.x,.015f);Assert.AreEqual(band.center.y,label.center.y,.015f);Assert.Greater(label.min.x-band.min.x,.18f);Assert.Greater(band.max.x-label.max.x,.18f);

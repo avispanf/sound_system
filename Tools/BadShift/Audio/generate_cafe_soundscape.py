@@ -10,7 +10,7 @@ def generate(folder):
     rate = 24000
     tau = 2 * math.pi
     durations = {"TapFlow": 3, "FlushRefill": 2.9, "PumpRotor": 2, "SignIgnition": .32,
-                 "SignRelease": .20, "PatrolSiren": 3, "OpeningBirds": 8, "ClosingCrickets": 8, "ClosingKeys": 8}
+                 "SignRelease": .20, "PatrolSiren": 3, "OpeningBirds": 8, "ClosingCrickets": 8, "ClosingKeys": 8, "CoffeeBurr": 2}
     for index, (name, seconds) in enumerate(durations.items()):
         rng = random.Random(70 + index)
         data = bytearray()
@@ -24,6 +24,10 @@ def generate(folder):
             elif name == "FlushRefill":
                 tail = min(1, t * 15) * max(0, 1 - t / seconds)
                 value = tail * (.9 * low + .26 * noise + .26 * math.sin(tau * (135*t - 12*t*t) + math.sin(27*t)))
+            elif name == "CoffeeBurr":
+                teeth = .5 + .5 * math.cos(tau * 24 * t)
+                rasp = .15 * math.sin(tau * 168 * t) + .08 * math.sin(tau * 360 * t) + .48 * low
+                value = (.28 + .72 * teeth**3) * rasp + .1 * math.sin(tau * 48 * t)
             elif name == "PumpRotor":
                 value = .32*math.sin(tau*72*t) + .13*math.sin(tau*144*t) + .09*math.sin(tau*290*t)
             elif name in ("SignIgnition", "SignRelease"):

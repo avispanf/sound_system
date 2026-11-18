@@ -55,11 +55,11 @@ public sealed class BadShiftLayoutTests
     [UnityTest] public IEnumerator BathroomFixturesLeaveTheDoorSweepAndEntryClear()
     {
         Assert.IsNotNull(GameObject.Find("Toilet bowl"));Assert.IsNotNull(GameObject.Find("Sink basin"));
-        Place(new Vector3(2.1f,.05f,-.2f));game.Interact();yield return new WaitForSeconds(.6f);Assert.IsFalse(game.Door.IsMoving);
+        Place(game.Door.transform.parent.TransformPoint(new Vector3(2.1f,.05f,-2.2f)));game.Interact();yield return new WaitForSeconds(.6f);Assert.IsFalse(game.Door.IsMoving);
         Assert.IsFalse(game.Door.IsBlocked);
-        Place(new Vector3(0,.05f,0));game.enabled=false;
+        Place(game.Door.transform.parent.TransformPoint(new Vector3(0,.05f,-2f)));game.enabled=false;
         float until=Time.time+.65f;while(Time.time<until){game.MoveCharacter(Vector3.forward,false,false,Time.deltaTime);yield return null;}
-        Assert.Greater(game.transform.position.z,1.4f);Assert.Less(game.transform.position.z,2.6f);
+        Assert.That(game.Door.transform.parent.InverseTransformPoint(game.transform.position).z,Is.InRange(-.6f,.6f));
     }
     [UnityTest] public IEnumerator PreparationTableAndLooseDishesRemainStable()
     {

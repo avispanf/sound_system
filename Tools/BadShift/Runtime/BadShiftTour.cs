@@ -57,6 +57,18 @@ public sealed class BadShiftTour : MonoBehaviour
         if (!AudioSystem.VoiceOver.IsSpeaking) Game.Speak();
         while (AudioSystem.VoiceOver.IsSpeaking) yield return null;
         yield return new WaitForSeconds(2);
+        var mill = Game.Soundscape != null ? Game.Soundscape.Mill : null;
+        if (mill != null)
+        {
+            Heading = "Courtyard / Hand-cranked coffee";
+            Explanation = "Each turn speeds up one grinder loop. Watch its speed fall as the pitch and volume settle.";
+            yield return WalkTo(mill.transform.position + Vector3.back * 1.15f); if (!Running) yield break;
+            for (int turn = 0; turn < 3; turn++)
+            {
+                Game.Interact();
+                yield return new WaitForSeconds(.38f);
+            }
+        }
         Heading = "05 / Inside the tiled bathroom";
         Explanation = "Cross the threshold to hear tiled reflections on the whole mix. X compares the test source before and after its own effects; E opens the tap or flushes the cistern.";
         if (Game.Door != null)
@@ -69,7 +81,7 @@ public sealed class BadShiftTour : MonoBehaviour
         for (int mode=0;mode<3;mode++) { Demo.SetEffect(mode); Demo.PlayRoom(); yield return new WaitForSeconds(3); }
         if (Game.Soundscape!=null && Game.Soundscape.Inside)
         {
-            Explanation="Flushing the cistern starts the water pump behind the wall. Leaving the room fades out the tiled reflections.";
+            Explanation="Flushing the cistern starts the water pump beside the bathroom. Leaving the room fades out the tiled reflections.";
             Game.Soundscape.FlushToilet();
             yield return new WaitForSeconds(2.2f);
         }
