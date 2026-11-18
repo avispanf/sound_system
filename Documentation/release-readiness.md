@@ -87,3 +87,17 @@ limitations, and ui-production-review-2026-11-17.txt for UI inspection evidence.
 The candidate verification JSON distinguishes package tests, BAD SHIFT integration,
 macOS Mono smoke and older results. Device listening and mobile profiling remain
 open release gates.
+
+## Installed package verification, 2026-11-18
+
+AudioMW 0.4.0 at source revision `5ea5285` was tested from the same UPM archive in two new local projects. Its SHA-256 was `57d51f7993541e72ca13c74d0c559f68ee523964a5e1a534201115e8c67dd019`. Package Manager imported the declared AudioMW Demo sample in each project. The scene validation found 16 components and 29 dependencies.
+
+| Fresh check | Unity 2022.3.62f3 | Unity 6000.3.21f1 |
+| --- | --- | --- |
+| EditMode suite | 390 passed, 3 guarded skips | 390 passed, 3 guarded skips |
+| Separate run of the three scene-binding tests | 3 passed | 3 passed |
+| Full package PlayMode suite | 197 passed | 197 passed |
+| macOS Mono Player, Low stripping | 14 runtime checks passed | 14 runtime checks passed |
+| Imported sample built and launched as the startup scene | Passed | Passed |
+
+In both native sample players the demo started music automatically. The validation invoked the demo director's blip, voice and intensity controls. A physical voice was admitted, the VO layer became active, intensity reached 0.25 and DSP time advanced with output muted. The independent smoke players contained only AudioMW.Runtime.dll among the AudioMW assemblies. Listening, physical mobile tests and distribution through the Asset Store remain separate release checks.
