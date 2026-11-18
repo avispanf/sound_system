@@ -33,13 +33,13 @@ async function service(f, callback) {
   }, 15);
   return async () => { clearInterval(timer); while (busy) await new Promise(r => setTimeout(r, 10)); };
 }
-test('real stdio SDK negotiation exposes six review tools and no approval', async () => {
+test('real stdio SDK negotiation exposes seven review tools and no approval', async () => {
   const f = await fixture(); const stop = await service(f, request => ({ Ok: true, State: 'ready', Inventory: { Project: request.Project, Session: request.Session } }));
   const client = new Client({ name: 'audiomw-test', version: '1' });
   try {
     await client.connect(new StdioClientTransport({ command: process.execPath, args: [path.resolve('server.mjs'), '--project', f.project] }));
     const tools = (await client.listTools()).tools;
-    assert.deepEqual(tools.map(t => t.name).sort(), ['audiomw_inspect', 'audiomw_plan_status', 'audiomw_propose', 'audiomw_propose_music', 'audiomw_propose_timeline', 'audiomw_show_review']);
+    assert.deepEqual(tools.map(t => t.name).sort(), ['audiomw_inspect', 'audiomw_plan_status', 'audiomw_propose', 'audiomw_propose_binding', 'audiomw_propose_music', 'audiomw_propose_timeline', 'audiomw_show_review']);
     const result = await client.callTool({ name: 'audiomw_inspect', arguments: {} });
     assert.equal(result.structuredContent.Inventory.Project, f.value.Project);
     const invalid = await client.callTool({ name: 'audiomw_propose', arguments: { events: [] } }); assert.equal(invalid.isError, true);
@@ -119,4 +119,19 @@ test('timeline edits traverse real stdio schema and preserve review-only semanti
     input.edits = [{ operation: 'approve' }];
     assert.equal((await client.callTool({ name: 'audiomw_propose_timeline', arguments: input })).isError, true);
   } finally { await client.close(); await stop(); await f.dispose(); }
+});
+test('binding proposals use an inspected scene identity and only create a review', async () => {
+  const f = await fixture(); let request;
+  const stop = await service(f, value => { request=value; return {Ok:true,State:value.Operation==='inspect'?'ready':'pending'}; });
+  const client=new Client({name:'binding-test',version:'1'});
+  try {
+    await client.connect(new StdioClientTransport({command:process.execPath,args:[path.resolve('server.mjs'),'--project',f.project]}));
+    const args={requestId:'e'.repeat(32),intent:'Loop on cooler',eventGuid:'c'.repeat(32),objectId:'GlobalObjectId_V1-target',expectedHash:'d'.repeat(64)};
+    assert.equal((await client.callTool({name:'audiomw_propose_binding',arguments:args})).isError,true);
+    await client.callTool({name:'audiomw_inspect',arguments:{objectQuery:'cooler'}});
+    assert.equal(request.ObjectQuery,'cooler');
+    const plan=await client.callTool({name:'audiomw_propose_binding',arguments:args});
+    assert.equal(plan.structuredContent.State,'pending');assert.equal(request.Operation,'propose_binding');
+    assert.equal(request.BindingDraft.ObjectId,args.objectId);assert.equal(request.BindingDraft.EventGuid,args.eventGuid);
+  } finally { await client.close();await stop();await f.dispose(); }
 });

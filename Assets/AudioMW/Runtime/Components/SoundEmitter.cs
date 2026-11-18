@@ -13,6 +13,18 @@ namespace AudioMW
         private readonly System.Collections.Generic.List<SoundHandle> playing = new System.Collections.Generic.List<SoundHandle>();
         private readonly ParameterStore parameters = new ParameterStore();
 
+        public bool PlayOnEnable => playOnEnable;
+
+        public SoundHandle LatestHandle
+        {
+            get
+            {
+                for (int i=playing.Count-1; i>=0; i--)
+                    if (playing[i].IsPlaying) return playing[i];
+                return SoundHandle.None;
+            }
+        }
+
         public void SetParameter(SoundParameter parameter, float value)
         {
             parameters.Set(parameter, value);

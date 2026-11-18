@@ -276,7 +276,7 @@
 
 .audiomw-diagnostics #diagnostics-layout { flex-direction: row; flex-grow: 1; min-height: 0; }
 .audiomw-diagnostics #diagnostics-overview { flex-grow: 1; flex-shrink: 1; min-width: 0; padding: 12px; }
-.audiomw-diagnostics #diagnostics-details { width: 280px; flex-shrink: 0; margin: 0; padding: 12px; border-left-width: 1px; border-left-color: rgb(63, 66, 71); background-color: rgb(45, 48, 52); }
+.audiomw-diagnostics #diagnostics-details { width: 308px; flex-shrink: 0; margin: 0; padding: 12px; border-left-width: 1px; border-left-color: rgb(63, 66, 71); background-color: rgb(45, 48, 52); }
 .audiomw-diagnostics #diagnostics-details .unity-button { margin-top: 12px; min-height: 26px; white-space: normal; }
 .audiomw-diagnostics .audiomw-capture-note { margin-top: 16px; color: rgb(160, 167, 168); }
 .audiomw-diagnostics #diagnostics-layout.audiomw-diagnostics-stacked { flex-direction: column; }

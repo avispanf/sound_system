@@ -31,10 +31,10 @@ export class UnityBridge {
   }
   async inspect(input = {}) {
     this.bound = await this.connection();
-    return this.request('inspect', { ArrangementGuid: input.arrangementGuid || '' });
+    return this.request('inspect', { ArrangementGuid: input.arrangementGuid || '', ObjectQuery: input.objectQuery || '' });
   }
   async request(operation, payload, requestId = randomBytes(16).toString('hex')) {
-    if (!['inspect', 'propose', 'propose_music', 'propose_timeline', 'status', 'review'].includes(operation)) throw new Error('Unsupported operation. Approval is only available in Unity.');
+    if (!['inspect', 'propose', 'propose_music', 'propose_timeline', 'propose_binding', 'status', 'review'].includes(operation)) throw new Error('Unsupported operation. Approval is only available in Unity.');
     if (!this.bound) throw new Error('Call audiomw_inspect first to bind the intended Unity project/session.');
     if (!idPattern.test(requestId)) throw new Error('requestId must contain 32 lowercase hex characters.');
     const current = await this.connection();

@@ -64,11 +64,11 @@ namespace AudioMW.Editor
             if (!string.IsNullOrEmpty(error)) scroll.Add(new HelpBox(error, HelpBoxMessageType.Error));
             foreach (var pending in AudioAgentBridge.Plans)
             {
-                var data = pending.Read(); var proposal = new Button(() => { selectedId = data.Id; error = null; CreateGUI(); }) { text = pending.State + " · " + (data.Changes.Length + data.Music.Length + (data.HasProfile ? 1 : 0) + (data.HasTimeline ? 1 : 0)) + " asset(s) · " + data.Id.Substring(0, 8), tooltip = data.Intent }; proposal.EnableInClassList("audiomw-proposal-selected", data.Id == selectedId); proposals.Add(proposal);
+                var data = pending.Read(); var proposal = new Button(() => { selectedId = data.Id; error = null; CreateGUI(); }) { text = pending.State + " · " + (data.HasSceneBinding ? "1 scene emitter" : (data.Changes.Length + data.Music.Length + (data.HasProfile ? 1 : 0) + (data.HasTimeline ? 1 : 0)) + " asset(s)") + " · " + data.Id.Substring(0, 8), tooltip = data.Intent }; proposal.EnableInClassList("audiomw-proposal-selected", data.Id == selectedId); proposals.Add(proposal);
             }
             var plan = AudioAgentBridge.Find(selectedId); if (plan == null) { scroll.Add(Text("Send files through your agent, then choose a proposal here. No assets are imported while preparing a plan.")); return; }
             var review = plan.Read();
-            var stateLabel = Text(plan.State + " · " + review.Changes.Length + " events · " + review.Music.Length + " tracks" + (review.HasProfile ? " · state profile" : "") + (review.HasTimeline ? " · timeline edits" : "")); stateLabel.AddToClassList("audiomw-eyebrow"); scroll.Add(stateLabel);
+            var stateLabel = Text(plan.State + " · " + review.Changes.Length + " events · " + review.Music.Length + " tracks" + (review.HasProfile ? " · state profile" : "") + (review.HasTimeline ? " · timeline edits" : "") + (review.HasSceneBinding ? " · scene emitter" : "")); stateLabel.AddToClassList("audiomw-eyebrow"); scroll.Add(stateLabel);
             scroll.Add(Text(review.Intent));
             context.Add(Text("Scope · Entire plan"));
             context.Add(Text("Captured target · " + review.BuildTarget + "\nUnity " + review.Unity));
@@ -76,9 +76,18 @@ namespace AudioMW.Editor
             foreach (var heading in new[] { "Before apply", "After apply", "Conflicts" })
             {
                 var label = Text(heading); label.AddToClassList("audiomw-review-heading"); context.Add(label);
-                context.Add(Text(heading == "Before apply" ? "Validate asset identity, source files and current plan state." : heading == "After apply" ? "Report the actual result below. Imported audio still needs gameplay wiring and listening checks." : "Stale plans cannot be applied. Request a new proposal after changing the reviewed assets."));
+                context.Add(Text(heading == "Before apply" ? "Validate asset identity, source files and current plan state." : heading == "After apply" ? (review.HasSceneBinding ? "Save the scene in Unity to keep the reviewed emitter binding." : "Report the actual result below. Imported audio still needs gameplay wiring and listening checks.") : "Stale plans cannot be applied. Request a new proposal after changing the reviewed assets."));
             }
-            if (!review.HasTimeline) { var destination = new Foldout { text = "Import destination", value = false }; destination.Add(Text(review.Folder)); context.Add(destination); }
+            if (review.HasSceneBinding)
+            {
+                var c = review.SceneBinding;
+                var item = new VisualElement(); item.AddToClassList("audiomw-review-item"); scroll.Add(item);
+                item.Add(Text(c.ScenePath + " / " + c.ObjectPath));
+                item.Add(Text("Before · " + c.Before));
+                item.Add(Text("After · " + c.After));
+                item.Add(Text("One Undo step. Save the scene after applying."));
+            }
+            else if (!review.HasTimeline) { var destination = new Foldout { text = "Import destination", value = false }; destination.Add(Text(review.Folder)); context.Add(destination); }
             else
             {
                 var item = new VisualElement(); item.AddToClassList("audiomw-review-item"); scroll.Add(item);
@@ -147,7 +156,7 @@ namespace AudioMW.Editor
                 try
                 {
                     string problem = AudioAgentPlanner.Check(plan, AudioAgentBridge.Session); if (problem.Length > 0) throw new InvalidOperationException(problem);
-                    if (!EditorUtility.DisplayDialog("Apply AudioMW integration?", review.HasTimeline ? "Apply " + review.Timeline.Edits.Length + " timeline edits to " + review.Timeline.Path + "?\nReview " + plan.Digest.Substring(0, 12) + ". No import, playback or scene changes." : review.Changes.Length + " event changes, " + review.Music.Length + " music tracks" + (review.HasProfile ? " and a state profile" : "") + "; imported audio in " + review.Folder + ".\nReview " + plan.Digest.Substring(0, 12) + ".\nExisting asset content will be replaced exactly as shown. No gameplay code or mixer gains will be changed.", "Apply reviewed plan", "Cancel")) return;
+                    if (!EditorUtility.DisplayDialog("Apply AudioMW integration?", review.HasSceneBinding ? review.SceneBinding.After + "\n" + review.SceneBinding.ScenePath + " / " + review.SceneBinding.ObjectPath + "\nThe scene will be marked as modified." : review.HasTimeline ? "Apply " + review.Timeline.Edits.Length + " timeline edits to " + review.Timeline.Path + "?\nReview " + plan.Digest.Substring(0, 12) + ". No import, playback or scene changes." : review.Changes.Length + " event changes, " + review.Music.Length + " music tracks" + (review.HasProfile ? " and a state profile" : "") + "; imported audio in " + review.Folder + ".\nReview " + plan.Digest.Substring(0, 12) + ".\nExisting asset content will be replaced exactly as shown. No gameplay code or mixer gains will be changed.", "Apply reviewed plan", "Cancel")) return;
                     AudioAgentBridge.Approve(plan); error = null;
                 }
                 catch (Exception e) { error = e.Message; }

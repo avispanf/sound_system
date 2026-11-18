@@ -1,6 +1,6 @@
 # Timeline editing through MCP
 
-Studio 54 adds `audiomw_propose_timeline` to the existing local companion for Claude Code, Codex and other stdio MCP clients. Update both the Unity package and the companion directory, then reconnect the client so its tool list refreshes. There are six tools, with no approval endpoint. Keep the Editor in Edit Mode and enable the local session in **Window > AudioMW > Panels > Authoring > Agent Review**.
+Studio 54 adds `audiomw_propose_timeline` to the existing local companion for Claude Code, Codex and other stdio MCP clients. Update both the Unity package and the companion directory, then reconnect the client so its tool list refreshes. The companion includes scene binding and timeline proposals. Approval takes place in Unity. Keep the Editor in Edit Mode and enable the local session in **Window > AudioMW > Panels > Authoring > Agent Review**.
 
 ## Workflow
 

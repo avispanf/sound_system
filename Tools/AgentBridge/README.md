@@ -8,4 +8,4 @@ This directory is the companion, not an npm-published package. Do not invent an 
 
 Adaptive music and channel-layout documentation: `agent-music-mcp.md` in the same documentation location.
 
-Reviewed MusicArrangement edits: `agent-timeline-mcp.md`. Use `audiomw_inspect` with an arrangement GUID before `audiomw_propose_timeline`. Reconnect the MCP client after updating the companion to refresh its six-tool inventory.
+Reviewed MusicArrangement edits: `agent-timeline-mcp.md`. Use `audiomw_inspect` with an arrangement GUID before `audiomw_propose_timeline`. Reconnect the MCP client after updating the companion to refresh its tool inventory. Use the objects and binding commands to propose one scene emitter change against an inspected object. See source-diagnostics-and-bindings.md.

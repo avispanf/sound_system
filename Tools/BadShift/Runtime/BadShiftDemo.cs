@@ -8,6 +8,7 @@ public sealed class BadShiftDemo : MonoBehaviour
     public SoundEvent MicrowaveRandom;
     public SoundEvent MicrowaveBag;
     public SoundEvent FridgeSound;
+    public SoundEmitter CompressorEmitter;
     public SoundEvent DancerMusic;
     public SoundHandle DancerMusicHandle { get; private set; }
     private float retryDanceAt, retryFridgeAt;
@@ -112,6 +113,17 @@ public sealed class BadShiftDemo : MonoBehaviour
     }
     private void EnsureCompressor()
     {
+        if (CompressorEmitter != null)
+        {
+            fridgeHandle=CompressorEmitter.LatestHandle;
+            if (!fridgeHandle.IsPlaying && CompressorEmitter.isActiveAndEnabled && CompressorEmitter.PlayOnEnable && CompressorEmitter.Event!=null && CompressorEmitter.Event.Loop && Time.unscaledTime>=retryFridgeAt)
+            {
+                CompressorEmitter.Play();
+                fridgeHandle=CompressorEmitter.LatestHandle;
+                retryFridgeAt=Time.unscaledTime+.75f;
+            }
+            return;
+        }
         if (FridgeSound == null || fridgeHandle.IsPlaying || Time.unscaledTime < retryFridgeAt) return;
         fridgeHandle = AudioSystem.PlayTrackedAttached(FridgeSound, Fridge);
         retryFridgeAt = Time.unscaledTime + .75f;
@@ -193,7 +205,7 @@ public sealed class BadShiftDemo : MonoBehaviour
         retryDanceAt = 0;
     }
 
-    private void OnDisable() { StopDanceMusic(); fridgeHandle.Stop(); retryFridgeAt = 0; }
+    private void OnDisable() { StopDanceMusic(); if(CompressorEmitter==null) fridgeHandle.Stop(); retryFridgeAt = 0; }
     private GUIStyle TextStyle(int size, Color color, bool bold=false)
     {
         GUIStyle style=new GUIStyle(GUI.skin.label){fontSize=size,wordWrap=true,fontStyle=bold?FontStyle.Bold:FontStyle.Normal};style.normal.textColor=color;return style;
@@ -328,5 +340,5 @@ public sealed class BadShiftDemo : MonoBehaviour
             }
         }
     }
-    private void OnDestroy() { fridgeHandle.Stop(); if (microwaveMaterial != null) Destroy(microwaveMaterial); }
+    private void OnDestroy() { if(CompressorEmitter==null) fridgeHandle.Stop(); if (microwaveMaterial != null) Destroy(microwaveMaterial); }
 }

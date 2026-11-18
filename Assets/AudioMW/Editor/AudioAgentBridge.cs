@@ -25,6 +25,8 @@ namespace AudioMW.Editor
         public string Operation;
         public string PlanId;
         public string ArrangementGuid;
+        public string ObjectQuery;
+        public AudioSceneBindingDraft BindingDraft;
         public AudioAgentDraft Draft;
         public AudioAgentMusicDraft MusicDraft;
         public AudioAgentTimelineDraft TimelineDraft;
@@ -40,6 +42,7 @@ namespace AudioMW.Editor
         public AudioAgentReview Plan;
         public AudioAgentInventory Inventory;
         public AudioAgentAsset Timeline;
+        public AudioAgentAsset[] SceneObjects;
     }
     [Serializable] public sealed class AudioAgentInventory
     {
@@ -64,6 +67,7 @@ namespace AudioMW.Editor
         public string Path;
         public string Id;
         public string Detail;
+        public string Hash;
     }
     [InitializeOnLoad] public static class AudioAgentBridge
     {
@@ -142,11 +146,11 @@ namespace AudioMW.Editor
         {
             if (!Enabled || request == null || request.SchemaVersion != 1 || request.Project != AudioProjectPlanner.ProjectIdentity() || request.Session != Session) throw new InvalidOperationException("Wrong project, protocol or editor session. Reconnect and propose again.");
             AudioAgentPlanner.Ready();
-            if (request.Operation == "inspect") return new AudioAgentReply { Ok = true, Inventory = Inspect(), State = "ready", Timeline = AudioAgentTimelinePlanner.Inspect(request.ArrangementGuid) };
-            if (request.Operation == "propose" || request.Operation == "propose_music" || request.Operation == "propose_timeline")
+            if (request.Operation == "inspect") return new AudioAgentReply { Ok = true, Inventory = Inspect(), SceneObjects = AudioAgentScenePlanner.Find(request.ObjectQuery), State = "ready", Timeline = AudioAgentTimelinePlanner.Inspect(request.ArrangementGuid) };
+            if (request.Operation == "propose" || request.Operation == "propose_music" || request.Operation == "propose_timeline" || request.Operation == "propose_binding")
             {
                 if (plans.Count >= 64) throw new InvalidOperationException("Review limit reached. Restart the bridge in Unity.");
-                var plan = request.Operation == "propose_timeline" ? AudioAgentTimelinePlanner.Prepare(request.TimelineDraft, Session) : request.Operation == "propose_music" ? AudioAgentMusicPlanner.Prepare(request.MusicDraft, Session) : AudioAgentPlanner.Prepare(request.Draft, Session); plans.Add(plan.Read().Id, plan); Changed?.Invoke(); return Reply(plan);
+                var plan = request.Operation == "propose_binding" ? AudioAgentScenePlanner.Prepare(request.BindingDraft, Session) : request.Operation == "propose_timeline" ? AudioAgentTimelinePlanner.Prepare(request.TimelineDraft, Session) : request.Operation == "propose_music" ? AudioAgentMusicPlanner.Prepare(request.MusicDraft, Session) : AudioAgentPlanner.Prepare(request.Draft, Session); plans.Add(plan.Read().Id, plan); Changed?.Invoke(); return Reply(plan);
             }
             if (request.Operation != "status" && request.Operation != "review") throw new ArgumentException("Unknown operation. Applying or approving through MCP is not supported.");
             if (string.IsNullOrEmpty(request.PlanId) || !plans.TryGetValue(request.PlanId, out var selected)) throw new ArgumentException("Plan unavailable in this editor session. Propose again.");

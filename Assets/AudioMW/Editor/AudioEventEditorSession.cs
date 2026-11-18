@@ -284,6 +284,7 @@ namespace AudioMW.Editor
                     EditorGUILayout.HelpBox("Enter Play Mode with AudioMW and enable Record to capture local Editor performance.", MessageType.Info);
                     return;
                 }
+                if (GUILayout.Button("Inspect live scene source")) EventDebuggerWindow.OpenAudibility();
                 DrawPerformanceCapture();
             }
             else if(bottomTab=="Live changes")

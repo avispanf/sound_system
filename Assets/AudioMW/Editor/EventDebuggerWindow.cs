@@ -45,6 +45,17 @@ namespace AudioMW.Editor
             window.Show();
         }
 
+        internal static void OpenAudibility()
+        {
+            Open();
+            var root = GetWindow<EventDebuggerWindow>().rootVisualElement;
+            root.schedule.Execute(() =>
+            {
+                var pane = root.Q<AudioAudibilityPane>();
+                if (pane != null) pane.value = true;
+            });
+        }
+
         private void OnEnable() { EditorApplication.playModeStateChanged += OnPlayModeChanged; }
         private void OnDisable() { EditorApplication.playModeStateChanged -= OnPlayModeChanged; }
         private void OnPlayModeChanged(PlayModeStateChange state)
@@ -123,6 +134,7 @@ namespace AudioMW.Editor
             details = new ScrollView { name = "diagnostics-details" };
             details.AddToClassList("audiomw-runtime-card");
             workspace.Add(details);
+            details.Add(new AudioAudibilityPane());
             var capturedHeading = new Label("Captured detail"); capturedHeading.AddToClassList("audiomw-panel-heading"); details.Add(capturedHeading);
             detailLabel = new Label { name = "captured-outcome" };
             detailLabel.style.whiteSpace = WhiteSpace.Normal;

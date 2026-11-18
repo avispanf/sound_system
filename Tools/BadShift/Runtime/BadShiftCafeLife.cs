@@ -24,7 +24,7 @@ public sealed class BadShiftCafeLife : MonoBehaviour
     private BadShiftUseTarget[] targets;
     private float nextReaction,quoteUntil;
     private string quote;
-    private void Awake(){Demo=GetComponent<BadShiftDemo>();Muted=BadShiftSilentLaunch.Requested;AudioListener.volume=Muted?0:1;}
+    private void Awake(){Demo=GetComponent<BadShiftDemo>();Muted=BadShiftSilentLaunch.Requested || GetComponent<BadShiftDeviceRun>()!=null;AudioListener.volume=Muted?0:1;}
     private void OnEnable(){BadShiftImpactProp.Reacted+=OnImpact;}
     private void OnDisable(){BadShiftImpactProp.Reacted-=OnImpact;}
     private void Start(){targets=FindObjectsByType<BadShiftUseTarget>(FindObjectsSortMode.None);PlayerStick.SetActive(false);EnemyStick.SetActive(false);}

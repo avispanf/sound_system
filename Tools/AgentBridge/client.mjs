@@ -16,10 +16,12 @@ try {
   let result = identity;
   if (operation === 'propose') result = await invoke('audiomw_propose', JSON.parse(await readFile(input, 'utf8')));
   else if (operation === 'timeline') result = await invoke('audiomw_propose_timeline', JSON.parse(await readFile(input, 'utf8')));
+  else if (operation === 'objects') result = await invoke('audiomw_inspect', { objectQuery: input });
+  else if (operation === 'binding') result = await invoke('audiomw_propose_binding', JSON.parse(await readFile(input, 'utf8')));
   else if (operation === 'music') result = await invoke('audiomw_propose_music', JSON.parse(await readFile(input, 'utf8')));
   else if (operation === 'status') result = await invoke('audiomw_plan_status', { planId: input });
   else if (operation === 'review') result = await invoke('audiomw_show_review', { planId: input });
-  else if (operation !== 'inspect') throw new Error('Use inspect, propose/music/timeline <json-file>, status <plan-id>, or review <plan-id>.');
+  else if (operation !== 'inspect') throw new Error('Use inspect, objects <name>, propose/music/timeline/binding <json-file>, status <plan-id>, or review <plan-id>.');
   process.stdout.write(JSON.stringify(result, null, 2) + '\n');
 } catch (error) { process.stderr.write(error.message + '\n'); process.exitCode = 1; }
 finally { await client.close(); }
