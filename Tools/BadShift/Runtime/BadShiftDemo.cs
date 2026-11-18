@@ -149,6 +149,7 @@ public sealed class BadShiftDemo : MonoBehaviour
         GUIStyle style=TextStyle(14,Color.white,true);style.alignment=TextAnchor.MiddleCenter;
         return GUI.Button(rect,text,style);
     }
+    public BadShiftDaylight Daylight;
     private void OnGUI()
     {
         float scale=Mathf.Min(Screen.width/1600f,Screen.height/900f);
@@ -159,6 +160,7 @@ public sealed class BadShiftDemo : MonoBehaviour
         GUI.Label(new Rect(44,34,260,36),"BAD SHIFT",TextStyle(26,white,true));
         GUI.Label(new Rect(45,70,280,20),"AUDIOMW / AUDIO PLAYGROUND",TextStyle(11,muted));
         BadShiftTour tour=Game.Tour;bool watching=tour!=null&&tour.Running;
+        if(Daylight!=null&&Button(new Rect(w-892,42,150,40),Daylight.ModeLabel)) Daylight.CycleMode();
         if(Game.Life!=null&&Button(new Rect(w-586,42,124,40),Game.Life.Muted?"Sound off":"Sound on"))Game.Life.ToggleSound();
         if(Button(new Rect(w-730,42,132,40),new[]{"Audio: off","Audio: labels","Audio: details"}[AudioVisualMode]))CycleAudioVisuals();
         if(Button(new Rect(w-450,42,140,40),"Play yourself",!watching)&&tour!=null){tour.Stop();if(Game.Life!=null&&Game.Life.Duel)Game.Life.Battle.ReturnToCafe();}

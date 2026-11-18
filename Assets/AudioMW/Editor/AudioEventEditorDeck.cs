@@ -127,6 +127,7 @@ namespace AudioMW.Editor
                 DeckField("minDistance", "Near (units)");
                 DeckField("maxDistance", "Far (units)");
                 DeckField("rolloffMode", "Rolloff");
+                DeckField("dopplerLevel", "Doppler");
                 if (GUILayout.Button("Create preset for curves, width and filter"))
                     EditorApplication.delayCall += () => CreateAttenuationPreset(sound);
                 DrawDistancePreview(sound);
@@ -160,6 +161,7 @@ namespace AudioMW.Editor
                     SpatialField(data, "sourceRadius", "Radius (units)");
                     SpatialField(data, "spread", "Spread (°)");
                     SpatialField(data, "stereoPan", "Stereo pan");
+                    SpatialField(data, "dopplerLevel", "Doppler");
                     SpatialField(data, "distanceSpread", "Distance spread");
                     if (data.FindProperty("distanceSpread").boolValue) SpatialField(data, "spreadByDistance", "Spread (°)");
                     EditorGUILayout.LabelField("Radius sets a minimum angular width. The emitter stays at its world position.", EditorStyles.wordWrappedMiniLabel);
@@ -224,6 +226,7 @@ namespace AudioMW.Editor
             string path = EditorUtility.SaveFilePanelInProject("Create attenuation preset", sound.name + " Attenuation", "asset", "Choose a new preset location.");
             if (string.IsNullOrEmpty(path) || AssetDatabase.LoadMainAssetAtPath(path) != null) return;
             var preset = AttenuationPreset.CreateRuntime(sound.SpatialBlend, sound.MinDistance, sound.MaxDistance, sound.RolloffMode);
+            preset.DopplerLevel = sound.DopplerLevel;
             AssetDatabase.CreateAsset(preset, path);
             Undo.RegisterCreatedObjectUndo(preset, "Create attenuation preset");
             Undo.RecordObject(sound, "Assign attenuation preset");

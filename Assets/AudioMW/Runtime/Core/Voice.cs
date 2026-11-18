@@ -116,6 +116,7 @@ namespace AudioMW
             source.volume = parameters.Volume;
             source.pitch = parameters.Pitch;
             source.loop = soundEvent.Loop;
+            source.velocityUpdateMode = AudioVelocityUpdateMode.Dynamic;
             source.ignoreListenerPause = soundEvent.IgnorePause;
             source.outputAudioMixerGroup = soundEvent.MixerGroup;
             if (soundEvent.AttenuationPreset != null)
@@ -126,7 +127,7 @@ namespace AudioMW
             {
                 source.panStereo = 0f;
                 source.spread = 0f;
-                source.dopplerLevel = 1f;
+                source.dopplerLevel = soundEvent.DopplerLevel;
                 source.spatialBlend = soundEvent.SpatialBlend;
                 source.minDistance = soundEvent.MinDistance;
                 source.maxDistance = soundEvent.MaxDistance;

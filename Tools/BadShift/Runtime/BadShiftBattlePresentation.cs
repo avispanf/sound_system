@@ -116,9 +116,12 @@ public sealed class BadShiftBattlePresentation : MonoBehaviour
     {
         Accents();
         Weight=Mathf.MoveTowards(Weight,Battle.Active?1:0,Time.deltaTime*1.5f);Grade.weight=Weight*(Battle.OvertimeFinish&&Battle.Finished?.55f:1);
-        for(int i=0;i<keys.Length;i++){keys[i].intensity=Mathf.Lerp(keyIntensities[i],keyIntensities[i]*.4f,Weight);keys[i].color=Color.Lerp(keyColors[i],new Color(.57f,.65f,1),Weight);}
-        RenderSettings.ambientLight=Color.Lerp(ambient,new Color(.12f,.15f,.25f),Weight);
-        Battle.Life.Demo.Game.View.backgroundColor=Color.Lerp(background,new Color(.055f,.065f,.12f),Weight);
+        if (Battle.Life.Demo.Daylight == null)
+        {
+            for(int i=0;i<keys.Length;i++){keys[i].intensity=Mathf.Lerp(keyIntensities[i],keyIntensities[i]*.4f,Weight);keys[i].color=Color.Lerp(keyColors[i],new Color(.57f,.65f,1),Weight);}
+            RenderSettings.ambientLight=Color.Lerp(ambient,new Color(.12f,.15f,.25f),Weight);
+            Battle.Life.Demo.Game.View.backgroundColor=Color.Lerp(background,new Color(.055f,.065f,.12f),Weight);
+        }
         OvertimeWeight=Mathf.MoveTowards(OvertimeWeight,Battle.Active&&Battle.SecondPhase?1:0,Time.deltaTime*2);
         RedLight.color=Color.Lerp(redSource,new Color(1,.42f,.08f),OvertimeWeight);BlueLight.color=Color.Lerp(blueSource,new Color(.65f,.25f,1),OvertimeWeight);
         RedLight.intensity=Weight*(4+OvertimeWeight);BlueLight.intensity=Weight*5;

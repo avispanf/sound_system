@@ -86,6 +86,7 @@ namespace AudioMW.Editor
             Field(spatialValues, "minDistance", "Near (m)");
             Field(spatialValues, "maxDistance", "Far (m)");
             Field(spatialValues, "rolloffMode", "Falloff");
+            Field(spatialValues, "dopplerLevel", "Doppler");
             spatial.Add(spatialValues);
             Field(spatial, "allowVirtualization", "Virtualize", "Keep supported out-of-range 3D voices alive without a physical AudioSource.");
             Foldout limits = Section(root, "Playback limits", false);

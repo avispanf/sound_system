@@ -135,6 +135,13 @@ namespace AudioMW
             set { maxDistance = Mathf.Max(minDistance, value); }
         }
 
+        [SerializeField, Range(0f, 5f)] private float dopplerLevel = 1f;
+        public float DopplerLevel
+        {
+            get { return dopplerLevel; }
+            set { dopplerLevel = Mathf.Clamp(value, 0, 5); }
+        }
+
         public AudioRolloffMode RolloffMode
         {
             get { return rolloffMode; }

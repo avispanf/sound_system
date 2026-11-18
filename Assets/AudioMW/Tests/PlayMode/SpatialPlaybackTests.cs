@@ -135,6 +135,33 @@ namespace AudioMW.Tests
         }
 
         [UnityTest]
+        public IEnumerator MovingVoiceUsesEventOrPresetDoppler()
+        {
+            var item = MakeEvent();
+            var preset = AttenuationPreset.CreateRuntime(1, 1, 20, AudioRolloffMode.Linear);
+            var car = new GameObject("Moving emitter");
+            try
+            {
+                item.DopplerLevel = 8;
+                var direct = AudioSystem.PlayTrackedAttached(item, car.transform);
+                Assert.AreEqual(5, direct.Voice.Source.dopplerLevel);
+                Assert.AreEqual(AudioVelocityUpdateMode.Dynamic, direct.Voice.Source.velocityUpdateMode);
+                direct.Stop();
+                item.AttenuationPreset = preset;
+                preset.DopplerLevel = 0;
+                var stationary = AudioSystem.PlayTrackedAttached(item, car.transform);
+                Assert.AreEqual(0, stationary.Voice.Source.dopplerLevel);
+                stationary.Stop();
+                yield return null;
+            }
+            finally
+            {
+                AudioSystem.StopAll();
+                Object.Destroy(car); Object.Destroy(item); Object.Destroy(preset);
+            }
+        }
+
+        [UnityTest]
         public IEnumerator MobileTierKeepsDistanceAndOcclusionProcessingNeutral()
         {
             var previous = AudioRuntimeSettings.ActiveTier;

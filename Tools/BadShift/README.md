@@ -216,3 +216,11 @@ Long music layer headings wrap inside300px native Inspectors. Fresh336/336 EditM
 ### Editor UI preview.44
 
 Repeated Pin reuses native profile Inspectors by asset identity and leaves selection independent. Fresh337/337 EditMode and5/5 package checks; actual PARAM_Intensity repeated pin visually verified at300px without new windows or sound. No fresh runtime probe/gameplay rebuild/listening; preview43 runtime report remains separate.
+
+### Café lighting and street traffic
+
+The lighting button in the top bar cycles through Auto, Night and Day. Auto starts at sunset and runs a 96-second cycle. Night brings up two neutral-white ceiling fixtures. Sunrise and sunset warm the directional light and reveal three shafts of light inside the café windows. The combat presentation blends over the current time of day.
+
+One car uses the street at a time. Four finishes, alternating directions, different speeds, roof accessories and suspension movement distinguish successive passes. The motor follows the car as an AudioMW event. The transformer's hum stays at the sign beside the dining windows. Both loops are replaceable mono demo recordings synthesized by the supplied script. Motor Doppler is 2.1 and neon Doppler is zero.
+
+To reproduce the authored pass in a BAD SHIFT project, copy the matching runtime and editor sources, generate the two WAVs with `python3 Tools/BadShift/Audio/generate_street_audio.py <project>/Assets/BadShift/Night`, and place `Tools/BadShift/Art/CafeSunShaft.shader` in that folder. Run `BadShiftNightPass.Run` using the isolated batch authoring project. Save the authored scene, new assets and their Unity metadata together. The pass recognizes an already-authored street.

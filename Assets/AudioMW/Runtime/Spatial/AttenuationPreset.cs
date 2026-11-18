@@ -80,6 +80,7 @@ namespace AudioMW
         public float DopplerLevel
         {
             get { return dopplerLevel; }
+            set { dopplerLevel = Mathf.Clamp(value, 0, 5); }
         }
 
         public bool UsesCustomCurve
