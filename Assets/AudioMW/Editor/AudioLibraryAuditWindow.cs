@@ -12,6 +12,31 @@ namespace AudioMW.Editor
         [SerializeField] private string scope = "Assets";
         [SerializeField] private string query = "";
         [SerializeField] private bool errorsOnly;
+        private StudioLibraryAudit view;
+
+        [MenuItem("Window/AudioMW/Panels/Diagnostics/Library Audit")]
+        public static void Open() => AudioEventEditorWindow.OpenDock("Library audit");
+
+        public void CreateGUI()
+        {
+            rootVisualElement.Clear();
+            AudioWorkspace.Style(rootVisualElement);
+            view = new StudioLibraryAudit(scope, query, errorsOnly, (folder, filter, errors) =>
+            {
+                scope = folder;
+                query = filter;
+                errorsOnly = errors;
+            });
+            rootVisualElement.Add(view);
+        }
+
+        public void Scan() => view?.Scan();
+    }
+
+    internal sealed class StudioLibraryAudit : VisualElement
+    {
+        private string scope, query;
+        private bool errorsOnly;
         private AudioLibraryReport report;
         private readonly List<AudioLibraryIssue> visible = new List<AudioLibraryIssue>();
         private ListView list;
@@ -21,39 +46,35 @@ namespace AudioMW.Editor
         private Button export;
         private AudioLibraryIssue selected;
 
-        [MenuItem("Window/AudioMW/Panels/Diagnostics/Library Audit")]
-        public static void Open()
+        internal StudioLibraryAudit(string folderPath = "Assets", string filter = "", bool onlyErrors = false,
+            System.Action<string, string, bool> settingsChanged = null)
         {
-            AudioLibraryAuditWindow window = GetWindow<AudioLibraryAuditWindow>();
-            window.titleContent = new GUIContent("Library Audit"); window.minSize = new Vector2(620, 360); window.Show();
-        }
-
-        public void CreateGUI()
-        {
-            rootVisualElement.Clear(); AudioWorkspace.Style(rootVisualElement);
-            rootVisualElement.Add(AudioWorkspace.Navigation("Library Audit"));
+            scope = folderPath;
+            query = filter;
+            errorsOnly = onlyErrors;
+            style.flexGrow = 1;
             ObjectField folder = new ObjectField("Project folder") { objectType = typeof(DefaultAsset), allowSceneObjects = false, value = AssetDatabase.LoadAssetAtPath<DefaultAsset>(scope) };
             folder.RegisterValueChangedCallback(evt =>
             {
                 string path = AssetDatabase.GetAssetPath(evt.newValue);
                 if ((path == "Assets" || path.StartsWith("Assets/")) && AssetDatabase.IsValidFolder(path)) scope = path;
                 else { folder.SetValueWithoutNotify(AssetDatabase.LoadAssetAtPath<DefaultAsset>(scope)); return; }
-                report = null; Rebuild();
-            }); rootVisualElement.Add(folder);
+                report = null; settingsChanged?.Invoke(scope, query, errorsOnly); Rebuild();
+            }); Add(folder);
             Toolbar controls = new Toolbar();
             controls.Add(new ToolbarButton(Scan) { text = "Scan library", tooltip = "Read-only scan of the selected folder. Banks elsewhere under Assets are considered for membership." });
             ToolbarSearchField search = new ToolbarSearchField { value = query }; search.style.flexGrow = 1;
-            search.RegisterValueChangedCallback(evt => { query = evt.newValue; Rebuild(); }); controls.Add(search);
+            search.RegisterValueChangedCallback(evt => { query = evt.newValue; settingsChanged?.Invoke(scope, query, errorsOnly); Rebuild(); }); controls.Add(search);
             ToolbarToggle errors = new ToolbarToggle { text = "Errors only", value = errorsOnly };
-            errors.RegisterValueChangedCallback(evt => { errorsOnly = evt.newValue; Rebuild(); }); controls.Add(errors);
+            errors.RegisterValueChangedCallback(evt => { errorsOnly = evt.newValue; settingsChanged?.Invoke(scope, query, errorsOnly); Rebuild(); }); controls.Add(errors);
             export = new ToolbarButton(() =>
             {
                 if (report == null) return;
                 string path = EditorUtility.SaveFilePanel("Export library audit", "", "audiomw-library-audit.json", "json");
                 if (!string.IsNullOrEmpty(path)) File.WriteAllText(path, JsonUtility.ToJson(report, true));
             }) { text = "Export JSON", name = "audit-export", tooltip = "Export the complete snapshot, including issues hidden by filters." };
-            controls.Add(export); rootVisualElement.Add(controls);
-            summary = new Label { name = "audit-summary", style = { whiteSpace = WhiteSpace.Normal, paddingLeft = 6, paddingTop = 6, paddingBottom = 6 } }; rootVisualElement.Add(summary);
+            controls.Add(export); Add(controls);
+            summary = new Label { name = "audit-summary", style = { whiteSpace = WhiteSpace.Normal, paddingLeft = 6, paddingTop = 6, paddingBottom = 6 } }; Add(summary);
             list = new ListView { name = "audit-issues", itemsSource = visible, fixedItemHeight = 28, selectionType = SelectionType.Single };
             list.style.flexGrow = 1;
             list.makeItem = () => new Label();
@@ -71,9 +92,9 @@ namespace AudioMW.Editor
                     detail.text = selected.AssetPath + "\n" + selected.Rule + " · " + selected.Message;
                     open.SetEnabled(selected.Asset != null); if (selected.Asset != null) Selection.activeObject = selected.Asset; break;
                 }
-            }; rootVisualElement.Add(list);
-            detail = new Label { name = "audit-detail", style = { whiteSpace = WhiteSpace.Normal, paddingLeft = 6, paddingTop = 6, minHeight = 60 } }; rootVisualElement.Add(detail);
-            open = new Button(() => { if (selected != null && selected.Asset != null) { Selection.activeObject = selected.Asset; EditorUtility.OpenPropertyEditor(selected.Asset); } }) { text = "Open asset settings", name = "audit-open" }; rootVisualElement.Add(open);
+            }; Add(list);
+            detail = new Label { name = "audit-detail", style = { whiteSpace = WhiteSpace.Normal, paddingLeft = 6, paddingTop = 6, minHeight = 60 } }; Add(detail);
+            open = new Button(() => { if (selected != null && selected.Asset != null) { Selection.activeObject = selected.Asset; EditorUtility.OpenPropertyEditor(selected.Asset); } }) { text = "Open asset settings", name = "audit-open" }; Add(open);
             Rebuild();
         }
 

@@ -7,6 +7,19 @@ namespace AudioMW.Editor
 {
     public sealed class ImportAuditWindow : EditorWindow
     {
+        [MenuItem("Window/AudioMW/Panels/Diagnostics/Import Auditor")]
+        public static void Open() => AudioEventEditorWindow.OpenDock("Import audit");
+
+        public void CreateGUI()
+        {
+            rootVisualElement.Clear();
+            AudioWorkspace.Style(rootVisualElement);
+            rootVisualElement.Add(new StudioImportAudit());
+        }
+    }
+
+    internal sealed class StudioImportAudit : VisualElement
+    {
         private struct Row
         {
             public ClipImportInfo Info;
@@ -20,20 +33,10 @@ namespace AudioMW.Editor
         private Toggle issuesOnly;
         private List<Row> visible = new List<Row>();
 
-        [MenuItem("Window/AudioMW/Panels/Diagnostics/Import Auditor")]
-        public static void Open()
+        internal StudioImportAudit()
         {
-            ImportAuditWindow window = GetWindow<ImportAuditWindow>();
-            window.titleContent = new GUIContent("Import Auditor");
-            window.minSize = new Vector2(380f, 300f);
-            window.Show();
-        }
-
-        public void CreateGUI()
-        {
-            rootVisualElement.Clear(); AudioWorkspace.Style(rootVisualElement);
-            rootVisualElement.Add(AudioWorkspace.Navigation("Import Audit"));
-            rootVisualElement.AddToClassList("audiomw-audit");
+            style.flexGrow = 1;
+            AddToClassList("audiomw-audit");
             VisualElement controls = new VisualElement();
             controls.style.flexDirection = FlexDirection.Row;
             controls.style.flexWrap = Wrap.Wrap;
@@ -54,7 +57,7 @@ namespace AudioMW.Editor
             issuesOnly.RegisterValueChangedCallback(evt => Rebuild());
             controls.Add(issuesOnly);
 
-            rootVisualElement.Add(controls);
+            Add(controls);
 
             listView = new ListView();
             listView.fixedItemHeight = 46f;
@@ -64,7 +67,7 @@ namespace AudioMW.Editor
             listView.bindItem = BindItem;
             listView.itemsSource = visible;
             listView.selectionChanged += OnSelectionChanged;
-            rootVisualElement.Add(listView);
+            Add(listView);
 
             summaryLabel = new Label("No scan yet · choose Scan project or select clips first.");
             summaryLabel.style.paddingLeft = 6f;
@@ -72,7 +75,7 @@ namespace AudioMW.Editor
             summaryLabel.style.paddingRight = 12f;
             summaryLabel.style.flexShrink = 0;
             summaryLabel.style.whiteSpace = WhiteSpace.Normal;
-            rootVisualElement.Add(summaryLabel);
+            Add(summaryLabel);
         }
 
         private void Scan()

@@ -53,6 +53,11 @@ namespace AudioMW.Editor
             pauseButton=new ToolbarButton(ToggleAuditionPause){text="Ⅱ Pause",name="studio-pause"};transport.Add(pauseButton);
             transport.Add(new ToolbarButton(StopAudition){text="■ Stop",tooltip="Stop only this audition session · Space"});
             transportPosition=new Label("Stopped"){name="studio-transport-position"};transport.Add(transportPosition);
+            var videoRate = new PopupField<string>(new List<string>(FrameRates), Mathf.Clamp(frameRateIndex,0,FrameRates.Length-1));
+            videoRate.name = "studio-frame-rate";
+            videoRate.tooltip = "Video reference rate · absolute frames start at zero";
+            videoRate.RegisterValueChangedCallback(e => frameRateIndex = Array.IndexOf(FrameRates,e.newValue));
+            transport.Add(videoRate);
             auditionMode=new PopupField<string>(new List<string>{"Author","Audition","Live"},mode);auditionMode.RegisterValueChangedCallback(e=>{if(mode=="Live")ReleaseLive();StopAudition();mode=e.newValue;notice="";});transport.Add(auditionMode);
             var target=new ObjectField("Emitter position"){name="studio-emitter",objectType=typeof(Transform),allowSceneObjects=true,value=auditionTarget};target.style.width=260;target.RegisterValueChangedCallback(e=>auditionTarget=e.newValue as Transform);transport.Add(target);
             parent.Add(transport);
@@ -67,7 +72,7 @@ namespace AudioMW.Editor
             muteButton=new ToolbarButton(()=>EditorUtility.audioMasterMute=!EditorUtility.audioMasterMute){name="studio-audio-mute",tooltip="Unity Editor audio output. This does not change event gains or saved defaults."};status.Add(muteButton);
             sessionLabel=new Label();sessionLabel.tooltip="Connection to the gameplay runtime. Music can audition separately in Edit Mode.";status.Add(sessionLabel);parent.Add(status);
             var local=new Toolbar{name="studio-view-tabs"};
-            foreach(string label in new[]{"Container","Timeline","Parameters","Transitions"}){string next=label;local.Add(new ToolbarButton(()=>{view=next;RefreshTransport();canvas.MarkDirtyRepaint();}){text=label,name="view-"+label});}local.Add(new ToolbarSpacer{flex=true});local.Add(new ToolbarButton(()=>{bool show = overview.resolvedStyle.display == DisplayStyle.None;
+            foreach(string label in new[]{"Container","Timeline","Parameters","Transitions"}){string next=label;local.Add(new ToolbarButton(()=>{view=next;RefreshTransport();canvas.MarkDirtyRepaint();}){text=label,name="view-"+label});}local.Add(new ToolbarSpacer{flex=true});local.Add(new ToolbarButton(ToggleMeter){text="Meter",name="studio-meter-toggle"});local.Add(new ToolbarButton(()=>{bool show = overview.resolvedStyle.display == DisplayStyle.None;
                 if (position.width >= 1400) overviewOpen = show;
                 else compactOverviewOpen = show;
                 overview.style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
@@ -118,7 +123,7 @@ namespace AudioMW.Editor
                 {
                     arrangementPlayer=auditionHost.AddComponent<MusicArrangementPlayer>();arrangementPlayer.Arrangement=arrangement;
                     arrangementPlayer.Parameters.CopyFrom(auditionParameters);
-                    foreach(var lane in arrangement.Lanes)arrangementPlayer.SetLaneAudition(lane.Id,mutedLanes.Contains(lane.Id),soloLanes.Contains(lane.Id));
+                    foreach(var lane in arrangement.Lanes)arrangementPlayer.SetLaneAudition(lane.Id,CurrentDocument.Muted.Contains(lane.Id),CurrentDocument.Solo.Contains(lane.Id));
                     double cursor=CurrentDocument?.Cursor??arrangement.Entry;
                     if(!arrangementPlayer.Play(cursor>=arrangement.Exit?arrangement.Entry:Math.Max(arrangement.Entry,cursor)))
                     {
@@ -127,7 +132,7 @@ namespace AudioMW.Editor
                 }
                 else if(CurrentAsset is MusicTrack music)
                 {
-                    legacyPlayer=new MusicPlayer(auditionHost.transform,auditionParameters);legacyPlayer.Play(music);
+                    legacyPlayer=new MusicPlayer(auditionHost.transform,auditionParameters);legacyPlayer.Play(music);ApplyLegacyMonitor();
                     if(!legacyPlayer.IsPlaying){notice="Music track has no playable content. Check its clips in Deck.";StopAudition();}
                 }
             }
@@ -174,6 +179,19 @@ namespace AudioMW.Editor
             }
             return ((long)seconds/60).ToString("00")+":"+(seconds%60).ToString("00.000")+" · s";
         }
+        [SerializeField] private int frameRateIndex = 1;
+        private static readonly string[] FrameRates = { "23.976 fps", "24 fps", "25 fps", "29.97 fps", "30 fps", "50 fps", "59.94 fps", "60 fps" };
+        private static readonly int[] RateNumerators = { 24000,24,25,30000,30,50,60000,60 };
+        internal static string FormatClockAndFrame(double seconds, int index)
+        {
+            seconds = Math.Max(0, seconds);
+            index = Mathf.Clamp(index,0,FrameRates.Length-1);
+            int numerator = RateNumerators[index];
+            long frame = (long)Math.Floor(seconds * numerator / (numerator >= 1000 ? 1001 : 1));
+            long ms = (long)Math.Floor(seconds * 1000);
+            return (ms / 60000).ToString("00") + ":" + (ms / 1000 % 60).ToString("00") + "." + (ms % 1000).ToString("000") + "   F " + frame;
+        }
+
         private bool IsTransportKeyBlocked(UnityEngine.UIElements.IEventHandler target)
         {
             if(EditorGUIUtility.editingTextField)return true;
@@ -187,6 +205,7 @@ namespace AudioMW.Editor
             legacyPlayer?.Tick();if(!EditorApplication.isPlaying)arrangementPlayer?.Tick();capture?.Tick();
             double now=EditorApplication.timeSinceStartup;
             if(now-lastSessionUiRefresh<1.0/30)return;lastSessionUiRefresh=now;
+            TickMeter(now);
             int identity=EditorApplication.isPlaying&&AudioRuntime.Exists?AudioRuntime.Instance.GetInstanceID():0;
             if(identity!=liveIdentity){ReleaseLive();liveIdentity=identity;}
             if(sessionLabel!=null)sessionLabel.text=identity==0?"Game: offline":EditorApplication.isPaused?"Game: paused":"Game: connected";
@@ -218,7 +237,12 @@ namespace AudioMW.Editor
                 bool musicActive=arrangementPlayer!=null&&(arrangementPlayer.IsPlaying||arrangementPlayer.IsPaused)||legacyPlayer!=null&&legacyPlayer.IsPlaying;
                 double tempo=CurrentAsset is MusicArrangement score?score.Tempo:CurrentAsset is MusicTrack track?track.Tempo:120;
                 int meter=CurrentAsset is MusicArrangement a?a.BeatsPerBar:CurrentAsset is MusicTrack m?m.BeatsPerBar:4;
-                transportPosition.text=sourceActive||musicActive?FormatTransportTime(sourceActive?EditorAudioPreview.Position:AuditionPosition,bars&&!sourceActive,tempo,meter):auditionHandle.IsPlaying?"Playing":"Stopped";
+                double seconds = sourceActive ? EditorAudioPreview.Position : AuditionPosition;
+                bool timed = sourceActive || musicActive || CurrentAsset is MusicTrack || CurrentAsset is MusicArrangement || CurrentAsset is AudioClip;
+                transportPosition.text = timed ? FormatClockAndFrame(seconds,frameRateIndex) : auditionHandle.IsPlaying ? "Playing" : "Stopped";
+                transportPosition.tooltip = timed && !sourceActive ? FormatTransportTime(seconds,true,tempo,meter) : "Source position";
+                var rate = rootVisualElement.Q("studio-frame-rate");
+                if (rate != null) rate.style.display = timed ? DisplayStyle.Flex : DisplayStyle.None;
             }
             if(EditorAudioPreview.IsPlaying||arrangementPlayer!=null&&arrangementPlayer.IsPlaying||legacyPlayer!=null&&legacyPlayer.IsPlaying||auditionHandle.IsPlaying)canvas?.MarkDirtyRepaint();
             if(now-lastRefresh>.25){lastRefresh=now;RefreshDocuments();UpdateCompactLayout();canvas?.MarkDirtyRepaint();Repaint();}
@@ -228,6 +252,24 @@ namespace AudioMW.Editor
             if(bottom==null)return;bottom.Clear();bool open=bottomTab!="";bottom.style.display=open?DisplayStyle.Flex:DisplayStyle.None;bottom.style.height=open?210:0;deck.style.display=DisplayStyle.Flex;deck.style.minHeight=open?28:160;deck.style.height=open?28:Mathf.Clamp(deckHeight,160,position.height<850?200:320);deckScroll.style.display=open?DisplayStyle.None:DisplayStyle.Flex;
             foreach (var tab in rootVisualElement.Q<Toolbar>("studio-v2-dock-tabs").Children().OfType<ToolbarButton>())
                 tab.EnableInClassList("studio-v2-active", tab.text == bottomTab);
+            if (bottomTab == "Audits")
+            {
+                var choices = new Toolbar();
+                foreach (var choice in AuditTabs)
+                {
+                    var selector = new ToolbarButton(() => { auditTab = choice; RefreshDock(); })
+                    {
+                        text = choice.Split(' ')[0]
+                    };
+                    selector.EnableInClassList("studio-v2-active", choice == auditTab);
+                    choices.Add(selector);
+                }
+                bottom.Add(choices);
+                if (auditTab == "Import audit") bottom.Add(importAudit ?? (importAudit = new StudioImportAudit()));
+                else if (auditTab == "Library audit") bottom.Add(libraryAudit ?? (libraryAudit = new StudioLibraryAudit()));
+                else bottom.Add(libraryLoudness ?? (libraryLoudness = new StudioLoudnessAudit()));
+                return;
+            }
             if(open){var scroll=new ScrollView();scroll.style.flexGrow=1;scroll.Add(new IMGUIContainer(DrawDock));bottom.Add(scroll);}
         }
         private void DrawDock()

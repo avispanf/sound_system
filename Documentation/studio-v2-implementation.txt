@@ -172,3 +172,28 @@ Verified in Unity 6000.3.21f1 with muted output. A disposable BAD SHIFT event re
 Studio 57 — attenuation Deck and source width (2026-11-18)
 The leaf Sound Event Deck now edits distance response, spatial blend, width, pan and low-pass together with its actual shared attenuation preset. The gain remains on the event. Plots show the authored distance models. A user can create and assign a preset from the selected event's current distance settings. The optional source radius adds apparent angular width around the emitter. Its default of zero preserves existing assets and distance gain.
 The final package passed 386/386 EditMode tests. The BAD SHIFT gameplay run passed 19/19 focused PlayMode checks, including the attached dancer loop, real source properties, direction relative to the listener, range-dependent spread/cutoff, full loop duration, duel exit from the dance and guided walkthrough. The last change after that run compacts the Editor Deck header only. Native 1366×768 Editor screenshots cover Distance, Width & pan and Low-pass. The updated macOS player built and launched with output muted. No audible stereo, mobile performance or Unity 2022.3 acceptance was run.
+
+Studio monitoring and audits · 2026-11-18
+Select a timeline row to inspect its Deck. M mutes the audition track and S solos it.
+Multiple solos can play together. Mute wins when both switches are set. Both the
+legacy MusicTrack player and arrangement audition support these controls. They
+belong to the document audition. Output muted controls the Unity Editor monitor.
+Loop edits the authored region's enable flag with Undo. Restart the arrangement
+to audition a changed region. The transport shows elapsed minutes, seconds,
+milliseconds and absolute frames from zero at the chosen video reference rate.
+Rates include 24000/1001, 30000/1001 and 60000/1001. Video sync is outside this feature.
+
+Meter opens beside the timeline. Dry source reads the referenced mono/stereo PCM
+before routing, gain, FX and track mute. Pick a track during music audition.
+Where clips overlap, select one clip. A source change, backward seek or restart
+starts a fresh dry measurement. Game listener reads the local Play Mode mix.
+It requires one active listener on an object without an AudioSource. Hiding
+the meter detaches its temporary tap. Missing PCM, warm-up and measured silence
+have distinct states. Peak and 4x estimated true peak show separate channels.
+LUFS M uses 400 ms, S uses 3 s and I gates up to the most recent ten minutes.
+Reset measurement clears history. Continuous programme measurement across loops
+is available from Game listener.
+
+Issues, Profiler and Live changes share the Event Editor's bottom dock. Audits
+holds Loudness, Library and Import. Switching audit views retains the scan
+until the editor reloads. Mixer remains a separate workspace for routing.

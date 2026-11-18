@@ -7,6 +7,19 @@ namespace AudioMW.Editor
 {
     public sealed class LoudnessAuditWindow : EditorWindow
     {
+        [MenuItem("Window/AudioMW/Panels/Diagnostics/Loudness Audit")]
+        public static void Open() => AudioEventEditorWindow.OpenDock("Loudness audit");
+
+        public void CreateGUI()
+        {
+            rootVisualElement.Clear();
+            AudioWorkspace.Style(rootVisualElement);
+            rootVisualElement.Add(new StudioLoudnessAudit());
+        }
+    }
+
+    internal sealed class StudioLoudnessAudit : VisualElement
+    {
         private readonly List<LoudnessAuditEntry> entries = new List<LoudnessAuditEntry>();
 
         private ListView listView;
@@ -16,20 +29,10 @@ namespace AudioMW.Editor
         private Toggle outliersOnly;
         private List<LoudnessAuditEntry> visible = new List<LoudnessAuditEntry>();
 
-        [MenuItem("Window/AudioMW/Panels/Diagnostics/Loudness Audit")]
-        public static void Open()
+        internal StudioLoudnessAudit()
         {
-            LoudnessAuditWindow window = GetWindow<LoudnessAuditWindow>();
-            window.titleContent = new GUIContent("Loudness Audit");
-            window.minSize = new Vector2(380f, 300f);
-            window.Show();
-        }
-
-        public void CreateGUI()
-        {
-            rootVisualElement.Clear(); AudioWorkspace.Style(rootVisualElement);
-            rootVisualElement.Add(AudioWorkspace.Navigation("Loudness Audit"));
-            rootVisualElement.AddToClassList("audiomw-audit");
+            style.flexGrow = 1;
+            AddToClassList("audiomw-audit");
             VisualElement controls = new VisualElement();
             controls.style.flexDirection = FlexDirection.Row;
             controls.style.flexWrap = Wrap.Wrap;
@@ -51,7 +54,7 @@ namespace AudioMW.Editor
             outliersOnly.RegisterValueChangedCallback(evt => Rebuild());
             controls.Add(outliersOnly);
 
-            rootVisualElement.Add(controls);
+            Add(controls);
 
             VisualElement buttons = new VisualElement();
             buttons.style.flexDirection = FlexDirection.Row;
@@ -71,7 +74,7 @@ namespace AudioMW.Editor
             export.text = "Export CSV";
             buttons.Add(export);
 
-            rootVisualElement.Add(buttons);
+            Add(buttons);
 
             listView = new ListView();
             listView.fixedItemHeight = 46f;
@@ -81,7 +84,7 @@ namespace AudioMW.Editor
             listView.bindItem = BindItem;
             listView.itemsSource = visible;
             listView.selectionChanged += OnSelectionChanged;
-            rootVisualElement.Add(listView);
+            Add(listView);
 
             summaryLabel = new Label("No scan yet · choose Scan project or select clips first.");
             summaryLabel.style.paddingLeft = 6f;
@@ -89,7 +92,7 @@ namespace AudioMW.Editor
             summaryLabel.style.paddingRight = 12f;
             summaryLabel.style.flexShrink = 0;
             summaryLabel.style.whiteSpace = WhiteSpace.Normal;
-            rootVisualElement.Add(summaryLabel);
+            Add(summaryLabel);
         }
 
         private void Scan(bool selectionOnly)

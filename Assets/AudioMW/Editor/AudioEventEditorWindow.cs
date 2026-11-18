@@ -14,6 +14,8 @@ namespace AudioMW.Editor
     {
         [Serializable] public sealed class Document
         {
+            [NonSerialized] internal readonly HashSet<string> Muted = new HashSet<string>();
+            [NonSerialized] internal readonly HashSet<string> Solo = new HashSet<string>();
             public string Guid;
             public bool Pinned;
             public float Zoom;
@@ -52,6 +54,13 @@ namespace AudioMW.Editor
         private IMGUIContainer canvas;
         private ScrollView deckScroll;
         private ToolbarSearchField search;
+        private StudioLoudnessAudit libraryLoudness;
+        private StudioLibraryAudit libraryAudit;
+        private StudioImportAudit importAudit;
+        private string auditTab = "Loudness audit";
+        private static readonly string[] AuditTabs = { "Loudness audit", "Library audit", "Import audit" };
+        private string cachedGuid;
+        private Object cachedDocument;
         private string bottomTab = "";
         private string notice = "";
         private readonly HashSet<string> selectedClips = new HashSet<string>();
@@ -65,7 +74,20 @@ namespace AudioMW.Editor
         private MusicArrangement legacyProjection;
         private MusicTrack projectionSource;
         private int projectionVersion;
-        public Object CurrentAsset => documentIndex >= 0 && documentIndex < documents.Count ? AssetDatabase.LoadAssetAtPath<Object>(AssetDatabase.GUIDToAssetPath(documents[documentIndex].Guid)) : null;
+        public Object CurrentAsset
+        {
+            get
+            {
+                string guid = CurrentDocument?.Guid;
+                if (string.IsNullOrEmpty(guid)) return null;
+                if (cachedGuid != guid || cachedDocument == null)
+                {
+                    cachedGuid = guid;
+                    cachedDocument = AssetDatabase.LoadAssetAtPath<Object>(AssetDatabase.GUIDToAssetPath(guid));
+                }
+                return cachedDocument;
+            }
+        }
         private Document CurrentDocument => documentIndex >= 0 && documentIndex < documents.Count ? documents[documentIndex] : null;
         public int BrowserTab => browserTab;
         public Object DeckTarget => deckTarget;
@@ -85,15 +107,28 @@ namespace AudioMW.Editor
         }
         [MenuItem("Window/AudioMW/Event Editor", false, 0)]
         public static void Open() { var window = GetWindow<AudioEventEditorWindow>(); window.titleContent = new GUIContent("AudioMW | Event Editor"); window.minSize = new Vector2(760,520); window.Show(); }
+        public static void OpenDock(string tab)
+        {
+            Open();
+            var window = GetWindow<AudioEventEditorWindow>();
+            if (Array.IndexOf(AuditTabs, tab) >= 0)
+            {
+                window.auditTab = tab;
+                tab = "Audits";
+            }
+            window.bottomTab = tab;
+            window.RefreshDock();
+        }
+
         private void OnEnable() { titleContent = new GUIContent("AudioMW | Event Editor"); Undo.undoRedoPerformed += OnUndo; EditorApplication.playModeStateChanged += OnPlayState; EditorApplication.update += UpdateSession; }
-        private void OnDisable() { Undo.undoRedoPerformed -= OnUndo; EditorApplication.playModeStateChanged -= OnPlayState; EditorApplication.update -= UpdateSession; string pending=pendingAuditionGuid; StopAudition(); pendingAuditionGuid=pending; ReleaseLive(); capture?.Dispose(); capture=null; deckSerialized?.Dispose(); if(legacyProjection!=null)DestroyImmediate(legacyProjection); }
+        private void OnDisable() { Undo.undoRedoPerformed -= OnUndo; EditorApplication.playModeStateChanged -= OnPlayState; EditorApplication.update -= UpdateSession; string pending=pendingAuditionGuid; StopAudition(); pendingAuditionGuid=pending; ReleaseLive(); DetachMeter(); capture?.Dispose(); capture=null; deckSerialized?.Dispose(); if(legacyProjection!=null)DestroyImmediate(legacyProjection); }
         private void OnUndo() { ShowDeck(deckTarget); RefreshDocuments(); canvas?.MarkDirtyRepaint(); }
         private void OnPlayState(PlayModeStateChange state)
         {
             if(state==PlayModeStateChange.ExitingPlayMode||state==PlayModeStateChange.ExitingEditMode)
             {
                 string pending=state==PlayModeStateChange.ExitingEditMode?pendingAuditionGuid:"";
-                StopAudition();ReleaseLive();pendingAuditionGuid=pending;
+                DetachMeter();StopAudition();ReleaseLive();pendingAuditionGuid=pending;
             }
             if(state==PlayModeStateChange.EnteredPlayMode&&pendingAuditionGuid!="")
             {
@@ -101,7 +136,7 @@ namespace AudioMW.Editor
                 EditorApplication.delayCall+=()=>{if(this!=null&&EditorApplication.isPlaying&&CurrentAsset!=null&&AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(CurrentAsset))==guid)PlayAudition();};
             }
         }
-        private void OnProjectChange() { RefreshBrowser(); RefreshDocuments(); }
+        private void OnProjectChange() { cachedGuid = null; RefreshBrowser(); RefreshDocuments(); }
         public void CreateGUI()
         {
             if(browser!=null&&browser.viewController!=null&&builtBrowserTab>=0)browserExpansion[builtBrowserTab]=browserFolders.Where(id=>browser.IsExpanded(id)).ToList();
@@ -142,6 +177,7 @@ namespace AudioMW.Editor
             var canvasRow=new VisualElement{name="studio-v2-canvas-row"};canvasRow.style.flexDirection=FlexDirection.Row;canvasRow.style.flexGrow=1;canvasRow.style.minHeight=160;center.Add(canvasRow);
             canvasHost=new VisualElement{name="studio-v2-canvas"};canvasHost.style.flexGrow=1;canvasHost.style.minWidth=0;canvasRow.Add(canvasHost);
             canvas=new IMGUIContainer(DrawCanvas){focusable=true};canvas.style.flexGrow=1;canvasHost.Add(canvas);
+            BuildMeter(canvasRow);
             overview=new VisualElement{name="studio-v2-overview"};canvasRow.Add(overview);
             var divider=new VisualElement{name="studio-deck-resize"};divider.style.height=5;divider.style.flexShrink=0;center.Add(divider);
             float resizeY=0,resizeHeight=0;
@@ -151,7 +187,7 @@ namespace AudioMW.Editor
             deck=new VisualElement{name="studio-v2-deck"};deck.style.height=deckHeight;deck.style.minHeight=160;center.Add(deck);
             breadcrumb=new Label("Select an event, track or clip");deck.Add(breadcrumb);
             deckScroll=new ScrollView();deckScroll.style.flexGrow=1;deck.Add(deckScroll);var deckGui=new IMGUIContainer(DrawDeck);deckGui.style.width=Length.Percent(100);deckScroll.contentContainer.style.width=Length.Percent(100);deckScroll.Add(deckGui);
-            var dockTabs=new Toolbar{name="studio-v2-dock-tabs"};foreach(string label in new[]{"Profiler","Issues","Live changes"}){string tab=label;dockTabs.Add(new ToolbarButton(()=>{bottomTab=bottomTab==tab?"":tab;RefreshDock();}){text=label});}center.Add(dockTabs);
+            var dockTabs=new Toolbar{name="studio-v2-dock-tabs"};foreach(string label in new[]{"Profiler","Issues","Live changes","Audits"}){string tab=label;dockTabs.Add(new ToolbarButton(()=>{bottomTab=bottomTab==tab?"":tab;RefreshDock();}){text=label});}center.Add(dockTabs);
             bottom=new VisualElement{name="studio-v2-dock"};center.Add(bottom);
             rootVisualElement.UnregisterCallback<GeometryChangedEvent>(OnGeometryChanged);rootVisualElement.RegisterCallback<GeometryChangedEvent>(OnGeometryChanged);
             rootVisualElement.RegisterCallback<KeyDownEvent>(e=>
@@ -223,6 +259,8 @@ namespace AudioMW.Editor
         private void RestoreDocumentSelection()
         {
             selectedClips.Clear();selectedLane="";
+            if (CurrentAsset is MusicTrack && CurrentDocument != null && CurrentDocument.Selection.StartsWith("lane:legacy:"))
+                selectedLane = CurrentDocument.Selection.Substring(5);
             if(!(CurrentAsset is MusicArrangement score)||CurrentDocument==null)return;
             string id=CurrentDocument.Selection;
             foreach(var lane in score.Lanes)

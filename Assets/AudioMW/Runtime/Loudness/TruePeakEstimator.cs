@@ -44,44 +44,38 @@ namespace AudioMW
 
         public static double Measure(float[] interleaved, int channels)
         {
+            return Measure(interleaved, channels, 0, channels > 0 && interleaved != null ? interleaved.Length / channels : 0);
+        }
+
+        internal static double Measure(float[] interleaved, int channels, int first, int count, int channel)
+        {
+            double peak = 0;
+            int frames = interleaved.Length / channels;
+            for (int frame = first; frame < first + count; frame++)
+            {
+                for (int phase = 0; phase < OversampleFactor; phase++)
+                {
+                    double sum = 0;
+                    double[] taps = Phases[phase];
+                    int start = frame - TapsPerPhase / 2 + 1;
+                    for (int tap = Math.Max(0, -start); tap < Math.Min(taps.Length, frames - start); tap++)
+                        sum += taps[tap] * interleaved[(start + tap) * channels + channel];
+                    peak = Math.Max(peak, Math.Abs(sum));
+                }
+            }
+            return peak;
+        }
+
+        private static double Measure(float[] interleaved, int channels, int first, int count)
+        {
             if (interleaved == null || interleaved.Length == 0 || channels <= 0)
             {
                 return 0.0;
             }
 
-            int frames = interleaved.Length / channels;
-            double peak = 0.0;
-
+            double peak = 0;
             for (int channel = 0; channel < channels; channel++)
-            {
-                for (int frame = 0; frame < frames; frame++)
-                {
-                    for (int phase = 0; phase < OversampleFactor; phase++)
-                    {
-                        double sum = 0.0;
-                        double[] taps = Phases[phase];
-
-                        for (int tap = 0; tap < taps.Length; tap++)
-                        {
-                            int sourceFrame = frame - TapsPerPhase / 2 + tap + 1;
-
-                            if (sourceFrame < 0 || sourceFrame >= frames)
-                            {
-                                continue;
-                            }
-
-                            sum += taps[tap] * interleaved[sourceFrame * channels + channel];
-                        }
-
-                        double magnitude = Math.Abs(sum);
-
-                        if (magnitude > peak)
-                        {
-                            peak = magnitude;
-                        }
-                    }
-                }
-            }
+                peak = Math.Max(peak, Measure(interleaved, channels, first, count, channel));
 
             return peak;
         }

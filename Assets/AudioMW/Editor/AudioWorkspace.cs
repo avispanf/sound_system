@@ -10,12 +10,11 @@ namespace AudioMW.Editor
     public static class AudioWorkspace
     {
         private static readonly Dictionary<Object, EditorWindow> pinnedWindows = new Dictionary<Object, EditorWindow>();
-        [MenuItem("Window/AudioMW/Studio", false, 0)]
         public static void Sounds() { AudioEventEditorWindow.Open(); }
         [MenuItem("Window/AudioMW/Panels/Authoring/Music", false, 1)]
         public static void Music() { MusicStatePreviewWindow.OpenMenu(); }
         [MenuItem("Window/AudioMW/Diagnostics", false, 2)]
-        public static void Diagnostics() { EventDebuggerWindow.Open(); }
+        public static void Diagnostics() { AudioEventEditorWindow.OpenDock("Issues"); }
 
         public static void Style(VisualElement root)
         {
@@ -57,13 +56,13 @@ namespace AudioMW.Editor
             sections.AddToClassList("audiomw-section-menu");
             if (diagnostics)
             {
-                sections.menu.AppendAction("Event requests", _ => Diagnostics());
-                sections.menu.AppendAction("Performance", _ => AudioPerformanceWindow.Open());
+                sections.menu.AppendAction("Detailed event requests", _ => EventDebuggerWindow.Open());
+                sections.menu.AppendAction("Performance", _ => AudioEventEditorWindow.OpenDock("Profiler"));
                 sections.menu.AppendSeparator();
                 sections.menu.AppendAction("Library audit", _ => AudioLibraryAuditWindow.Open());
                 sections.menu.AppendAction("Loudness audit", _ => LoudnessAuditWindow.Open());
                 sections.menu.AppendAction("Import audit", _ => ImportAuditWindow.Open());
-                sections.menu.AppendAction("Play Mode edits", _ => LiveTweakWindow.Open());
+                sections.menu.AppendAction("Play Mode edits", _ => AudioEventEditorWindow.OpenDock("Live changes"));
             }
             else
             {

@@ -206,6 +206,22 @@ namespace AudioMW
             UpdateWeights();
         }
 
+        public int GetAuditionLaneCount()
+        {
+            return channels.Count + (introSource != null && currentTrack != null && currentTrack.IntroClip != null ? 1 : 0);
+        }
+
+        public void SetAuditionLaneMute(int index, bool muted)
+        {
+            if (currentTrack == null || index < 0 || index >= GetAuditionLaneCount()) return;
+            if (currentTrack.IntroClip != null && introSource != null)
+            {
+                if (index == 0) { introSource.mute = muted; return; }
+                index--;
+            }
+            foreach (var source in channels[index].Sources) source.mute = muted;
+        }
+
         public float GetLayerWeight(int index)
         {
             return index >= 0 && index < channels.Count ? channels[index].CurrentWeight : 0f;

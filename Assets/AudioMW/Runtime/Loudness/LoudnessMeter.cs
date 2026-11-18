@@ -48,6 +48,9 @@ namespace AudioMW
         private const double HopSeconds = 0.1;
         private const double ShortTermSeconds = 3.0;
 
+        internal static Biquad CreateShelf(int rate) => Biquad.HighShelf(rate, ShelfFrequency, ShelfGainDb, ShelfQ);
+        internal static Biquad CreateHighPass(int rate) => Biquad.HighPass(rate, HighPassFrequency, HighPassQ);
+
         public static LoudnessResult Analyze(float[] interleaved, int channels, int sampleRate)
         {
             if (interleaved == null || interleaved.Length == 0 || channels <= 0 || sampleRate <= 0)
@@ -79,8 +82,8 @@ namespace AudioMW
 
             for (int channel = 0; channel < channels; channel++)
             {
-                Biquad shelf = Biquad.HighShelf(sampleRate, ShelfFrequency, ShelfGainDb, ShelfQ);
-                Biquad highPass = Biquad.HighPass(sampleRate, HighPassFrequency, HighPassQ);
+                Biquad shelf = CreateShelf(sampleRate);
+                Biquad highPass = CreateHighPass(sampleRate);
                 shelf.Reset();
                 highPass.Reset();
 

@@ -14,8 +14,8 @@ namespace AudioMW.Editor
         private float dragOrigin,dragDelta;
         private double dragStart,dragTrim,dragDuration,dragFade;
         private MusicStateProfile transitionProfile;
-        private readonly HashSet<string> mutedLanes=new HashSet<string>();
-        private readonly HashSet<string> soloLanes=new HashSet<string>();
+
+
         private void DrawCanvas()
         {
 
@@ -180,6 +180,28 @@ namespace AudioMW.Editor
                 Undo.RecordObject(item,"Add audio sources");item.Clips=item.Clips.Concat(clips).ToArray();EditorUtility.SetDirty(item);TrackEdit(item);DragAndDrop.AcceptDrag();ShowDeck(item);e.Use();
             }
         }
+        private void SelectLane(string key)
+        {
+            selectedLane = key;
+            CurrentDocument.Selection = "lane:" + key;
+            selectedClips.Clear();
+            ShowDeck(CurrentAsset);
+            canvas.Focus();
+        }
+
+        private void ApplyLegacyMonitor()
+        {
+            if (legacyPlayer == null || CurrentDocument == null) return;
+            int count = legacyPlayer.GetAuditionLaneCount();
+            bool anySolo = false;
+            for (int i = 0; i < count; i++) anySolo |= CurrentDocument.Solo.Contains("legacy:" + i);
+            for (int i = 0; i < count; i++)
+            {
+                string key = "legacy:" + i;
+                legacyPlayer.SetAuditionLaneMute(i, CurrentDocument.Muted.Contains(key) || anySolo && !CurrentDocument.Solo.Contains(key));
+            }
+        }
+
         private void DrawTimeline(MusicArrangement score,bool legacy)
         {
             var doc=CurrentDocument;if(doc==null)return;
@@ -187,11 +209,52 @@ namespace AudioMW.Editor
             bars=GUILayout.Toggle(bars,"Bars:Beats",EditorStyles.toolbarButton,GUILayout.Width(90));if(!bars)GUILayout.Label("Seconds",GUILayout.Width(60));
             GUILayout.Label(score.Tempo+" BPM · "+score.BeatsPerBar+"/4",GUILayout.Width(120));snap=EditorGUILayout.Popup(snap,new[]{"Snap off","Beat","Bar"},GUILayout.Width(85));
             EditorGUI.BeginChangeCheck();float zoom=GUILayout.HorizontalSlider(Mathf.Clamp(doc.Zoom,1,500),1,500,GUILayout.Width(100));if(EditorGUI.EndChangeCheck()){doc.Zoom=zoom;doc.FitTimeline=false;}
+            bool loop = GUILayout.Toggle(score.Loop, new GUIContent("Loop", "Repeat the authored loop interval on the next play"), EditorStyles.toolbarButton, GUILayout.Width(42));
+            if (loop != score.Loop)
+            {
+                if (legacy && CurrentAsset is MusicTrack track)
+                {
+                    Undo.RecordObject(track, "Change music loop");
+                    track.Loop = loop;
+                    EditorUtility.SetDirty(track);
+                    projectionSource = null;
+                }
+                else
+                {
+                    Undo.RecordObject(score, "Change arrangement loop");
+                    score.Loop = loop;
+                    EditorUtility.SetDirty(score);
+                }
+            }
             if(GUILayout.Button("Fit all",EditorStyles.toolbarButton,GUILayout.Width(60)))doc.FitTimeline=true;
             using(new EditorGUI.DisabledScope(legacy))if(GUILayout.Button("+ Track",EditorStyles.toolbarButton,GUILayout.Width(70))){Undo.RecordObject(score,"Add lane");score.Lanes.Add(new ArrangementLane{Name="Track "+(score.Lanes.Count+1)});EditorUtility.SetDirty(score);}
-            DrawWaveformZoom();combinedWaveform=GUILayout.Toggle(combinedWaveform,new GUIContent("Combined","Combined peaks across source channels. This is display only, not a mono downmix."),EditorStyles.toolbarButton,GUILayout.Width(72));
+            if (canvas.contentRect.width < 890)
+            {
+                if (GUILayout.Button("View ▾", EditorStyles.toolbarButton, GUILayout.Width(64)))
+                {
+                    var view = new GenericMenu();
+                    string[] waves = { "Fit", "×1", "×2", "×4", "×8" };
+                    for (int i = 0; i < waves.Length; i++)
+                    {
+                        int scale = i;
+                        view.AddItem(new GUIContent("Waveform/" + waves[i]), waveformDisplayScale == i, () => waveformDisplayScale = scale);
+                    }
+                    view.AddItem(new GUIContent("Combined channels"), combinedWaveform, () => combinedWaveform = !combinedWaveform);
+                    view.AddItem(new GUIContent("Fit rows"), doc.FitLanes, () => doc.FitLanes = !doc.FitLanes);
+                    if (!doc.FitLanes)
+                    {
+                        foreach (int height in new[] {40, 55, 75, 100})
+                            view.AddItem(new GUIContent("Row height/" + height), Mathf.Approximately(doc.LaneHeight, height), () => doc.LaneHeight = height);
+                    }
+                    view.ShowAsContext();
+                }
+            }
+            else
+            {
+                DrawWaveformZoom();combinedWaveform=GUILayout.Toggle(combinedWaveform,new GUIContent("Combined","Combined peaks across source channels. This is display only, not a mono downmix."),EditorStyles.toolbarButton,GUILayout.Width(72));
             doc.FitLanes=GUILayout.Toggle(doc.FitLanes,"Fit rows",EditorStyles.toolbarButton,GUILayout.Width(56));
             if(!doc.FitLanes)doc.LaneHeight=GUILayout.HorizontalSlider(doc.LaneHeight,40,100,GUILayout.Width(54));
+            }
             doc.FollowPlayhead=GUILayout.Toggle(doc.FollowPlayhead,"Follow",EditorStyles.toolbarButton,GUILayout.Width(50));
             GUILayout.FlexibleSpace();EditorGUILayout.EndHorizontal();
             Rect viewport=GUILayoutUtility.GetRect(200,Mathf.Max(120,canvas.layout.height-(legacy?48:24)),GUILayout.ExpandWidth(true));
@@ -272,13 +335,22 @@ namespace AudioMW.Editor
                 bool selected=selectedLane==(legacy?"legacy:"+i:lane.Id);
                 EditorGUI.DrawRect(new Rect(0,y,header-1,rowHeight-1),selected?new Color(.22f,.29f,.21f):new Color(.17f,.18f,.19f));
                 if(selected)EditorGUI.DrawRect(new Rect(0,y,3,rowHeight-1),new Color(.66f,.81f,.46f));
-                if(GUI.Button(new Rect(10,y+3,header-108,22),new GUIContent(lane.Name,lane.Name),EditorStyles.boldLabel)){selectedLane=legacy?"legacy:"+i:lane.Id;doc.Selection="lane:"+lane.Id;selectedClips.Clear();ShowDeck(CurrentAsset);}
-                using(new EditorGUI.DisabledScope(legacy))
+                string key = legacy ? "legacy:" + i : lane.Id;
+                if (GUI.Button(new Rect(8,y+2,header-114,rowHeight-5), GUIContent.none, GUIStyle.none))
+                    SelectLane(key);
+                GUI.Label(new Rect(10,y+3,header-108,22),new GUIContent(lane.Name,lane.Name),EditorStyles.boldLabel);
+                using (new EditorGUI.DisabledScope(mode == "Live"))
                 {
-                    bool mute=GUI.Toggle(new Rect(header-100,y+6,22,20),mutedLanes.Contains(lane.Id),"M",EditorStyles.miniButton);
-                    bool solo=GUI.Toggle(new Rect(header-75,y+6,22,20),soloLanes.Contains(lane.Id),"S",EditorStyles.miniButton);
-                    if(mute)mutedLanes.Add(lane.Id);else mutedLanes.Remove(lane.Id);if(solo)soloLanes.Add(lane.Id);else soloLanes.Remove(lane.Id);
-                    if(arrangementPlayer!=null)arrangementPlayer.SetLaneAudition(lane.Id,mute,solo);
+                    bool muted = doc.Muted.Contains(key), soloed = doc.Solo.Contains(key);
+                    bool mute = GUI.Toggle(new Rect(header-100,y+6,22,20), muted, new GUIContent("M","Mute this audition track"), EditorStyles.miniButton);
+                    bool solo = GUI.Toggle(new Rect(header-75,y+6,22,20), soloed, new GUIContent("S","Solo this audition track"), EditorStyles.miniButton);
+                    if (mute != muted || solo != soloed)
+                    {
+                        if (mute) doc.Muted.Add(key); else doc.Muted.Remove(key);
+                        if (solo) doc.Solo.Add(key); else doc.Solo.Remove(key);
+                        arrangementPlayer?.SetLaneAudition(key,mute,solo);
+                        ApplyLegacyMonitor();
+                    }
                 }
                 GUI.Label(new Rect(header-49,y+6,48,20),AudioGain.ToDecibels(lane.Gain).ToString("0.#")+" dB",EditorStyles.miniLabel);
                 GUI.Label(new Rect(10,y+26,header-20,18),new GUIContent(lane.Output!=null?lane.Output.name:"Event output",lane.Parameter!=null?lane.Parameter.name:"No parameter binding"),EditorStyles.miniLabel);
@@ -290,7 +362,7 @@ namespace AudioMW.Editor
             {
                 var lane=score.Lanes[i];float y=i*rowHeight-doc.Scroll.y;
                 if((y+rowHeight<0||y>body.height)&&!lane.Clips.Any(c=>c.Id==dragClip))continue;
-                EditorGUI.DrawRect(new Rect(0,y,body.width,rowHeight-1),i%2==0?new Color(.14f,.15f,.16f):new Color(.125f,.135f,.145f));
+                EditorGUI.DrawRect(new Rect(0,y,body.width,rowHeight-1),selectedLane==(legacy?"legacy:"+i:lane.Id)?new Color(.18f,.22f,.18f):i%2==0?new Color(.14f,.15f,.16f):new Color(.125f,.135f,.145f));
                 for(double t=first;t<=last;t+=grid){bool bar=Math.Abs(t/(score.BeatSeconds*score.BeatsPerBar)-Math.Round(t/(score.BeatSeconds*score.BeatsPerBar)))<.001;EditorGUI.DrawRect(new Rect((float)t*doc.Zoom-doc.Scroll.x,y,1,rowHeight),bar?new Color(.32f,.35f,.37f):new Color(.21f,.23f,.25f));}
                 foreach(var clip in lane.Clips)
                 {
@@ -328,7 +400,16 @@ namespace AudioMW.Editor
                         }
                     }
                     if(!legacy)HandleClipDrag(score,lane,clip,rect,doc.Zoom);
-                    else if(Event.current.type==EventType.MouseDown&&rect.Contains(Event.current.mousePosition)){selectedLane="legacy:"+i;ShowDeck(CurrentAsset);Event.current.Use();}
+                    else if(Event.current.type==EventType.MouseDown&&rect.Contains(Event.current.mousePosition)){SelectLane("legacy:"+i);Event.current.Use();}
+                }
+            }
+            if (input.type == EventType.MouseDown && input.button == 0 && new Rect(0,0,body.width,body.height).Contains(input.mousePosition))
+            {
+                int row = Mathf.FloorToInt((input.mousePosition.y + doc.Scroll.y) / rowHeight);
+                if (row >= 0 && row < score.Lanes.Count)
+                {
+                    SelectLane(legacy ? "legacy:" + row : score.Lanes[row].Id);
+                    input.Use();
                 }
             }
             if(!legacy)

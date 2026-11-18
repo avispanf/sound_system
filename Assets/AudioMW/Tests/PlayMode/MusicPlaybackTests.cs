@@ -29,6 +29,37 @@ namespace AudioMW.Tests
             Assert.IsTrue(AudioSystem.Music.IsPlaying);
         }
 
+        [Test]
+        public void AuditionMuteIsolatesIntroAndBothScheduledBodyVoices()
+        {
+            var host = new GameObject("Audition test");
+            var player = new MusicPlayer(host.transform);
+            var track = MakeTrack(.25f, .5f);
+            try
+            {
+                player.Play(track);
+                Assert.AreEqual(2, player.GetAuditionLaneCount());
+                player.SetAuditionLaneMute(1, true);
+                var voices = host.GetComponentsInChildren<AudioSource>();
+                Assert.AreEqual(3, voices.Length);
+                foreach (var voice in voices) Assert.AreEqual(voice.clip != track.IntroClip, voice.mute);
+                player.SetAuditionLaneMute(1, false);
+                player.SetAuditionLaneMute(0, true);
+                foreach (var voice in voices) Assert.AreEqual(voice.clip == track.IntroClip, voice.mute);
+                player.Stop();
+                Assert.AreEqual(0, player.GetAuditionLaneCount());
+                Assert.DoesNotThrow(() => player.SetAuditionLaneMute(0, true));
+            }
+            finally
+            {
+                player.Destroy();
+                Object.Destroy(host);
+                Object.Destroy(track.IntroClip);
+                Object.Destroy(track.LoopClip);
+                Object.Destroy(track);
+            }
+        }
+
         [UnityTest]
         public IEnumerator ClockAdoptsTrackTempo()
         {
