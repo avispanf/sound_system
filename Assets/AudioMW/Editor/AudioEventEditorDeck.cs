@@ -78,7 +78,7 @@ namespace AudioMW.Editor
             DeckField("volume","Gain");DeckField("pitch","Pitch ratio");DeckField("maxInstances","Max voices");DeckField("limitPolicy","On limit");
             EditorGUILayout.EndVertical();GUILayout.Space(18);EditorGUILayout.BeginVertical();
             EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
-            foreach(string section in new[]{"Properties","Sources","Variation","Spatial","Bindings","Limits"})if(GUILayout.Toggle(deckSection==section,section,EditorStyles.toolbarButton))deckSection=section;
+            foreach(string section in new[]{"Properties","Sources","Variation","Spatial","Bindings","Limits"})if (DeckTab(deckSection, section)) deckSection = section;
             EditorGUILayout.EndHorizontal();GUILayout.Space(6);
             if(deckSection=="Properties")
             {
@@ -95,13 +95,21 @@ namespace AudioMW.Editor
             }
             else if(deckSection=="Spatial")
             {
+                bool beside = deckScroll.contentRect.width >= 920;
+                if (beside) EditorGUILayout.BeginHorizontal();
+                if (beside) EditorGUILayout.BeginVertical(GUILayout.Width(255));
                 DeckField("attenuationPreset","Preset");
                 if(sound.AttenuationPreset!=null)
                 {
                     EditorGUILayout.LabelField("Preset owns spatial settings",EditorStyles.miniLabel);
                     if(GUILayout.Button("Edit shared preset in Deck"))EditorApplication.delayCall+=()=>{if(this!=null&&sound!=null)ShowDeck(sound.AttenuationPreset);};
                 }
-                else {DeckField("spatialBlend","2D / 3D");EditorGUILayout.BeginHorizontal();DeckField("minDistance","Min (m)");DeckField("maxDistance","Max (m)");EditorGUILayout.EndHorizontal();DeckField("rolloffMode","Rolloff");}
+                else {DeckField("spatialBlend","2D / 3D");DeckField("minDistance","Min (m)");DeckField("maxDistance","Max (m)");DeckField("rolloffMode","Rolloff");}
+                if (beside) { EditorGUILayout.EndVertical(); GUILayout.Space(12); }
+                EditorGUILayout.BeginVertical();
+                DrawDistancePreview(sound);
+                EditorGUILayout.EndVertical();
+                if (beside) EditorGUILayout.EndHorizontal();
             }
             else if(deckSection=="Variation")
             {
@@ -124,11 +132,22 @@ namespace AudioMW.Editor
             EditorGUILayout.BeginHorizontal();int middle=(names.Length+1)/2;float previousLabel=EditorGUIUtility.labelWidth;EditorGUIUtility.labelWidth=126;
             for(int col=0;col<2;col++){EditorGUILayout.BeginVertical(GUILayout.Width(Mathf.Clamp((deckScroll.contentRect.width-36)/2,220,390)));for(int i=col*middle;i<Math.Min(names.Length,(col+1)*middle);i++){var property=deckSerialized.FindProperty(names[i]);if(property!=null)EditorGUILayout.PropertyField(property,true);}EditorGUILayout.EndVertical();GUILayout.Space(16);}GUILayout.FlexibleSpace();EditorGUILayout.EndHorizontal();EditorGUIUtility.labelWidth=previousLabel;
         }
+        private static bool DeckTab(string current, string section, params GUILayoutOption[] options)
+        {
+            bool selected = GUILayout.Toggle(current == section, section, EditorStyles.toolbarButton, options);
+            if (selected && Event.current.type == EventType.Repaint)
+            {
+                var rect = GUILayoutUtility.GetLastRect();
+                EditorGUI.DrawRect(new Rect(rect.x, rect.yMax - 2, rect.width, 2), new Color(.66f,.81f,.46f));
+            }
+            return selected;
+        }
+
         private void MusicDeckTabs()
         {
             EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
             foreach(string section in new[]{"Properties","Modulation","Routing"})
-                if(GUILayout.Toggle(musicDeckSection==section,section,EditorStyles.toolbarButton,GUILayout.Width(100)))musicDeckSection=section;
+                if (DeckTab(musicDeckSection, section, GUILayout.Width(100))) musicDeckSection = section;
             GUILayout.FlexibleSpace();EditorGUILayout.EndHorizontal();GUILayout.Space(6);
         }
         private void PropertyRow(SerializedProperty property,string label,float height=22)
@@ -145,12 +164,107 @@ namespace AudioMW.Editor
             {
                 EditorGUILayout.HelpBox("No parameter binding. The authored constant weight is used.",MessageType.None);return;
             }
-            EditorGUILayout.LabelField("Layer weight · normalized 0–1",EditorStyles.miniLabel);
+            var range = (SoundParameter)parameter.objectReferenceValue;
+            EditorGUILayout.LabelField("Layer weight", EditorStyles.miniLabel);
+            var rect = GUILayoutUtility.GetRect(96, position.height < 850 ? 50 : 84, GUILayout.ExpandWidth(true));
+            var response = curve.animationCurveValue;
+            var accent = new Color(.66f,.81f,.46f);
             EditorGUI.BeginChangeCheck();
-            var edited=EditorGUILayout.CurveField(GUIContent.none,curve.animationCurveValue,new Color(.66f,.81f,.46f),new Rect(0,0,1,1),GUILayout.Height(position.height<850?66:104));
-            if(EditorGUI.EndChangeCheck())curve.animationCurveValue=edited;
-            EditorGUILayout.BeginHorizontal();GUILayout.Label("0 · Parameter min",EditorStyles.miniLabel);GUILayout.FlexibleSpace();GUILayout.Label("Parameter max · 1",EditorStyles.miniLabel);EditorGUILayout.EndHorizontal();
+            var edited = EditorGUI.CurveField(rect, GUIContent.none, response, accent, new Rect(0,0,1,1));
+            if (EditorGUI.EndChangeCheck()) curve.animationCurveValue = edited;
+            if (Event.current.type == EventType.Repaint && response != null && response.length > 0)
+                DrawResponsePlot(rect, response, accent);
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.Label(range.MinValue.ToString("0.##"), EditorStyles.miniLabel);
+            GUILayout.FlexibleSpace();
+            GUILayout.Label(range.name, EditorStyles.miniLabel);
+            GUILayout.FlexibleSpace();
+            GUILayout.Label(range.MaxValue.ToString("0.##"), EditorStyles.miniLabel);
+            EditorGUILayout.EndHorizontal();
         }
+
+        private readonly Vector3[] responsePoints = new Vector3[97];
+
+        private void DrawDistancePreview(SoundEvent sound)
+        {
+            if (AudioInspectionData.IsParent(sound))
+            {
+                EditorGUILayout.LabelField("Select a child event to view its distance response.", EditorStyles.wordWrappedMiniLabel);
+                return;
+            }
+            var preset = sound.AttenuationPreset;
+            var mode = preset != null ? preset.RolloffMode : sound.RolloffMode;
+            if (mode == AudioRolloffMode.Custom && (preset == null || !preset.UsesCustomCurve))
+            {
+                EditorGUILayout.LabelField("Curve unavailable · no authored custom rolloff.", EditorStyles.wordWrappedMiniLabel);
+                return;
+            }
+            float min = preset != null ? preset.MinDistance : sound.MinDistance;
+            float max = preset != null ? preset.MaxDistance : sound.MaxDistance;
+            float blend = preset != null ? preset.SpatialBlend : sound.SpatialBlend;
+            EditorGUILayout.LabelField("Distance response  ·  model (dB)", EditorStyles.miniLabel);
+            var area = GUILayoutUtility.GetRect(96, 72, GUILayout.ExpandWidth(true));
+            if (Event.current.type == EventType.Repaint)
+            {
+                var plot = DrawPlotGrid(area, "0", "−60");
+                for (int i = 0; i < responsePoints.Length; i++)
+                {
+                    float t = i / (float)(responsePoints.Length - 1);
+                    float gain = AudioInspectionData.DistanceModel(max * t, min, max, blend, mode, preset != null ? preset.CustomRolloff : null);
+                    float db = 20 * Mathf.Log10(Mathf.Max(.001f, gain));
+                    responsePoints[i] = new Vector3(plot.x + t * plot.width, plot.yMax - Mathf.InverseLerp(-60, 0, db) * plot.height);
+                }
+                DrawPlotLine(new Color(.66f,.81f,.46f));
+            }
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.Label("0 m", EditorStyles.miniLabel);
+            GUILayout.FlexibleSpace();
+            GUILayout.Label(max.ToString("0.##") + " m", EditorStyles.miniLabel);
+            EditorGUILayout.EndHorizontal();
+        }
+
+        private static Rect DrawPlotGrid(Rect area, string top, string bottom)
+        {
+            EditorGUI.DrawRect(area, new Color(.115f,.13f,.14f));
+            Rect plot = new Rect(area.x + 26, area.y + 6, Mathf.Max(1, area.width - 34), area.height - 12);
+            Color grid = new Color(.24f,.27f,.28f);
+            for (int i = 0; i <= 4; i++)
+            {
+                float t = i / 4f;
+                EditorGUI.DrawRect(new Rect(plot.x + t * plot.width, plot.y, 1, plot.height), grid);
+                EditorGUI.DrawRect(new Rect(plot.x, plot.y + t * plot.height, plot.width, 1), grid);
+            }
+            GUI.Label(new Rect(area.x + 4, area.y, 22, 16), top, EditorStyles.miniLabel);
+            GUI.Label(new Rect(area.x + 4, area.yMax - 16, 22, 16), bottom, EditorStyles.miniLabel);
+            return plot;
+        }
+
+        private void DrawResponsePlot(Rect area, AnimationCurve curve, Color accent)
+        {
+            var plot = DrawPlotGrid(area, "1", "0");
+            for (int i = 0; i < responsePoints.Length; i++)
+            {
+                float t = i / (float)(responsePoints.Length - 1);
+                responsePoints[i] = new Vector3(plot.x + t * plot.width, plot.yMax - Mathf.Clamp01(curve.Evaluate(t)) * plot.height);
+            }
+            DrawPlotLine(accent);
+            for (int i = 0; i < curve.length; i++)
+            {
+                var key = curve[i];
+                if (key.time < 0 || key.time > 1 || key.value < 0 || key.value > 1) continue;
+                EditorGUI.DrawRect(new Rect(plot.x + key.time * plot.width - 2, plot.yMax - key.value * plot.height - 2, 4, 4), accent);
+            }
+        }
+        private void DrawPlotLine(Color accent)
+        {
+            Handles.BeginGUI();
+            var previous = Handles.color;
+            Handles.color = accent;
+            Handles.DrawAAPolyLine(2, responsePoints);
+            Handles.color = previous;
+            Handles.EndGUI();
+        }
+
         public static int LegacyLayerIndex(MusicTrack track,int laneIndex)
         {
             int slot=(track.IntroClip!=null?1:0)+(track.LoopClip!=null?1:0);

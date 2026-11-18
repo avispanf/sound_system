@@ -67,7 +67,11 @@ namespace AudioMW.Editor
             muteButton=new ToolbarButton(()=>EditorUtility.audioMasterMute=!EditorUtility.audioMasterMute){name="studio-audio-mute",tooltip="Unity Editor audio output. This does not change event gains or saved defaults."};status.Add(muteButton);
             sessionLabel=new Label();sessionLabel.tooltip="Connection to the gameplay runtime. Music can audition separately in Edit Mode.";status.Add(sessionLabel);parent.Add(status);
             var local=new Toolbar{name="studio-view-tabs"};
-            foreach(string label in new[]{"Container","Timeline","Parameters","Transitions"}){string next=label;local.Add(new ToolbarButton(()=>{view=next;RefreshTransport();canvas.MarkDirtyRepaint();}){text=label,name="view-"+label});}local.Add(new ToolbarSpacer{flex=true});local.Add(new ToolbarButton(()=>{overviewOpen=!overviewOpen;overview.style.display=overviewOpen?DisplayStyle.Flex:DisplayStyle.None;RefreshOverview();}){text="Overview"});parent.Add(local);
+            foreach(string label in new[]{"Container","Timeline","Parameters","Transitions"}){string next=label;local.Add(new ToolbarButton(()=>{view=next;RefreshTransport();canvas.MarkDirtyRepaint();}){text=label,name="view-"+label});}local.Add(new ToolbarSpacer{flex=true});local.Add(new ToolbarButton(()=>{bool show = overview.resolvedStyle.display == DisplayStyle.None;
+                if (position.width >= 1400) overviewOpen = show;
+                else compactOverviewOpen = show;
+                overview.style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
+                RefreshOverview();}){text="Overview"});parent.Add(local);
         }
         private void RefreshTransport()
         {
@@ -221,7 +225,9 @@ namespace AudioMW.Editor
         }
         private void RefreshDock()
         {
-            if(bottom==null)return;bottom.Clear();bool open=bottomTab!="";bottom.style.display=open?DisplayStyle.Flex:DisplayStyle.None;bottom.style.height=open?210:0;deck.style.display=DisplayStyle.Flex;deck.style.minHeight=open?28:160;deck.style.height=open?28:(position.height<850?200:240);deckScroll.style.display=open?DisplayStyle.None:DisplayStyle.Flex;
+            if(bottom==null)return;bottom.Clear();bool open=bottomTab!="";bottom.style.display=open?DisplayStyle.Flex:DisplayStyle.None;bottom.style.height=open?210:0;deck.style.display=DisplayStyle.Flex;deck.style.minHeight=open?28:160;deck.style.height=open?28:Mathf.Clamp(deckHeight,160,position.height<850?200:320);deckScroll.style.display=open?DisplayStyle.None:DisplayStyle.Flex;
+            foreach (var tab in rootVisualElement.Q<Toolbar>("studio-v2-dock-tabs").Children().OfType<ToolbarButton>())
+                tab.EnableInClassList("studio-v2-active", tab.text == bottomTab);
             if(open){var scroll=new ScrollView();scroll.style.flexGrow=1;scroll.Add(new IMGUIContainer(DrawDock));bottom.Add(scroll);}
         }
         private void DrawDock()
@@ -229,14 +235,14 @@ namespace AudioMW.Editor
             if(bottomTab=="Profiler")
             {
                 if(capture==null)capture=new AudioStudioCapture();
-                EditorGUILayout.BeginHorizontal();capture.Recording=GUILayout.Toggle(capture.Recording,"Record",EditorStyles.miniButton);if(GUILayout.Button("Clear"))capture.Samples.Clear();
-                if(GUILayout.Button("Export CSV")){string path=EditorUtility.SaveFilePanel("Export capture","","audiomw-capture.csv","csv");if(path!="")System.IO.File.WriteAllText(path,capture.Csv());}EditorGUILayout.EndHorizontal();
-                EditorGUILayout.LabelField("Local Editor · bounded 600 samples / 10 Hz · paused Editor pauses capture · prior samples remain captured");
-                if(capture.Samples.Count==0){EditorGUILayout.LabelField("No samples. Enter Play Mode with AudioMW and enable Record.");return;}
-                var samples=capture.Samples;var s=samples[samples.Count-1];EditorGUILayout.LabelField((capture.Recording&&EditorApplication.isPlaying&&!EditorApplication.isPaused&&AudioRuntime.Exists?"Recording":"Captured / stale")+" · latest sample "+s.Seconds.ToString("0.00")+" s");EditorGUILayout.LabelField($"SFX {s.Active} physical / {s.Limit} · {s.Virtual} virtual · requests {s.Requests} / rejected {s.Rejected} / steals {s.Steals} (cumulative)");
-                EditorGUILayout.LabelField("AudioMW tick "+AudioPerformanceSample.CsvValue(s.TickMs)+" ms · whole frame "+AudioPerformanceSample.CsvValue(s.MainThreadMs)+" ms · whole-frame GC "+AudioPerformanceSample.CsvValue(s.FrameGcBytes)+" B (blank = unavailable)");
-                Rect r=GUILayoutUtility.GetRect(100,90,GUILayout.ExpandWidth(true));EditorGUI.DrawRect(r,new Color(.10f,.11f,.12f));double span=Math.Max(.1,s.Seconds-samples[0].Seconds);float max=1;foreach(var row in samples)max=Mathf.Max(max,row.Limit);
-                Handles.BeginGUI();Handles.color=new Color(.66f,.81f,.46f);for(int i=1;i<samples.Count;i++)if(samples[i].Seconds-samples[i-1].Seconds<.3)Handles.DrawLine(new Vector3(r.x+(float)((samples[i-1].Seconds-samples[0].Seconds)/span)*r.width,r.yMax-samples[i-1].Active/max*r.height),new Vector3(r.x+(float)((samples[i].Seconds-samples[0].Seconds)/span)*r.width,r.yMax-samples[i].Active/max*r.height));Handles.EndGUI();
+                EditorGUILayout.BeginHorizontal();capture.Recording=GUILayout.Toggle(capture.Recording,"Record",EditorStyles.miniButton,GUILayout.Width(70));if(GUILayout.Button("Clear",GUILayout.Width(60)))capture.Samples.Clear();
+                if(GUILayout.Button("Export CSV",GUILayout.Width(100))){string path=EditorUtility.SaveFilePanel("Export capture","","audiomw-capture.csv","csv");if(path!="")System.IO.File.WriteAllText(path,capture.Csv());}EditorGUILayout.EndHorizontal();
+                if (capture.Samples.Count == 0)
+                {
+                    EditorGUILayout.HelpBox("Enter Play Mode with AudioMW and enable Record to capture local Editor performance.", MessageType.Info);
+                    return;
+                }
+                DrawPerformanceCapture();
             }
             else if(bottomTab=="Live changes")
             {
@@ -251,6 +257,83 @@ namespace AudioMW.Editor
                 DrawRequests();
             }
         }
+        private void DrawPerformanceCapture()
+        {
+            var samples = capture.Samples;
+            var latest = samples[samples.Count - 1];
+            bool live = capture.Recording && EditorApplication.isPlaying && !EditorApplication.isPaused && AudioRuntime.Exists;
+            EditorGUILayout.LabelField((live ? "Recording" : "Captured") + "  ·  Local Editor  ·  10 Hz  ·  " + samples.Count + " / 600 samples", EditorStyles.miniLabel);
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.BeginVertical();
+            DrawCaptureSeries(samples, "Active voices", row => row.Active, 1);
+            DrawCaptureSeries(samples, "AudioMW tick (ms)", row => row.TickMs, .001);
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.Label(samples[0].Seconds.ToString("0.0") + " s", EditorStyles.miniLabel);
+            GUILayout.FlexibleSpace();
+            GUILayout.Label(latest.Seconds.ToString("0.0") + " s", EditorStyles.miniLabel);
+            EditorGUILayout.EndHorizontal();
+            EditorGUILayout.EndVertical();
+            GUILayout.Space(12);
+            EditorGUILayout.BeginVertical(GUILayout.Width(162));
+            GUILayout.Label("SFX voices", EditorStyles.boldLabel);
+            GUILayout.Label(latest.Active + " active  /  " + latest.Limit + " limit");
+            GUILayout.Label(latest.Virtual + " virtual");
+            GUILayout.Label("Session totals", EditorStyles.boldLabel);
+            GUILayout.Label(latest.Requests + " requests  ·  " + latest.Rejected + " rejected", EditorStyles.miniLabel);
+            GUILayout.Label(latest.Steals + " steals", EditorStyles.miniLabel);
+            EditorGUILayout.EndVertical();
+            EditorGUILayout.EndHorizontal();
+            EditorGUILayout.LabelField("Whole Editor frame  ·  " + CaptureValue(latest.MainThreadMs, "ms") + "     GC  ·  " + CaptureValue(latest.FrameGcBytes, "B"), EditorStyles.miniLabel);
+        }
+
+        private static string CaptureValue(double value, string unit)
+        {
+            return double.IsNaN(value) ? "Unavailable" : value.ToString("0.###") + " " + unit;
+        }
+
+        private static void DrawCaptureSeries(List<AudioPerformanceSample> samples, string title, Func<AudioPerformanceSample, double> read, double minScale)
+        {
+            Rect area = GUILayoutUtility.GetRect(100, 46, GUILayout.ExpandWidth(true));
+            if (Event.current.type != EventType.Repaint) return;
+            EditorGUI.DrawRect(area, new Color(.11f,.12f,.13f));
+            GUI.Label(new Rect(area.x + 4, area.y + 2, 110, 18), title, EditorStyles.miniLabel);
+            Rect plot = new Rect(area.x + 109, area.y + 4, Mathf.Max(1, area.width - 115), area.height - 8);
+            double peak = double.NaN;
+            foreach (var sample in samples)
+            {
+                double value = read(sample);
+                if (!double.IsNaN(value)) peak = double.IsNaN(peak) ? value : Math.Max(peak, value);
+            }
+            if (double.IsNaN(peak))
+            {
+                GUI.Label(plot, "Counter unavailable", EditorStyles.centeredGreyMiniLabel);
+                return;
+            }
+            double scale = Math.Max(minScale, peak);
+            GUI.Label(new Rect(area.x + 4, area.y + 23, 104, 18), "0 – " + scale.ToString("0.###"), EditorStyles.miniLabel);
+            Color grid = new Color(.21f,.24f,.25f);
+            for (int i = 0; i <= 8; i++) EditorGUI.DrawRect(new Rect(plot.x + plot.width * i / 8, plot.y, 1, plot.height), grid);
+            for (int i = 0; i <= 2; i++) EditorGUI.DrawRect(new Rect(plot.x, plot.y + plot.height * i / 2, plot.width, 1), grid);
+            double start = samples[0].Seconds, span = Math.Max(.1, samples[samples.Count - 1].Seconds - start);
+            Handles.BeginGUI();
+            Color previous = Handles.color;
+            Handles.color = new Color(.66f,.81f,.46f);
+            Vector3 last = default;
+            double lastTime = double.NegativeInfinity;
+            foreach (var sample in samples)
+            {
+                double value = read(sample);
+                if (double.IsNaN(value)) { lastTime = double.NegativeInfinity; continue; }
+                var point = new Vector3(plot.x + (float)((sample.Seconds - start) / span) * plot.width, plot.yMax - (float)(value / scale) * plot.height);
+                if (sample.Seconds - lastTime < .3) Handles.DrawLine(last, point);
+                else EditorGUI.DrawRect(new Rect(point.x, point.y, 2, 2), Handles.color);
+                last = point;
+                lastTime = sample.Seconds;
+            }
+            Handles.color = previous;
+            Handles.EndGUI();
+        }
+
         private void DrawLiveParameter(SoundParameter parameter)
         {
             EditorGUILayout.LabelField("Default "+parameter.DefaultValue+" · authored range "+parameter.MinValue+"…"+parameter.MaxValue);

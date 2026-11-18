@@ -64,7 +64,7 @@ namespace AudioMW.Editor
             if(CurrentAsset is SoundEvent root)DrawContainerBranch(root,null,-1,root.name,0,new HashSet<SoundEvent>());
             else GUILayout.Label(CurrentAsset.name,EditorStyles.boldLabel);
             GUILayout.EndScrollView();GUILayout.EndArea();
-            float listHeight=Mathf.Clamp(sheet.height*.53f,90,260);
+            float listHeight=Mathf.Clamp(28 + sources.Count * 28, 76, Mathf.Max(76, sheet.height * .55f));
             GUILayout.BeginArea(new Rect(sheet.x+8,sheet.y+6,sheet.width-16,listHeight));
             EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);GUILayout.Label("Source",EditorStyles.boldLabel);GUILayout.Label("Length",GUILayout.Width(65));GUILayout.Label(sources.Any(s=>s.Owner!=null&&s.SourceIndex>=0&&s.Owner.SelectionMode==ClipSelectionMode.WeightedRandom)?"Weight":"Weight (inactive)",GUILayout.Width(105));EditorGUILayout.EndHorizontal();
             sourceScroll=GUILayout.BeginScrollView(sourceScroll);
@@ -162,7 +162,10 @@ namespace AudioMW.Editor
             {
                 float x=rect.x+rect.width*i/ticks;
                 EditorGUI.DrawRect(new Rect(x,rect.y,1,4),new Color(.5f,.55f,.57f));
-                GUI.Label(new Rect(i==ticks?x-55:x+2,rect.y+2,55,16),(clip.length*i/ticks).ToString("0.###")+" s",EditorStyles.miniLabel);
+                var label = new GUIContent((clip.length * i / ticks).ToString("0.###") + " s");
+                float width = EditorStyles.miniLabel.CalcSize(label).x;
+                float left = Mathf.Clamp(x - width / 2, rect.x, Mathf.Max(rect.x, rect.xMax - width));
+                GUI.Label(new Rect(left, rect.y + 2, width, 16), label, EditorStyles.miniLabel);
             }
         }
         private void HandleContainerDrop(Rect area)
@@ -210,8 +213,8 @@ namespace AudioMW.Editor
                 doc.Scroll.x=FollowTimelineScroll(doc.Scroll.x,AuditionPosition,doc.Zoom,body.width,contentWidth);
             doc.Scroll.x=Mathf.Clamp(doc.Scroll.x,0,Mathf.Max(0,contentWidth-body.width));
             doc.Scroll.y=Mathf.Clamp(doc.Scroll.y,0,Mathf.Max(0,contentHeight-body.height));
-            doc.Scroll.x=GUI.HorizontalScrollbar(new Rect(body.x,body.yMax,body.width,16),doc.Scroll.x,body.width,0,contentWidth);
-            doc.Scroll.y=GUI.VerticalScrollbar(new Rect(body.xMax,body.y,16,body.height),doc.Scroll.y,body.height,0,contentHeight);
+            if (contentWidth > body.width + .5f) doc.Scroll.x=GUI.HorizontalScrollbar(new Rect(body.x,body.yMax,body.width,16),doc.Scroll.x,body.width,0,contentWidth);
+            if (contentHeight > body.height + .5f) doc.Scroll.y=GUI.VerticalScrollbar(new Rect(body.xMax,body.y,16,body.height),doc.Scroll.y,body.height,0,contentHeight);
             double grid=score.BeatSeconds;while(grid*doc.Zoom<24)grid*=2;
             double first=Math.Floor(doc.Scroll.x/doc.Zoom/grid)*grid,last=(doc.Scroll.x+body.width)/doc.Zoom;
             GUI.BeginGroup(new Rect(body.x,viewport.y,body.width,ruler));
@@ -219,19 +222,34 @@ namespace AudioMW.Editor
             if(score.Loop)
             {
                 float x=(float)score.LoopStart*doc.Zoom-doc.Scroll.x,w=(float)(score.LoopEnd-score.LoopStart)*doc.Zoom;
+                float introStart = (float)score.Entry * doc.Zoom - doc.Scroll.x;
+                if (x > introStart)
+                {
+                    var intro = Rect.MinMaxRect(Mathf.Clamp(introStart, 0, body.width), 26, Mathf.Clamp(x, 0, body.width), 48);
+                    EditorGUI.DrawRect(intro, new Color(.18f,.27f,.34f));
+                    if (intro.width >= 38) GUI.Label(new Rect(intro.x + 5, 27, intro.width - 5, 20), "Intro", EditorStyles.miniLabel);
+                }
                 EditorGUI.DrawRect(new Rect(x,26,w,22),new Color(.25f,.34f,.20f));
-                GUI.Label(new Rect(Mathf.Max(0,x)+5,27,Mathf.Min(w,180),20),"Loop region",EditorStyles.miniLabel);
+                float loopLeft = Mathf.Max(0, x);
+                float loopWidth = Mathf.Min(body.width, x + w) - loopLeft;
+                if (loopWidth >= 34) GUI.Label(new Rect(loopLeft + 5, 27, loopWidth - 5, 20), "Loop", EditorStyles.miniLabel);
             }
             for(double t=first;t<=last;t+=grid)
             {
                 float x=(float)t*doc.Zoom-doc.Scroll.x;
                 bool major=Math.Abs(t/(score.BeatSeconds*score.BeatsPerBar)-Math.Round(t/(score.BeatSeconds*score.BeatsPerBar)))<.001;
                 EditorGUI.DrawRect(new Rect(x,major?14:19,1,major?11:6),new Color(.45f,.48f,.50f));
-                GUI.Label(new Rect(x+4,0,72,18),bars?Musical(t,score):t.ToString("0.##"),EditorStyles.miniLabel);
+                if (major || grid * doc.Zoom >= 56)
+                {
+                    var label = new GUIContent(bars ? Musical(t, score) : t.ToString("0.##"));
+                    float width = EditorStyles.miniLabel.CalcSize(label).x;
+                    GUI.Label(new Rect(Mathf.Min(x + 4, body.width - width), 0, width, 18), label, EditorStyles.miniLabel);
+                }
             }
             float entryX=(float)score.Entry*doc.Zoom-doc.Scroll.x,exitX=(float)score.Exit*doc.Zoom-doc.Scroll.x;
             GUI.Label(new Rect(entryX,48,100,20),"▼ Entry",EditorStyles.miniLabel);
-            GUI.Label(new Rect(exitX-72,48,72,20),"Exit ▼",EditorStyles.miniLabel);
+            float exitLabelWidth = EditorStyles.miniLabel.CalcSize(new GUIContent("Exit ▼")).x;
+            GUI.Label(new Rect(exitX-exitLabelWidth,48,exitLabelWidth,20),"Exit ▼",EditorStyles.miniLabel);
             foreach(var cue in score.Markers)GUI.Label(new Rect((float)cue.Seconds*doc.Zoom-doc.Scroll.x,48,120,20),new GUIContent("◆ "+cue.Name,cue.Seconds+" s"),EditorStyles.miniLabel);
             if(input.type==EventType.MouseDown&&input.button==0&&input.mousePosition.y>=0&&input.mousePosition.y<26&&input.mousePosition.x>=0&&input.mousePosition.x<body.width)
             {
@@ -283,15 +301,14 @@ namespace AudioMW.Editor
                     Rect rect=new Rect((float)start*doc.Zoom-doc.Scroll.x,y+3,Mathf.Max(4,(float)duration*doc.Zoom),rowHeight-8);
                     if((rect.xMax<0||rect.x>body.width)&&dragClip!=clip.Id)continue;
                     bool clipSelected=selectedClips.Contains(clip.Id)||legacy&&selectedLane=="legacy:"+i;
-                    EditorGUI.DrawRect(rect,clipSelected?new Color(.27f,.34f,.21f):new Color(.13f,.21f,.23f));
-                    EditorGUI.DrawRect(new Rect(rect.x,rect.y,rect.width,19),clipSelected?new Color(.37f,.46f,.28f):new Color(.23f,.35f,.37f));
+                    EditorGUI.DrawRect(rect,clipSelected?new Color(.22f,.235f,.18f):new Color(.115f,.16f,.17f));
                     DrawClipWaveform(clip,rect,duration,0,body.width,clipSelected);
                     Color edge=clipSelected?new Color(.66f,.81f,.46f):new Color(.32f,.45f,.46f);
                     EditorGUI.DrawRect(new Rect(rect.x,rect.y,rect.width,1),edge);
                     EditorGUI.DrawRect(new Rect(rect.x,rect.yMax-1,rect.width,1),edge);
                     EditorGUI.DrawRect(new Rect(rect.x,rect.y,1,rect.height),edge);
                     EditorGUI.DrawRect(new Rect(rect.xMax-1,rect.y,1,rect.height),edge);
-                    GUI.Label(new Rect(rect.x+6,rect.y,Mathf.Max(0,rect.width-12),22),new GUIContent(clip.Source!=null?clip.Source.name:"Missing",clip.Id),EditorStyles.miniLabel);
+                    GUI.Label(new Rect(rect.x+6,rect.y,Mathf.Max(0,rect.width-12),15),new GUIContent(clip.Source!=null?clip.Source.name:"Missing",clip.Id),EditorStyles.miniLabel);
                     if(!legacy)
                     {
                         EditorGUIUtility.AddCursorRect(new Rect(rect.x,rect.y,6,rect.height),MouseCursor.ResizeHorizontal);
@@ -377,7 +394,7 @@ namespace AudioMW.Editor
                 if(a>=visibleEnd)break;
                 if(b>a)
                 {
-                    var wave=new Rect(rect.x+(float)(a*px),rect.y+20,(float)((b-a)*px),rect.height-22);
+                    var wave=new Rect(rect.x+(float)(a*px),rect.y+14,(float)((b-a)*px),rect.height-16);
                     if(!WaveformCache.Draw(clip.Source,wave,trim+a-begin,b-a,WaveformScale,selected?new Color(.81f,.69f,.46f):new Color(.50f,.71f,.74f),combinedWaveform))GUI.Label(wave,"PCM unavailable",EditorStyles.miniLabel);
                 }
                 if(!clip.Repeat)break;

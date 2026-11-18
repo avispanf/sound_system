@@ -57,7 +57,8 @@ namespace AudioMW.Editor
         private readonly HashSet<string> selectedClips = new HashSet<string>();
         private string selectedLane = "";
         private int snap = 1;
-        private bool bars;
+        private bool bars = true;
+        private bool compactOverviewOpen;
         private Vector2 browserPointer;
         private bool browserDragArmed;
         private string documentsStamp;
@@ -84,7 +85,7 @@ namespace AudioMW.Editor
         }
         [MenuItem("Window/AudioMW/Event Editor", false, 0)]
         public static void Open() { var window = GetWindow<AudioEventEditorWindow>(); window.titleContent = new GUIContent("AudioMW | Event Editor"); window.minSize = new Vector2(760,520); window.Show(); }
-        private void OnEnable() { Undo.undoRedoPerformed += OnUndo; EditorApplication.playModeStateChanged += OnPlayState; EditorApplication.update += UpdateSession; }
+        private void OnEnable() { titleContent = new GUIContent("AudioMW | Event Editor"); Undo.undoRedoPerformed += OnUndo; EditorApplication.playModeStateChanged += OnPlayState; EditorApplication.update += UpdateSession; }
         private void OnDisable() { Undo.undoRedoPerformed -= OnUndo; EditorApplication.playModeStateChanged -= OnPlayState; EditorApplication.update -= UpdateSession; string pending=pendingAuditionGuid; StopAudition(); pendingAuditionGuid=pending; ReleaseLive(); capture?.Dispose(); capture=null; deckSerialized?.Dispose(); if(legacyProjection!=null)DestroyImmediate(legacyProjection); }
         private void OnUndo() { ShowDeck(deckTarget); RefreshDocuments(); canvas?.MarkDirtyRepaint(); }
         private void OnPlayState(PlayModeStateChange state)
@@ -109,7 +110,7 @@ namespace AudioMW.Editor
             var top = new Toolbar { name="studio-v2-toolbar" }; top.Add(new Label("AudioMW | Event Editor"));
             top.Add(new ToolbarButton(()=>{drawerOpen=!drawerOpen;UpdateCompactLayout();}){text="Browser",name="studio-browser-toggle"});
             top.Add(new ToolbarSpacer { flex=true }); top.Add(new ToolbarButton(AudioWorkspace.Mixer) { text="Mixer" });
-            var tools = new ToolbarMenu { text="Tools" }; tools.menu.AppendAction("Review agent proposals",_=>AudioAgentReviewWindow.Open()); tools.menu.AppendAction("Project setup",_=>AudioProjectSetupWindow.Open()); tools.menu.AppendAction("Reset layout",_=>{ overviewOpen=true;deckHeight=240;drawerOpen=false; CreateGUI(); }); top.Add(tools);
+            var tools = new ToolbarMenu { text="Tools" }; tools.menu.AppendAction("Review agent proposals",_=>AudioAgentReviewWindow.Open()); tools.menu.AppendAction("Project setup",_=>AudioProjectSetupWindow.Open()); tools.menu.AppendAction("Reset layout",_=>{ overviewOpen=true;compactOverviewOpen=false;deckHeight=240;drawerOpen=false; CreateGUI(); }); top.Add(tools);
             top.Add(new ToolbarButton(SaveDocument) { text="Save",name="studio-save" }); rootVisualElement.Add(top);
             var main = new TwoPaneSplitView(0,260,TwoPaneSplitViewOrientation.Horizontal) { viewDataKey="AudioMW.V2.BrowserWidth",name="studio-v2-main" }; mainSplit=main;main.style.flexGrow=1; rootVisualElement.Add(main);
             var library = new VisualElement { name="studio-v2-browser" }; library.style.minWidth=220; library.style.maxWidth=360; main.Add(library);libraryPanel=library;
@@ -128,6 +129,12 @@ namespace AudioMW.Editor
                 if(!browserDragArmed||(e.pressedButtons&1)==0||browser.selectedItem==null||Vector2.Distance(browserPointer,e.position)<8)return;
                 browserDragArmed=false;if(!browser.selectedItems.OfType<Object>().Any(a=>!(a is DefaultAsset)))return;DragAndDrop.PrepareStartDrag();DragAndDrop.objectReferences=browser.selectedItems.OfType<Object>().Where(a=>!(a is DefaultAsset)).ToArray();DragAndDrop.StartDrag("AudioMW assets");e.StopPropagation();
             },TrickleDown.TrickleDown); library.Add(browser);
+            var summary = new VisualElement { name = "studio-browser-summary" };
+            browserAssetTitle = new Label { name = "studio-summary-name" };
+            browserAssetDetail = new Label { name = "studio-summary-detail" };
+            summary.Add(browserAssetTitle);
+            summary.Add(browserAssetDetail);
+            library.Add(summary);
             var newMenu=new ToolbarMenu{text="+ New"}; foreach(string type in new[]{"Random / Sequence","Layered","Blend","Switch","Music Track","Music Arrangement","Bank","Parameter"}) {string kind=type;newMenu.menu.AppendAction(kind,_=>CreateAsset(kind));} library.Add(newMenu);
             center=new VisualElement{name="studio-v2-center"};center.style.minWidth=480;center.style.flexGrow=1;main.Add(center);
             documentsStamp=null;documentTabs=new Toolbar{name="studio-v2-documents"};center.Add(documentTabs);
@@ -162,7 +169,7 @@ namespace AudioMW.Editor
             if(responsiveSize!=position.size)
             {
                 responsiveSize=position.size;
-                if(overview!=null)overview.style.display=overviewOpen&&position.width>=1400?DisplayStyle.Flex:DisplayStyle.None;
+                if(overview!=null)overview.style.display=(position.width >= 1400 ? overviewOpen : compactOverviewOpen) ?DisplayStyle.Flex:DisplayStyle.None;
                 if(deck!=null&&bottomTab=="")deck.style.height=Mathf.Clamp(deckHeight,160,position.height<850?200:320);
                 mainSplit.fixedPaneInitialDimension=position.width<1400?220:260;
             }
@@ -205,6 +212,12 @@ namespace AudioMW.Editor
             int index=documents.FindIndex(x=>x.Guid==guid);
             if(index<0){if(CurrentDocument!=null&&!CurrentDocument.Pinned&&CurrentAsset!=null&&!EditorUtility.IsDirty(CurrentAsset)){index=documentIndex;documents[index]=new Document{Guid=guid,Pinned=pin};}else{documents.Add(new Document{Guid=guid,Pinned=pin});index=documents.Count-1;}}
             else if(pin)documents[index].Pinned=true;
+            if (browserTab == 0 && browser != null && browserAssets.Contains(asset) && !browser.selectedItems.OfType<Object>().Contains(asset))
+            {
+                browserRefreshing = true;
+                try { browser.SetSelectionById(asset.GetInstanceID()); }
+                finally { browserRefreshing = false; }
+            }
             documentIndex=index;selectedClips.Clear();selectedLane="";Selection.activeObject=asset;view=asset is MusicTrack||asset is MusicArrangement?"Timeline":asset is SoundParameter?"Parameters":asset is MusicStateProfile?"Transitions":"Container";EditorAudioPreview.Stop();RestoreDocumentSelection();ShowDeck(asset);RefreshDocuments();RefreshOverview();RefreshTransport();
         }
         private void RestoreDocumentSelection()
@@ -232,7 +245,9 @@ namespace AudioMW.Editor
         {
             if(target==null||CurrentDocument==null)return;
             if(!documentEdits.Any(e=>e.Document==CurrentDocument.Guid&&e.Target==target))documentEdits.Add(new DependentEdit{Document=CurrentDocument.Guid,Target=target});
-            CurrentDocument.Pinned=true;RefreshOverview();
+            CurrentDocument.Pinned=true;
+            if (browserAssetDetail != null) browserAssetDetail.text = AssetSummary(deckTarget);
+            RefreshOverview();
         }
         public void SaveDocument()
         {
@@ -241,10 +256,32 @@ namespace AudioMW.Editor
             if(deckTarget!=null)AssetDatabase.SaveAssetIfDirty(deckTarget);
             if(CurrentAsset!=null)AssetDatabase.SaveAssetIfDirty(CurrentAsset);RefreshDocuments();
         }
+        private Label browserAssetTitle;
+        private Label browserAssetDetail;
+        private static string AssetSummary(Object target)
+        {
+            if (target is MusicArrangement score)
+                return score.Lanes.Count + " tracks  ·  " + score.Tempo + " BPM  ·  " + (score.Exit - score.Entry).ToString("0.##") + " s";
+            if (target is AudioClip clip) return AudioSourcePreviewPane.SourceFormat(clip);
+            if (target is SoundEvent sound && sound.ContainerMode == ContainerMode.Simple)
+                return AudioEventContextPane.SelectionLabel(sound.SelectionMode) + "  ·  " + sound.TotalClipCount + " sources";
+            if (target is SoundEvent container) return ObjectNames.NicifyVariableName(container.ContainerMode.ToString());
+            return target != null ? ObjectNames.NicifyVariableName(target.GetType().Name) : "";
+        }
+
         private void ShowDeck(Object target)
         {
             deckSerialized?.Dispose();deckSerialized=null;deckTarget=target;deckSourceIndex=-1;deckChildParent=null;deckChildIndex=-1;
             if(target!=null)deckSerialized=new SerializedObject(target);
+            if (browserAssetTitle != null)
+            {
+                var path = target != null ? AssetDatabase.GetAssetPath(target) : "";
+                browserAssetTitle.parent.style.display = target == null ? DisplayStyle.None : DisplayStyle.Flex;
+                browserAssetTitle.text = target != null ? target.name : "";
+                browserAssetTitle.tooltip = path;
+                browserAssetDetail.text = AssetSummary(target);
+                browserAssetDetail.tooltip = path;
+            }
             if(breadcrumb!=null)breadcrumb.text=target==CurrentAsset?(target!=null?target.name:"Select an object"):(CurrentAsset!=null?CurrentAsset.name:"No event")+"  ›  "+(target!=null?target.name:"Select an object");
             if(breadcrumb!=null&&target==CurrentAsset)
             {
@@ -270,7 +307,7 @@ namespace AudioMW.Editor
         }
         private void OverviewRow(string title,string value,Action action=null)
         {
-            var row=new VisualElement();row.AddToClassList("studio-overview-row");row.Add(new Label(title));
+            var row=new VisualElement();row.AddToClassList("studio-overview-row");var key = new Label(title); key.AddToClassList("studio-overview-key"); row.Add(key);
             if(action==null)row.Add(new Label(value));else row.Add(new Button(action){text=value});
             overview.Add(row);
         }
@@ -292,6 +329,26 @@ namespace AudioMW.Editor
             if(item is MusicTrack track){OverviewRow("Output",track.MixerGroup!=null?track.MixerGroup.name:"Unity output",AudioWorkspace.Mixer);OverviewRow("Model","Intro / body + layers");OverviewRow("Layers",track.Layers.Length.ToString());}
             if(item is MusicArrangement arrangement){OverviewRow("Output",arrangement.Output!=null?arrangement.Output.name:"Unity output",AudioWorkspace.Mixer);OverviewRow("Tracks",arrangement.Lanes.Count.ToString());OverviewRow("Tempo",arrangement.Tempo+" BPM");OverviewRow("Edits","Apply on restart");}
             var sources=AudioSourceCatalog.Collect(item);OverviewRow("Sources",(item is MusicArrangement score?score.Lanes.Sum(l=>l.Clips.Count):sources.Count).ToString());
+            if (item is MusicArrangement music)
+            {
+                var preview = new IMGUIContainer(() =>
+                {
+                    var lane = music.Lanes.FirstOrDefault(candidate => candidate.Id == selectedLane);
+                    var clip = lane?.Clips.FirstOrDefault(candidate => selectedClips.Contains(candidate.Id));
+                    if (selectedClips.Count != 1 || clip?.Source == null)
+                    {
+                        EditorGUILayout.LabelField("Select a clip to see its source waveform.", EditorStyles.wordWrappedMiniLabel);
+                        return;
+                    }
+                    GUILayout.Label(new GUIContent(clip.Source.name, AssetDatabase.GetAssetPath(clip.Source)), EditorStyles.boldLabel);
+                    Rect plot = GUILayoutUtility.GetRect(24, 48, GUILayout.ExpandWidth(true));
+                    EditorGUI.DrawRect(plot, new Color(.11f,.14f,.16f));
+                    if (!WaveformCache.Draw(clip.Source, plot, verticalScale: 0, combineChannels: true))
+                        GUI.Label(plot, "Source PCM unavailable", EditorStyles.centeredGreyMiniLabel);
+                    EditorGUILayout.LabelField("Source  ·  " + clip.Source.length.ToString("0.###") + " s", EditorStyles.miniLabel);
+                });
+                overview.Add(preview);
+            }
             var path=new Label(AssetDatabase.GetAssetPath(item));path.AddToClassList("studio-asset-path");overview.Add(path);
         }
     }

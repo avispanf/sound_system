@@ -456,7 +456,7 @@
 .audiomw-event-editor-v2 #studio-v2-dock-tabs { background-color: rgb(32,34,37); }
 
 .audiomw-event-editor-v2 .studio-overview-row { flex-direction: row; min-height: 32px; align-items: center; border-bottom-width: 1px; border-bottom-color: rgb(49,53,57); }
-.audiomw-event-editor-v2 .studio-overview-row > .unity-label:first-child { width: 62px; flex-shrink: 0; color: rgb(174,182,188); }
+.audiomw-event-editor-v2 .studio-overview-row > .studio-overview-key { width: 62px; flex-shrink: 0; color: rgb(174,182,188); }
 .audiomw-event-editor-v2 .studio-overview-row > .unity-label { margin: 0; flex-shrink: 1; }
 .audiomw-event-editor-v2 .studio-overview-row > .unity-button { flex-shrink: 1; flex-grow: 1; min-width: 0; -unity-text-align: middle-left; background-color: rgba(0,0,0,0); color: rgb(169,207,118); border-width: 0; }
 .audiomw-event-editor-v2 .studio-section-heading { font-size: 14px; -unity-font-style: bold; padding-bottom: 12px; }
@@ -471,3 +471,17 @@
 .audiomw-event-editor-v2 #studio-return { width: 30px; padding: 0; }
 .audiomw-event-editor-v2 #studio-pause { min-width: 76px; }
 .audiomw-event-editor-v2 #studio-play { min-width: 110px; }
+
+.audiomw-event-editor-v2 #studio-browser-summary {
+    padding: 6px 4px;
+    border-top-width: 1px;
+    border-top-color: rgb(68,73,78);
+    background-color: rgb(34,36,39);
+    flex-shrink: 0;
+}
+.audiomw-event-editor-v2 #studio-summary-name { -unity-font-style: bold; }
+.audiomw-event-editor-v2 #studio-summary-detail { color: rgb(174,182,188); }
+.audiomw-event-editor-v2 #studio-v2-documents .studio-document-tab.studio-v2-active { border-top-width: 2px; border-top-color: rgb(169,207,118); }
+.audiomw-event-editor-v2 #studio-view-tabs .unity-toolbar-button { border-width: 0; border-radius: 0; }
+.audiomw-event-editor-v2 #studio-view-tabs .studio-v2-active { border-bottom-width: 2px; border-bottom-color: rgb(169,207,118); }
+.audiomw-event-editor-v2 #studio-v2-dock-tabs { height: 28px; border-top-width: 1px; border-top-color: rgb(68,73,78); }

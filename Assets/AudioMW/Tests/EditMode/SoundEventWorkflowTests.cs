@@ -562,9 +562,17 @@ namespace AudioMW.Tests
                 yield return null; yield return null;
                 Assert.AreEqual(before,EditorJsonUtility.ToJson(track));
                 double deadline = EditorApplication.timeSinceStartup + 3;
-                while (root.Q<Foldout>("music-layer").text != "Percussion accents during the second combat phase · Intensity" && EditorApplication.timeSinceStartup < deadline) yield return null;
-                Assert.AreEqual("Percussion accents during the second combat phase · Intensity",root.Q<Foldout>("music-layer").text);
-                root.Q("music-layer-parameter").Q<ObjectField>().value = null;
+                string restoredTitle = "Percussion accents during the second combat phase · Intensity";
+                ObjectField parameterField;
+                do
+                {
+                    yield return null;
+                    parameterField = root.Q("music-layer-parameter")?.Q<ObjectField>();
+                } while ((parameterField == null || parameterField.value != parameter || root.Q<Foldout>("music-layer")?.text != restoredTitle) && EditorApplication.timeSinceStartup < deadline);
+                Assert.AreEqual(restoredTitle, root.Q<Foldout>("music-layer").text);
+                Assert.NotNull(parameterField);
+                Assert.AreSame(parameter, parameterField.value, "The rebound field must display the restored parameter before it can be cleared.");
+                parameterField.value = null;
                 deadline = EditorApplication.timeSinceStartup + 3;
                 while (root.Q<Foldout>("music-layer").text != "Percussion accents during the second combat phase · Fixed weight" && EditorApplication.timeSinceStartup < deadline) yield return null;
                 Assert.AreEqual("Percussion accents during the second combat phase · Fixed weight",root.Q<Foldout>("music-layer").text);
