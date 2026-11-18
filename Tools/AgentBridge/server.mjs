@@ -15,12 +15,12 @@ const wrap = fn => async input => {
 const annotations = { destructiveHint: false, openWorldHint: false };
 server.registerTool('audiomw_inspect', { description: 'Bind this server to its configured Unity project and current enabled Editor session. List SoundEvents, arrangements, source clips, mixer groups and project briefs. Supply arrangementGuid to read one timeline with editable IDs and its conflict hash. Use objectQuery to find up to 32 matching names in the active saved scene, with stable IDs and hashes. Does not import or play audio.', inputSchema: { arrangementGuid: z.string().regex(/^[a-f0-9]{32}$/).optional(), objectQuery: z.string().min(1).max(128).optional() }, annotations: { ...annotations, readOnlyHint: true } }, wrap(input => bridge.inspect(input)));
 server.registerTool('audiomw_propose', {
-  description: 'Prepare an immutable review for local WAV/OGG/AIFF attachments. No Assets change until the developer approves in Unity. Replace a direct SoundEvent clip list by GUID or create a new routed event. Retry with the same requestId and identical input after a timeout.',
+  description: 'Prepare an immutable review for local WAV/OGG/AIFF attachments. No Assets change until the developer approves in Unity. Replace a direct SoundEvent clip list by GUID or create a new routed event. For a new sustained source such as a compressor or ambience, specify loop: true. Omit loop when replacing clips. Retry with the same requestId and identical input after a timeout.',
   inputSchema: {
     requestId: z.string().regex(/^[a-f0-9]{32}$/),
     intent: z.string().min(1).max(2000),
     destination: z.string().min(1).default('Assets'),
-    events: z.array(z.object({ name: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9 _-]{0,63}$/), purpose: z.string().min(1).max(2000), files: z.array(z.string().min(1)).min(1).max(32), replaceEventGuid: z.string().regex(/^[a-f0-9]{32}$/).optional(), mixerGroupId: z.string().max(256).optional() })).min(1).max(16)
+    events: z.array(z.object({ name: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9 _-]{0,63}$/), purpose: z.string().min(1).max(2000), files: z.array(z.string().min(1)).min(1).max(32), replaceEventGuid: z.string().regex(/^[a-f0-9]{32}$/).optional(), loop: z.boolean().optional(), mixerGroupId: z.string().max(256).optional() })).min(1).max(16)
   }, annotations: { ...annotations, readOnlyHint: false, idempotentHint: true }
 }, wrap(input => bridge.propose(input)));
 const musicName = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9 _-]{0,63}$/);

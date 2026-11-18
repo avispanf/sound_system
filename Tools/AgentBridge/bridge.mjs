@@ -30,8 +30,11 @@ export class UnityBridge {
     }
   }
   async inspect(input = {}) {
+    this.supportsEventLoop = false;
     this.bound = await this.connection();
-    return this.request('inspect', { ArrangementGuid: input.arrangementGuid || '', ObjectQuery: input.objectQuery || '' });
+    const result = await this.request('inspect', { ArrangementGuid: input.arrangementGuid || '', ObjectQuery: input.objectQuery || '' });
+    this.supportsEventLoop = result.Inventory?.SupportsEventLoop === true;
+    return result;
   }
   async request(operation, payload, requestId = randomBytes(16).toString('hex')) {
     if (!['inspect', 'propose', 'propose_music', 'propose_timeline', 'propose_binding', 'status', 'review'].includes(operation)) throw new Error('Unsupported operation. Approval is only available in Unity.');
@@ -98,12 +101,14 @@ export class UnityBridge {
   async propose(input) {
     const events = [];
     for (const event of input.events) {
+      if (event.loop !== undefined && event.replaceEventGuid) throw new Error('Omit loop when replacing clips. The existing playback settings are preserved.');
+      if (event.loop === true && !this.supportsEventLoop) throw new Error('This Unity session does not advertise loop authoring. Update the AudioMW Editor package and inspect again.');
       const files = [];
       for (const file of event.files) {
         if (!path.isAbsolute(file)) throw new Error('Supply absolute local attachment paths, not URLs or chat attachment IDs.');
         files.push(await realpath(file));
       }
-      events.push({ Name: event.name, Purpose: event.purpose, Files: files, ReplaceEventGuid: event.replaceEventGuid || '', MixerGroupId: event.mixerGroupId || '' });
+      events.push({ Name: event.name, Purpose: event.purpose, Files: files, ReplaceEventGuid: event.replaceEventGuid || '', MixerGroupId: event.mixerGroupId || '', ...(event.loop ? { CreateLoop: true } : {}) });
     }
     return this.request('propose', { Draft: { Destination: input.destination, Intent: input.intent, Events: events } }, input.requestId);
   }

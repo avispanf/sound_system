@@ -24,6 +24,7 @@ namespace AudioMW.Editor
         public string[] Files;
         public string ReplaceEventGuid;
         public string MixerGroupId;
+        public bool CreateLoop;
     }
     [Serializable] public sealed class AudioAgentFile
     {
@@ -44,6 +45,7 @@ namespace AudioMW.Editor
         public string Playback;
         public string MixerGroupId;
         public string MixerHash;
+        public bool CreateLoop;
         public string Routing;
         public AudioAgentFile[] Files;
     }
@@ -99,6 +101,7 @@ namespace AudioMW.Editor
                 var change = new AudioAgentChange { Name = item.Name, Purpose = item.Purpose, EventPath = target, ReplaceEventGuid = item.ReplaceEventGuid, MixerGroupId = item.MixerGroupId };
                 if (!string.IsNullOrEmpty(item.ReplaceEventGuid))
                 {
+                    if (item.CreateLoop) throw new ArgumentException("Clip replacement preserves the existing Loop setting.");
                     SoundEvent existing = AssetDatabase.LoadAssetAtPath<SoundEvent>(target);
                     if (existing == null || existing.ContainerMode != ContainerMode.Simple || existing.Children.Length != 0 || existing.ClipReferences.Length != 0 || existing.SelectionMode == ClipSelectionMode.WeightedRandom) throw new ArgumentException("Replace only direct, non-weighted SoundEvent clips. Layered, addressed and weighted events require manual authoring.");
                     Clean(existing); change.BeforeJson = EditorJsonUtility.ToJson(existing); change.BeforeHash = Fingerprint(target);
@@ -107,7 +110,12 @@ namespace AudioMW.Editor
                     change.MixerGroupId = existing.MixerGroup != null ? GlobalObjectId.GetGlobalObjectIdSlow(existing.MixerGroup).ToString() : "";
                 }
                 else if (string.IsNullOrEmpty(item.MixerGroupId)) throw new ArgumentException("Select a mixer group from inspect for every new event.");
-                else change.Playback = "New: RandomNoRepeat, no loop, gain 0 dB, 3D logarithmic attenuation. Gameplay hook still required.";
+                else
+                {
+                    change.CreateLoop = item.CreateLoop;
+                    string playback = change.CreateLoop ? "Loop on" : "One-shot";
+                    change.Playback = playback + " · RandomNoRepeat · gain 0 dB · 3D logarithmic attenuation";
+                }
                 var group = ResolveGroup(change.MixerGroupId);
                 change.Routing = group != null ? AssetDatabase.GetAssetPath(group) + " / " + group.name : "Existing default output (unchanged)";
                 if (group != null) { Clean(group.audioMixer); change.MixerHash = Fingerprint(AssetDatabase.GetAssetPath(group)); }
@@ -122,7 +130,7 @@ namespace AudioMW.Editor
                 change.Files = files.ToArray(); changes.Add(change);
             }
             review.Changes = changes.ToArray();
-            review.Limitations = new[] { "Replacements retain event GUIDs, routing, selection, gain and gameplay references. Only the direct clip list changes.", "New events use RandomNoRepeat, 3D logarithmic attenuation, gain 0 dB and no loop. They need a gameplay hook; this plan does not create code or scene bindings.", "Event changes do not author music or voice lines, normalize audio, change the mixer or certify listening. Music requires a separate music proposal." };
+            review.Limitations = new[] { "Replacements retain event GUIDs, routing, selection, gain and gameplay references. Only the direct clip list changes.", "Each new event uses the playback mode shown above. To start it on a scene object, review a separate emitter binding after import.", "Event changes do not author music or voice lines, normalize audio, change the mixer or certify listening. Music requires a separate music proposal." };
             return new AudioAgentPlan(review);
         }
         public static string Check(AudioAgentPlan plan, string session)
@@ -197,7 +205,13 @@ namespace AudioMW.Editor
                     SoundEvent sound = replace ? AssetDatabase.LoadAssetAtPath<SoundEvent>(change.EventPath) : ScriptableObject.CreateInstance<SoundEvent>();
                     touched.Add(change);
                     sound.Clips = change.Files.Select(file => AssetDatabase.LoadAssetAtPath<AudioClip>(file.Destination)).ToArray();
-                    if (!replace) { sound.name = change.Name; sound.MixerGroup = ResolveGroup(change.MixerGroupId); AssetDatabase.CreateAsset(sound, change.EventPath); }
+                    if (!replace)
+                    {
+                        sound.name = change.Name;
+                        sound.Loop = change.CreateLoop;
+                        sound.MixerGroup = ResolveGroup(change.MixerGroupId);
+                        AssetDatabase.CreateAsset(sound, change.EventPath);
+                    }
                     else EditorUtility.SetDirty(sound);
                     AssetDatabase.SaveAssetIfDirty(sound);
                 }

@@ -135,3 +135,34 @@ test('binding proposals use an inspected scene identity and only create a review
     assert.equal(request.BindingDraft.ObjectId,args.objectId);assert.equal(request.BindingDraft.EventGuid,args.eventGuid);
   } finally { await client.close();await stop();await f.dispose(); }
 });
+
+test('new event loop is reviewed only with a compatible editor', async () => {
+  const f = await fixture();
+  const clip = path.join(f.project, 'fridge.wav');
+  await writeFile(clip, 'fixture');
+  let supported = false;
+  const drafts = [];
+  const stop = await service(f, request => {
+    if (request.Operation === 'inspect') return { Ok: true, Inventory: { SupportsEventLoop: supported } };
+    drafts.push(request.Draft);
+    return { Ok: true, State: 'pending' };
+  });
+  const client = new Client({ name: 'event-loop-test', version: '1' });
+  try {
+    await client.connect(new StdioClientTransport({ command: process.execPath, args: [path.resolve('server.mjs'), '--project', f.project] }));
+    const event = { name: 'Fridge', purpose: 'Compressor', files: [clip], mixerGroupId: 'fixture-group', loop: true };
+    const args = { requestId: '1'.repeat(32), destination: 'Assets', intent: 'Loop compressor', events: [event] };
+    await client.callTool({ name: 'audiomw_inspect', arguments: {} });
+    const propose = () => client.callTool({ name: 'audiomw_propose', arguments: args });
+    assert.equal((await propose()).isError, true);
+    supported = true;
+    await client.callTool({ name: 'audiomw_inspect', arguments: {} });
+    assert.equal((await propose()).structuredContent.State, 'pending');
+    assert.equal(drafts[0].Events[0].CreateLoop, true);
+    event.loop = false;
+    event.replaceEventGuid = '2'.repeat(32);
+    args.requestId = '3'.repeat(32);
+    assert.equal((await propose()).isError, true);
+    assert.equal(drafts.length, 1);
+  } finally { await client.close(); await stop(); await f.dispose(); }
+});

@@ -60,6 +60,7 @@ namespace AudioMW.Editor
         public AudioAgentAsset[] Parameters;
         public AudioAgentAsset[] Setups;
         public bool Truncated;
+        public bool SupportsEventLoop;
     }
     [Serializable] public sealed class AudioAgentAsset
     {
@@ -187,7 +188,7 @@ namespace AudioMW.Editor
             }
             return new AudioAgentInventory
             {
-                Project = AudioProjectPlanner.ProjectIdentity(), ProjectPath = Path.GetDirectoryName(Application.dataPath), Session = Session, Unity = Application.unityVersion, Platform = EditorUserBuildSettings.activeBuildTarget.ToString(), Truncated = ids.Length > 256 || groups.Count > 256,
+                Project = AudioProjectPlanner.ProjectIdentity(), ProjectPath = Path.GetDirectoryName(Application.dataPath), Session = Session, Unity = Application.unityVersion, Platform = EditorUserBuildSettings.activeBuildTarget.ToString(), SupportsEventLoop = true, Truncated = ids.Length > 256 || groups.Count > 256,
                 Events = ids.Take(256).Select(guid => { string path = AssetDatabase.GUIDToAssetPath(guid); var sound = AssetDatabase.LoadAssetAtPath<SoundEvent>(path); return new AudioAgentAsset { Name = sound.name, Id = guid, Path = path, Detail = sound.ContainerMode + " / " + sound.Clips.Length + " clips / " + (sound.MixerGroup != null ? sound.MixerGroup.name : "default output") }; }).ToArray(),
                 Groups = groups.Take(256).ToArray(),
                 Arrangements = Assets<MusicArrangement>("MusicArrangement", score => score.Lanes.Count + " tracks / " + score.Lanes.Sum(l => l.Clips.Count) + " clips. Inspect with arrangementGuid for editable IDs and current hash."),

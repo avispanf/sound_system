@@ -123,6 +123,35 @@ namespace AudioMW.Tests
             draft.Events[0].MixerGroupId = GlobalObjectId.GetGlobalObjectIdSlow(group).ToString(); var plan = AudioAgentPlanner.Prepare(draft, "test"); Apply(plan);
             var created = AssetDatabase.LoadAssetAtPath<SoundEvent>(plan.Read().Changes[0].EventPath); Assert.AreSame(group, created.MixerGroup); Assert.IsFalse(created.Loop); Assert.AreEqual(1, created.Clips.Length);
         }
+        [Test] public void NewLoopUsesReviewedValueAndPersistsOnImport()
+        {
+            var mixer = AssetDatabase.LoadAssetAtPath<AudioMixer>(AudioMixPlanner.TemplatePath);
+            var group = mixer.FindMatchingGroups("").First();
+            var item = draft.Events[0];
+            item.ReplaceEventGuid = null;
+            item.MixerGroupId = GlobalObjectId.GetGlobalObjectIdSlow(group).ToString();
+            item.CreateLoop = true;
+            var plan = AudioAgentPlanner.Prepare(draft, "test");
+            var change = plan.Read().Changes.Single();
+            Assert.IsTrue(change.CreateLoop);
+            StringAssert.Contains("Loop on", change.Playback);
+            Assert.IsNull(AssetDatabase.LoadAssetAtPath<SoundEvent>(change.EventPath));
+            item.CreateLoop = false;
+            Apply(plan);
+            AssetDatabase.ImportAsset(change.EventPath, ImportAssetOptions.ForceUpdate);
+            var created = AssetDatabase.LoadAssetAtPath<SoundEvent>(change.EventPath);
+            Assert.IsTrue(created.Loop);
+            Assert.AreSame(group, created.MixerGroup);
+            Assert.AreEqual(800, created.Clips.Single().samples);
+        }
+
+        [Test] public void LoopRequestCannotChangePlaybackDuringClipReplacement()
+        {
+            draft.Events[0].CreateLoop = true;
+            Assert.Throws<ArgumentException>(() => AudioAgentPlanner.Prepare(draft, "test"));
+            Assert.IsTrue(sound.Loop);
+        }
+
         [Test] public void LayeredAndWeightedReplacementsAreRejected()
         {
             sound.ContainerMode = ContainerMode.Layered; EditorUtility.SetDirty(sound); AssetDatabase.SaveAssetIfDirty(sound); Assert.Throws<ArgumentException>(() => AudioAgentPlanner.Prepare(draft, "test"));
