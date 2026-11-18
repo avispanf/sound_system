@@ -43,7 +43,7 @@ namespace AudioMW.Editor
         }
 
         [MenuItem("Window/AudioMW/Mixer", false, 1)]
-        public static void Mixer() { EditorApplication.ExecuteMenuItem("Window/Audio/Audio Mixer"); }
+        public static void Mixer() { StudioMixerWindow.Open(Selection.activeObject); }
 
         public static Toolbar Navigation(string current)
         {

@@ -109,7 +109,7 @@ namespace AudioMW.Editor
             responsiveSize=new Vector2(-1,-1);rootVisualElement.Clear(); AudioWorkspace.Style(rootVisualElement); rootVisualElement.AddToClassList("audiomw-event-editor-v2");
             var top = new Toolbar { name="studio-v2-toolbar" }; top.Add(new Label("AudioMW | Event Editor"));
             top.Add(new ToolbarButton(()=>{drawerOpen=!drawerOpen;UpdateCompactLayout();}){text="Browser",name="studio-browser-toggle"});
-            top.Add(new ToolbarSpacer { flex=true }); top.Add(new ToolbarButton(AudioWorkspace.Mixer) { text="Mixer" });
+            top.Add(new ToolbarSpacer { flex=true }); top.Add(new ToolbarButton(() => StudioMixerWindow.Open(CurrentAsset, selectedLane)) { text="Mixer" });
             var tools = new ToolbarMenu { text="Tools" }; tools.menu.AppendAction("Review agent proposals",_=>AudioAgentReviewWindow.Open()); tools.menu.AppendAction("Project setup",_=>AudioProjectSetupWindow.Open()); tools.menu.AppendAction("Reset layout",_=>{ overviewOpen=true;compactOverviewOpen=false;deckHeight=240;drawerOpen=false; CreateGUI(); }); top.Add(tools);
             top.Add(new ToolbarButton(SaveDocument) { text="Save",name="studio-save" }); rootVisualElement.Add(top);
             var main = new TwoPaneSplitView(0,260,TwoPaneSplitViewOrientation.Horizontal) { viewDataKey="AudioMW.V2.BrowserWidth",name="studio-v2-main" }; mainSplit=main;main.style.flexGrow=1; rootVisualElement.Add(main);
@@ -318,7 +318,7 @@ namespace AudioMW.Editor
             OverviewRow("Document",item.name,()=>{ShowDeck(item);Selection.activeObject=item;});
             if(item is SoundEvent sound)
             {
-                OverviewRow("Output",sound.MixerGroup!=null?sound.MixerGroup.name:"Unity output",AudioWorkspace.Mixer);
+                OverviewRow("Output",sound.MixerGroup!=null?sound.MixerGroup.name:"Unity output",()=>StudioMixerWindow.Open(item, selectedLane));
                 var banks=AudioSourceCatalog.BanksFor(sound);if(banks.Count==0)OverviewRow("Bank","Not assigned");
                 foreach(var bank in banks)OverviewRow("Bank",bank.name,()=>{ShowDeck(bank);Selection.activeObject=bank;});
                 float blend=sound.AttenuationPreset!=null?sound.AttenuationPreset.SpatialBlend:sound.SpatialBlend;
@@ -326,8 +326,8 @@ namespace AudioMW.Editor
                 OverviewRow("Limits",sound.MaxInstancesPerEmitter>0?sound.MaxInstancesPerEmitter+" / emitter":"No emitter limit",()=>{ShowDeck(sound);deckSection="Limits";});
                 OverviewRow("Selection",AudioEventContextPane.SelectionLabel(sound.SelectionMode));
             }
-            if(item is MusicTrack track){OverviewRow("Output",track.MixerGroup!=null?track.MixerGroup.name:"Unity output",AudioWorkspace.Mixer);OverviewRow("Model","Intro / body + layers");OverviewRow("Layers",track.Layers.Length.ToString());}
-            if(item is MusicArrangement arrangement){OverviewRow("Output",arrangement.Output!=null?arrangement.Output.name:"Unity output",AudioWorkspace.Mixer);OverviewRow("Tracks",arrangement.Lanes.Count.ToString());OverviewRow("Tempo",arrangement.Tempo+" BPM");OverviewRow("Edits","Apply on restart");}
+            if(item is MusicTrack track){OverviewRow("Output",track.MixerGroup!=null?track.MixerGroup.name:"Unity output",()=>StudioMixerWindow.Open(item, selectedLane));OverviewRow("Model","Intro / body + layers");OverviewRow("Layers",track.Layers.Length.ToString());}
+            if(item is MusicArrangement arrangement){OverviewRow("Output",arrangement.Output!=null?arrangement.Output.name:"Unity output",()=>StudioMixerWindow.Open(item, selectedLane));OverviewRow("Tracks",arrangement.Lanes.Count.ToString());OverviewRow("Tempo",arrangement.Tempo+" BPM");OverviewRow("Edits","Apply on restart");}
             var sources=AudioSourceCatalog.Collect(item);OverviewRow("Sources",(item is MusicArrangement score?score.Lanes.Sum(l=>l.Clips.Count):sources.Count).ToString());
             if (item is MusicArrangement music)
             {

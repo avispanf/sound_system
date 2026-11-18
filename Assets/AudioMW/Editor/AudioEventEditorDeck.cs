@@ -297,7 +297,7 @@ namespace AudioMW.Editor
             {
                 PropertyRow(deckSerialized.FindProperty("mixerGroup"),"Event output");
                 EditorGUILayout.LabelField("All legacy layers inherit this event route.",EditorStyles.wordWrappedMiniLabel);
-                if(GUILayout.Button("Open native Mixer",GUILayout.Width(160)))AudioWorkspace.Mixer();
+                if(GUILayout.Button("Open Mixer",GUILayout.Width(160)))StudioMixerWindow.Open(CurrentAsset, selectedLane);
             }
             else if(layer!=null)DrawWeightPanel(layer.FindPropertyRelative("parameter"),layer.FindPropertyRelative("weightCurve"));
             else if(musicDeckSection=="Modulation")EditorGUILayout.HelpBox("Select a music layer above to edit its parameter and weight curve.",MessageType.None);
@@ -329,7 +329,7 @@ namespace AudioMW.Editor
                 {
                     PropertyRow(laneProperty.FindPropertyRelative("Output"),"Track output");
                     EditorGUILayout.LabelField("Fallback: "+(score.Output!=null?score.Output.name:"Unity default output"),EditorStyles.miniLabel);
-                    if(GUILayout.Button("Open native Mixer",GUILayout.Width(160)))AudioWorkspace.Mixer();
+                    if(GUILayout.Button("Open Mixer",GUILayout.Width(160)))StudioMixerWindow.Open(CurrentAsset, selectedLane);
                 }
                 else if(clipIndex>=0&&musicDeckSection=="Properties")
                 {
