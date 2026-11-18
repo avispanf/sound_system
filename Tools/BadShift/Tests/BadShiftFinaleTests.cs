@@ -86,6 +86,7 @@ public sealed class BadShiftFinaleTests
     }
     [UnityTest] public IEnumerator OvertimeFinisherFallsBeforeGoldVictoryAndCleansOnRematch()
     {
+        long first=AudioSystem.Debugger.TryGetLast(out var last)?last.Sequence:0;
         var battle=game.Life.Battle;game.GetComponent<BadShiftBattleInput>().enabled=false;
         game.RespawnAt(battle.ArenaCenter+Vector3.left*1.5f,Quaternion.identity);game.Interact();yield return new WaitForSeconds(1.3f);
         for(int i=0;i<4;i++){game.RespawnAt(battle.EnemyBody.transform.position+Vector3.left*1.5f,Quaternion.identity);battle.Attack();yield return new WaitForSeconds(i<3?.7f:.25f);}
@@ -95,7 +96,7 @@ public sealed class BadShiftFinaleTests
         AudioSystem.SetPaused(true);Time.timeScale=0;float progress=battle.FallProgress;yield return new WaitForSecondsRealtime(.15f);Assert.AreEqual(progress,battle.FallProgress);Time.timeScale=1;AudioSystem.SetPaused(false);
         yield return new WaitForSeconds(1.5f);Assert.AreEqual(BadShiftBattlePhase.Victory,battle.Phase);Assert.AreEqual(hp,battle.PlayerHealth);Assert.AreEqual(0,AudioSystem.Music.Volume);
         probe.Capture=()=>Capture("finale-victory");yield return null;
-        Assert.AreEqual(1,AudioSystem.Debugger.Records.Count(r=>r.EventName==battle.VictorySound.name));
+        Assert.AreEqual(1,AudioSystem.Debugger.Records.Count(r=>r.Sequence>first && r.EventName==battle.VictorySound.name));
         battle.Rematch();yield return null;Assert.IsFalse(battle.OvertimeFinish);Assert.IsFalse(game.GetComponentsInChildren<LineRenderer>().Any(l=>l.name.StartsWith("Overtime confetti")&&l.enabled));
     }
 }

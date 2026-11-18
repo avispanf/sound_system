@@ -4,8 +4,29 @@ using UnityEngine;
 public sealed class BadShiftNightTraffic : MonoBehaviour
 {
     public Transform Car, Suspension, Neon;
+    public SoundEvent SirenEvent;
+    public Light[] Beams;
+    public Renderer[] HeadlampFaces;
+    public GameObject EmergencyBar;
+    public Renderer Blue, Red;
+    public SoundHandle Siren { get; private set; }
+    public bool Emergency => Pass > 0 && Pass % 4 == 0;
+    private MaterialPropertyBlock lights;
+    private bool signLit;
+    public void SetSignLit(bool lit)
+    {
+        signLit=lit;
+        if(lit && !Hum.IsPlaying) Hum=AudioSystem.PlayTrackedAttached(NeonEvent,Neon);
+        if(!lit){Hum.Stop(); Hum=SoundHandle.None;}
+    }
+    public void SetStreetLights(bool night)
+    {
+        foreach(var beam in Beams)beam.enabled=night;
+        foreach(var lamp in HeadlampFaces)lamp.enabled=night;
+    }
     public Renderer[] Paint;
     public Material[] Finishes;
+    public Material PatrolPaint;
     public GameObject RoofRack, TaxiLamp;
     public SoundEvent EngineEvent, NeonEvent;
     public float[] Speeds = { 6.4f, 9.2f, 7.6f, 10.5f };
@@ -19,7 +40,8 @@ public sealed class BadShiftNightTraffic : MonoBehaviour
     private void OnEnable()
     {
         if (Car == null || Neon == null || EngineEvent == null || NeonEvent == null) return;
-        Hum = AudioSystem.PlayTrackedAttached(NeonEvent, Neon);
+        lights=new MaterialPropertyBlock();
+        if(signLit)SetSignLit(true);
         BeginPass(4.6f);
     }
 
@@ -29,11 +51,13 @@ public sealed class BadShiftNightTraffic : MonoBehaviour
         Car.gameObject.SetActive(true);
         bool reverse = (Pass & 1) != 0;
         Car.localRotation = Quaternion.Euler(0, reverse ? 180 : 0, 0);
-        foreach (var panel in Paint) panel.sharedMaterial = Finishes[Pass % Finishes.Length];
+        foreach (var panel in Paint) panel.sharedMaterial = Emergency && PatrolPaint!=null ? PatrolPaint : Finishes[Pass % Finishes.Length];
+        if(EmergencyBar!=null)EmergencyBar.SetActive(Emergency);
         RoofRack.SetActive(Pass % 4 == 1);
         TaxiLamp.SetActive(Pass % 4 == 3);
         PositionCar();
         Engine = AudioSystem.PlayTrackedAttached(EngineEvent, Car);
+        if(Emergency && SirenEvent!=null) Siren=AudioSystem.PlayTrackedAttached(SirenEvent,Car);
     }
 
     private void PositionCar()
@@ -56,16 +80,30 @@ public sealed class BadShiftNightTraffic : MonoBehaviour
         }
         distance += Speed * Time.deltaTime;
         PositionCar();
+        if(Emergency && Blue!=null)
+        {
+            float wave=Mathf.Sin(Time.time*9);
+            Flash(Blue,new Color(.035f,.24f,1),wave);
+            Flash(Red,new Color(1,.04f,.018f),-wave);
+        }
         if (distance < End * 2) return;
+        Siren.Stop();
         Engine.Stop();
         Car.gameObject.SetActive(false);
         Pass++;
         wait = 1.5f + (Pass % 3) * .65f;
     }
 
+    private void Flash(Renderer lens,Color color,float phase)
+    {
+        lights.SetColor("_EmissionColor",color*(phase>0?4:.15f));
+        lens.SetPropertyBlock(lights);
+    }
+
     private void OnDisable()
     {
         Engine.Stop();
         Hum.Stop();
+        Siren.Stop();
     }
 }

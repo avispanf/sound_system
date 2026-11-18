@@ -57,8 +57,8 @@ public sealed class BadShiftTour : MonoBehaviour
         if (!AudioSystem.VoiceOver.IsSpeaking) Game.Speak();
         while (AudioSystem.VoiceOver.IsSpeaking) yield return null;
         yield return new WaitForSeconds(2);
-        Heading = "05 / Dry, echo, reverb";
-        Explanation = "One source and one clip: first dry, then echo, then reverb. Background music is reduced here so the processing is easier to compare.";
+        Heading = "05 / Inside the tiled bathroom";
+        Explanation = "Cross the threshold to hear tiled reflections on the whole mix. X compares the test source before and after its own effects; E opens the tap or flushes the cistern.";
         if (Game.Door != null)
         {
             Game.Door.SetOpen(true);
@@ -67,6 +67,12 @@ public sealed class BadShiftTour : MonoBehaviour
         }
         yield return WalkTo(Demo.Room.position+Vector3.back*.5f); if (!Running) yield break;
         for (int mode=0;mode<3;mode++) { Demo.SetEffect(mode); Demo.PlayRoom(); yield return new WaitForSeconds(3); }
+        if (Game.Soundscape!=null && Game.Soundscape.Inside)
+        {
+            Explanation="Flushing the cistern starts the water pump behind the wall. Leaving the room fades out the tiled reflections.";
+            Game.Soundscape.FlushToilet();
+            yield return new WaitForSeconds(2.2f);
+        }
         Heading = "06 / Distance attenuation";
         Explanation = "Move the listener near and far from the fixed fridge. Music is muted here. E / lower door, G / upper door. Camera zoom does not change audio distance.";
         yield return WalkTo(new Vector3(9,0,5.25f)); if (!Running) yield break;

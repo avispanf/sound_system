@@ -32,20 +32,28 @@ public sealed class BadShiftCafeLife : MonoBehaviour
     public BadShiftUseTarget Nearest()
     {
         if(targets==null)return null;
-        BadShiftUseTarget result=null;float best=2.3f;
+        BadShiftUseTarget result=null, plumbing=null;float best=2.3f, nearestPlumbing=1.32f;
         foreach(var target in targets)if(target!=null&&target.isActiveAndEnabled)
         {
+            var scape=Demo.Game.Soundscape;
+            bool fixture=target.Kind==BadShiftUseKind.Sink || target.Kind==BadShiftUseKind.Toilet;
+            if(fixture && scape!=null && !scape.Inside)continue;
             float distance=target.Distance(transform.position);
+            if(fixture && scape!=null)
+            {
+                if(distance < nearestPlumbing){nearestPlumbing=distance;plumbing=target;}
+                continue;
+            }
             if(distance<best){best=distance;result=target;}
         }
-        return result;
+        return plumbing!=null ? plumbing : result;
     }
     public string Prompt
     {
         get
         {
             if(Duel)return Battle.Status;
-            var target=Nearest();string label=target==null?"":target.Kind==BadShiftUseKind.Sink?"Tap sink / room sound":target.Kind==BadShiftUseKind.Toilet?"Tap cistern / room sound":target.Label;return target!=null?"E / "+label+(target.Kind==BadShiftUseKind.Fridge?" · G / upper door":""):"E / Use nearby objects · Shift / Run · Space / Jump";
+            var target=Nearest();string label=target==null?"":target.Kind==BadShiftUseKind.Sink?(Demo.Game.Soundscape!=null && Demo.Game.Soundscape.Water.IsPlaying?"Turn tap off":"Turn tap on"):target.Kind==BadShiftUseKind.Toilet?"Flush toilet":target.Label;return target!=null?"E / "+label+(target.Kind==BadShiftUseKind.Fridge?" · G / upper door":""):"E / Use nearby objects · Shift / Run · Space / Jump";
         }
     }
     public void Interact()
@@ -63,8 +71,9 @@ public sealed class BadShiftCafeLife : MonoBehaviour
             case BadShiftUseKind.Bathroom:target.Door.ToggleFor(GetComponent<CharacterController>());break;
             case BadShiftUseKind.Fridge:Demo.Game.FridgeDoors.Lower.ToggleFor(GetComponent<CharacterController>());break;
             case BadShiftUseKind.Spar:Battle.Begin();break;
-            case BadShiftUseKind.Sink:Demo.PlayRoom();React("Wash your bones before cooking.",false);break;
-            case BadShiftUseKind.Toilet:Demo.PlayRoom();React("That echo is not on the menu.",false);break;
+            case BadShiftUseKind.Sink:if(Demo.Game.Soundscape!=null)Demo.Game.Soundscape.ToggleTap();else Demo.PlayRoom();React("Wash your bones before cooking.",false);break;
+            case BadShiftUseKind.Pump:Demo.Game.Soundscape?.PrimePump();break;
+            case BadShiftUseKind.Toilet:if(Demo.Game.Soundscape!=null)Demo.Game.Soundscape.FlushToilet();else Demo.PlayRoom();React("That echo is not on the menu.",false);break;
             case BadShiftUseKind.Prop:
                 var body=target.GetComponent<Rigidbody>();
                 if(body!=null&&!body.isKinematic){Vector3 direction=Vector3.ProjectOnPlane(body.worldCenterOfMass-transform.position,Vector3.up).normalized;body.AddForce((direction+Vector3.up*(body.mass<1?.8f:.15f))*body.mass*(body.mass<1?3:1.5f),ForceMode.Impulse);target.GetComponent<BadShiftImpactProp>()?.ReportPush();}

@@ -123,7 +123,7 @@ public sealed class AudioMWPlayground : MonoBehaviour
             if (stride >= 1.5f) { stride = 0; AudioSystem.PlayTrackedAttached(Footsteps, transform, local); }
         }
         else stride = 0;
-        bool inDanger = (Life!=null&&Life.Duel) || transform.position.z > 3.5f;
+        bool inDanger = (Life!=null&&Life.Duel) || (transform.position.z > 3.5f && (Soundscape==null || !Soundscape.InServiceArea(transform.position)));
         if (inDanger != danger) { danger = inDanger; RequestMusic(danger); ChangeAmbience(danger); }
         ambienceBlend = Mathf.MoveTowards(ambienceBlend, 1, Time.deltaTime / 0.7f);
         bool battleResult=Life!=null&&Life.Battle!=null&&Life.Battle.Finished;
@@ -184,11 +184,23 @@ public sealed class AudioMWPlayground : MonoBehaviour
         if (Listener != null) Listener.rotation = View.transform.rotation;
     }
 
+    public BadShiftSoundscape Soundscape;
+    public SoundEvent NightAmbience;
+    public SoundEvent CurrentBed { get; private set; }
+    private bool afterHours;
+    public void SetAfterHours(bool night)
+    {
+        if(afterHours==night)return;
+        afterHours=night;
+        if(!danger)ChangeAmbience(false);
+        if(!requestedCombat)RequestMusic(false);
+    }
     private void ChangeAmbience(bool combat)
     {
         retiringAmbience.Stop(); retiringAmbience = ambience;
         ParameterStore start = new ParameterStore(); start.Set(AmbienceFade, 0);
-        ambience = AudioSystem.PlayTracked(combat ? DangerAmbience : Ambience, start); ambienceBlend = 0;
+        CurrentBed = combat ? DangerAmbience : afterHours && NightAmbience!=null ? NightAmbience : Ambience;
+        ambience = AudioSystem.PlayTracked(CurrentBed, start); ambienceBlend = 0;
     }
 
     public void Fire()
@@ -275,7 +287,7 @@ public sealed class AudioMWPlayground : MonoBehaviour
 
     public void RequestMusic(bool combat)
     {
-        requestedCombat = combat; Music.Request(AudioSystem.Music, combat ? "Combat" : "Explore");
+        requestedCombat = combat; Music.Request(AudioSystem.Music, combat ? "Combat" : afterHours ? "Night" : "Explore");
     }
 
     private void Tell(string text) { notice = text; noticeUntil = Time.unscaledTime + 6; }

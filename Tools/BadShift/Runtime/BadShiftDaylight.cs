@@ -13,6 +13,7 @@ public sealed class BadShiftDaylight : MonoBehaviour
     [Min(12)] public float CycleSeconds = 96;
     [SerializeField, Range(0,1)] private float phase = .73f;
     public float Phase => phase;
+    public float Darkness { get; private set; }
     public BadShiftSkyMode Mode { get; private set; }
     public string ModeLabel => Mode==BadShiftSkyMode.Night ? "Light: Night" : Mode==BadShiftSkyMode.Day ? "Light: Day" : "Auto · " + Period;
     public string Period => phase<.18f || phase>=.86f ? "Night" : phase<.235f ? "Twilight" : phase<.29f ? "Sunrise" :
@@ -50,6 +51,7 @@ public sealed class BadShiftDaylight : MonoBehaviour
         float daylight=Mathf.SmoothStep(0,1,Mathf.InverseLerp(-.20f,.42f,elevation));
         float horizon=1-Mathf.SmoothStep(0,1,Mathf.Abs(elevation-.065f)/.42f);
         float office=1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(-.36f,.10f,elevation));
+        Darkness=office;
         float evening=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.43f,.59f,phase));
         Color warmth=Color.Lerp(new Color(1,.52f,.23f),RedSun,evening);
         Color sunColor=Color.Lerp(Color.Lerp(Moon,Day,daylight),warmth,horizon);

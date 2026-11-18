@@ -14,7 +14,8 @@ public sealed class BadShiftNightTrafficTests
     public IEnumerator EngineFollowsPassAndNeonStaysAtWindow()
     {
         yield return SceneManager.LoadSceneAsync("RelayField");
-        yield return new WaitForSeconds(.15f);
+        Object.FindFirstObjectByType<BadShiftDaylight>().SetMode(BadShiftSkyMode.Night);
+        yield return new WaitForSeconds(.9f);
         var street=Object.FindFirstObjectByType<BadShiftNightTraffic>();
         Assert.NotNull(street);
         var first=street.Engine;
