@@ -13,7 +13,30 @@ namespace AudioMW.Editor
         private string musicDeckSection="Properties";
         private SoundBank membership;
         private int deckSourceIndex=-1,deckChildIndex=-1;
+        private int deckBlendLayer = -1;
         private SoundEvent deckChildParent;
+
+        private AudioSourceEntry SelectedDeckSource()
+        {
+            if (!(deckTarget is SoundEvent sound) || (deckSourceIndex < 0 && deckBlendLayer < 0)) return null;
+            return AudioSourceCatalog.Collect(sound).Find(entry => entry.SourceIndex == deckSourceIndex && entry.BlendLayerIndex == deckBlendLayer);
+        }
+
+        private bool DrawSourceDeckHeader(string title)
+        {
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.Label(title,EditorStyles.boldLabel);
+            bool back = GUILayout.Button("Container properties",GUILayout.Width(160));
+            EditorGUILayout.EndHorizontal();
+            if (back)
+            {
+                deckSourceIndex = -1;
+                deckBlendLayer = -1;
+                containerSource = -1;
+                UpdateDeckCaption(deckTarget);
+            }
+            return back;
+        }
         private void DrawDeck()
         {
             if(deckTarget==null||deckSerialized==null){EditorGUILayout.LabelField("Select an event, lane, clip or binding.");return;}
@@ -40,7 +63,12 @@ namespace AudioMW.Editor
             {
                 var iterator=deckSerialized.GetIterator();bool children=true;while(iterator.NextVisible(children)){children=false;if(iterator.name=="m_Script")continue;EditorGUILayout.PropertyField(iterator,true);}
             }
-            if(deckSerialized!=null&&deckSerialized.targetObject==deckTarget&&deckSerialized.ApplyModifiedProperties())TrackEdit(deckTarget);
+            if (deckSerialized != null && deckSerialized.targetObject == deckTarget && deckSerialized.ApplyModifiedProperties())
+            {
+                TrackEdit(deckTarget);
+                var entry = SelectedDeckSource();
+                if (entry != null) SetSourceCaption(entry);
+            }
         }
         private void DeckField(string name,string title=null)
         {
@@ -63,10 +91,17 @@ namespace AudioMW.Editor
                     EditorGUIUtility.labelWidth=previous;EditorGUILayout.EndHorizontal();if(parent.ApplyModifiedProperties())TrackEdit(deckChildParent);
                 }
             }
+            if (sound.ContainerMode == ContainerMode.Blend && deckBlendLayer >= 0 && deckBlendLayer < sound.BlendLayers.Length)
+            {
+                if (DrawSourceDeckHeader("Blend layer "+(deckBlendLayer+1))) return;
+                var layer = deckSerialized.FindProperty("blendLayers").GetArrayElementAtIndex(deckBlendLayer);
+                EditorGUILayout.PropertyField(layer.FindPropertyRelative("clip"),new GUIContent("Source reference"));
+                EditorGUILayout.PropertyField(layer.FindPropertyRelative("weightCurve"),new GUIContent("Weight curve","Layer gain over the normalized blend parameter (0–1)."));
+                return;
+            }
             if(deckSourceIndex>=0&&deckSourceIndex<sound.TotalClipCount&&sound.ContainerMode==ContainerMode.Simple)
             {
-                EditorGUILayout.BeginHorizontal();GUILayout.Label("Source "+(deckSourceIndex+1),EditorStyles.boldLabel);if(GUILayout.Button("Container properties",GUILayout.Width(160)))deckSourceIndex=-1;EditorGUILayout.EndHorizontal();
-                if(deckSourceIndex<0)return;
+                if (DrawSourceDeckHeader("Source "+(deckSourceIndex+1))) return;
                 var source=deckSourceIndex<sound.Clips.Length?deckSerialized.FindProperty("clips").GetArrayElementAtIndex(deckSourceIndex):deckSerialized.FindProperty("clipReferences").GetArrayElementAtIndex(deckSourceIndex-sound.Clips.Length);
                 EditorGUILayout.PropertyField(source,new GUIContent("Source reference"),true);
                 EditorGUILayout.LabelField("Selection weight",SourceWeight(sound,deckSourceIndex).ToString("0.###")+" · edit in source table");

@@ -57,3 +57,24 @@ UPM paths are relative to the fixture's Packages folder when possible. This
 preserves them when moving the workspace into a CI container; archives on a
 different Windows drive retain an absolute fallback. Desktop Player checks are
 currently a local command, not a cloud CI runtime pass.
+
+## Addressables packed catalog
+
+Prepare a separate generated project for the installed tarball. On Unity
+2022.3.62f3 use Addressables 1.21.21. On Unity 6000.3.21f1 use 2.9.1.
+
+```sh
+python3 Tools/prepare_test_project.py --destination /absolute/catalog-fixture --archive /absolute/audiomw.tgz --unity-version 6000.3.21f1 --addressables-version 2.9.1
+/absolute/Unity -batchmode -projectPath /absolute/catalog-fixture -executeMethod ValidateAddressables.RunPacked -logFile /absolute/catalog.log
+```
+
+Allow the editor to exit after its asynchronous Play Mode checks. The probe
+builds a local bundle containing the package sample's bass WAV and loads it
+through AudioMW. It checks the resolved provider, both clients receiving the
+same clip, release after the last client, and a subsequent load. A successful
+run writes `addressables-packed-validation.json` at the fixture root. The
+existing `ValidateAddressables.Run` remains available for the compile-only check.
+
+On Unity 6000.3.21f1, Addressables 1.21.21 with Scriptable Build Pipeline 2.6.1
+failed at CreateBuiltInShadersBundle before building the catalog. The packed
+check with Addressables 2.9.1 passed on the same editor.

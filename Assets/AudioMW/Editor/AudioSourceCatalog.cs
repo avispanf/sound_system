@@ -10,6 +10,7 @@ namespace AudioMW.Editor
         public ClipReference Reference;
         public SoundEvent Owner;
         public int SourceIndex = -1;
+        public int BlendLayerIndex = -1;
         public string Location;
         public AudioClip Clip { get { return Reference != null ? Reference.Clip : Direct; } }
         public string Name
@@ -64,7 +65,7 @@ namespace AudioMW.Editor
             else if (item.ContainerMode == ContainerMode.Blend)
             {
                 for (int i = 0; i < item.BlendLayers.Length; i++) if (item.BlendLayers[i] != null)
-                    sources.Add(new AudioSourceEntry { Direct = item.BlendLayers[i].Clip, Owner = item, Location = location + " / Layer " + (i + 1) });
+                    sources.Add(new AudioSourceEntry { Direct = item.BlendLayers[i].Clip, Owner = item, BlendLayerIndex = i, Location = location + " / Layer " + (i + 1) });
             }
             else foreach (SoundEventChild child in item.Children)
                 if (child != null && child.Event != null) Visit(child.Event, sources, path, location + " / " + (string.IsNullOrEmpty(child.Label) ? child.Event.name : child.Label));

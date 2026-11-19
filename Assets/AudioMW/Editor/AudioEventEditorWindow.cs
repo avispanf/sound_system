@@ -122,7 +122,14 @@ namespace AudioMW.Editor
 
         private void OnEnable() { titleContent = new GUIContent("AudioMW | Event Editor"); Undo.undoRedoPerformed += OnUndo; EditorApplication.playModeStateChanged += OnPlayState; EditorApplication.update += UpdateSession; }
         private void OnDisable() { Undo.undoRedoPerformed -= OnUndo; EditorApplication.playModeStateChanged -= OnPlayState; EditorApplication.update -= UpdateSession; string pending=pendingAuditionGuid; StopAudition(); pendingAuditionGuid=pending; ReleaseLive(); DetachMeter(); capture?.Dispose(); capture=null; deckSerialized?.Dispose(); if(legacyProjection!=null)DestroyImmediate(legacyProjection); }
-        private void OnUndo() { ShowDeck(deckTarget); RefreshDocuments(); canvas?.MarkDirtyRepaint(); }
+        private void OnUndo()
+        {
+            var source = SelectedDeckSource();
+            if (source != null) SelectContainerSource(source,containerSource);
+            else ShowDeck(deckTarget);
+            RefreshDocuments();
+            canvas?.MarkDirtyRepaint();
+        }
         private void OnPlayState(PlayModeStateChange state)
         {
             if(state==PlayModeStateChange.ExitingPlayMode||state==PlayModeStateChange.ExitingEditMode)
@@ -310,7 +317,7 @@ namespace AudioMW.Editor
 
         private void ShowDeck(Object target)
         {
-            deckSerialized?.Dispose();deckSerialized=null;deckTarget=target;deckSourceIndex=-1;deckChildParent=null;deckChildIndex=-1;
+            deckSerialized?.Dispose();deckSerialized=null;deckTarget=target;deckBlendLayer=-1;deckSourceIndex=-1;deckChildParent=null;deckChildIndex=-1;
             if(target!=null)deckSerialized=new SerializedObject(target);
             if (browserAssetTitle != null)
             {

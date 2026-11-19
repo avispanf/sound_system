@@ -62,7 +62,7 @@ processing plug-ins, live spectral monitoring or loudness compliance certificati
 - IL2CPP with High stripping: Mac modules are installed for both local editors,
   but native builds require full Xcode. The installed Command Line Tools did not
   satisfy the builder. IL2CPP has no successful local Player result yet.
-- Windows/Linux and target mobile/device runs, real Addressables catalogs,
+- Windows/Linux and target mobile/device runs, remote Addressables catalog delivery,
   audio-device recovery and broader accessibility checks.
 - Real redistributable demo audio, listening of transitions/crossfades/ducking,
   final product identity, commercial licensing review and store materials.
@@ -101,3 +101,26 @@ AudioMW 0.4.0 at source revision `5ea5285` was tested from the same UPM archive 
 | Imported sample built and launched as the startup scene | Passed | Passed |
 
 In both native sample players the demo started music automatically. The validation invoked the demo director's blip, voice and intensity controls. A physical voice was admitted, the VO layer became active, intensity reached 0.25 and DSP time advanced with output muted. The independent smoke players contained only AudioMW.Runtime.dll among the AudioMW assemblies. Listening, physical mobile tests and distribution through the Asset Store remain separate release checks.
+
+## Local authoring and catalog acceptance, 2026-11-19
+
+The installed 0.4.0 archive with SHA-256
+`6b3f7ec2ea0ef5e9fbf1fcfb41c800772aca89bbb86ce00546069bfb0510fed1`
+passed the following on both Unity 2022.3.62f3 and 6000.3.21f1.
+
+| Check | Result per editor |
+| --- | --- |
+| Package EditMode | 395 passed in the full run. All four remaining scene-binding tests passed in their isolated run, for 399 unique passes. |
+| Package PlayMode | 197 passed |
+| macOS Mono, Low stripping | Built and ran all 14 Player checks |
+| Demo import | 16 components and 29 dependencies validated |
+| Imported sample as the macOS startup scene | Music, SFX and VO active, intensity reached 0.25, DSP advanced, output muted |
+| Nested Blend layer in the Event Editor | Correct source and weight curve at 1366×768 and 760×520 in muted Play Mode. Undo/Redo and persisted edits verified by a regression test. |
+| Built local Addressables catalog | Loaded the demo bass from an asset bundle, shared the retained clip across two clients, released it and loaded it again. 384000 samples per channel, stereo, 48000 Hz. |
+
+Use Addressables 1.21.21 for the tested 2022.3 configuration and 2.9.1 for the
+tested Unity 6 configuration. Reproduction steps and the observed Unity 6
+incompatibility are in [compatibility testing](compatibility-testing.md).
+The packed catalog result covers the local Editor Play Mode path. Remote hosting,
+download failure recovery on target hardware and native Addressables Player
+coverage are still open.

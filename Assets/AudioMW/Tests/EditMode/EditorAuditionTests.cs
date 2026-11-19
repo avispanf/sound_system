@@ -66,6 +66,58 @@ namespace AudioMW.Tests
             Assert.AreSame(score,window.DeckTarget);Assert.IsFalse(EditorUtility.IsDirty(score));
             Assert.Greater(window.rootVisualElement.layout.width,1000);Assert.AreEqual(4,score.Lanes.Count);
         }
+        [Test]
+        public void NestedBlendSelectionPreviewsAndEditsTheChosenLayerAfterUndoAndReopen()
+        {
+            var lead = ScriptableObject.CreateInstance<SoundEvent>();
+            lead.Clips = new[]{clip,clip};
+            AssetDatabase.CreateAsset(lead,folder+"/Lead.asset");
+            var blend = ScriptableObject.CreateInstance<SoundEvent>();
+            blend.ContainerMode = ContainerMode.Blend;
+            blend.BlendLayers = new[]{
+                BlendLayer.CreateRuntime(clip,AnimationCurve.Constant(0,1,.2f)),
+                BlendLayer.CreateRuntime(clip,AnimationCurve.Constant(0,1,.6f))
+            };
+            string path = folder+"/Blend.asset";
+            AssetDatabase.CreateAsset(blend,path);
+            var group = ScriptableObject.CreateInstance<SoundEvent>();
+            group.ContainerMode = ContainerMode.Layered;
+            group.Children = new[]{SoundEventChild.Create(lead),SoundEventChild.Create(blend)};
+            AssetDatabase.CreateAsset(group,folder+"/Group.asset");
+            window.OpenDocument(group);
+            var entries = AudioSourceCatalog.Collect(group);
+            Assert.AreEqual(4,entries.Count);
+            var select = typeof(AudioEventEditorWindow).GetMethod("SelectContainerSource",Private);
+            select.Invoke(window,new object[]{entries[2],2});
+            Assert.AreSame(blend,window.DeckTarget);
+            Assert.AreEqual(0,Field<int>("containerSource"));
+            Assert.AreEqual(0,Field<int>("deckBlendLayer"));
+            select.Invoke(window,new object[]{entries[3],3});
+            Assert.AreEqual(1,Field<int>("containerSource"));
+            Assert.AreEqual(1,Field<int>("deckBlendLayer"));
+            var data = Field<SerializedObject>("deckSerialized");
+            Undo.IncrementCurrentGroup();
+            data.FindProperty("blendLayers").GetArrayElementAtIndex(1).FindPropertyRelative("weightCurve").animationCurveValue = AnimationCurve.Constant(0,1,.85f);
+            Assert.IsTrue(data.ApplyModifiedProperties());
+            Undo.FlushUndoRecordObjects();
+            Undo.PerformUndo();
+            Assert.AreEqual(.6f,blend.BlendLayers[1].EvaluateWeight(.5f),.001f);
+            Assert.AreEqual(1,Field<int>("deckBlendLayer"));
+            Undo.PerformRedo();
+            window.SaveDocument();
+            AssetDatabase.ImportAsset(path,ImportAssetOptions.ForceUpdate);
+            window.OpenDocument(group);
+            select.Invoke(window,new object[]{AudioSourceCatalog.Collect(group)[3],3});
+            var reopened = (SoundEvent)window.DeckTarget;
+            Assert.AreEqual(.2f,reopened.BlendLayers[0].EvaluateWeight(.5f),.001f);
+            Assert.AreEqual(.85f,reopened.BlendLayers[1].EvaluateWeight(.5f),.001f);
+            Assert.AreEqual(1,Field<int>("containerSource"));
+            StringAssert.StartsWith("Blend layer · ",Field<UnityEngine.UIElements.Label>("breadcrumb").text);
+            select.Invoke(window,new object[]{entries[1],1});
+            Assert.AreEqual(-1,Field<int>("deckBlendLayer"));
+            Assert.AreEqual(1,Field<int>("deckSourceIndex"));
+        }
+
         [Test] public void MusicPlayFromAuthorOwnsPreviewSceneAndStopCleansIt()
         {
             var score=OpenScore();int scenes=SceneManager.sceneCount;

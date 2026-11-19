@@ -69,7 +69,10 @@ namespace AudioMW.Editor
             GUILayout.EndScrollView();GUILayout.EndArea();
             float listHeight=Mathf.Clamp(28 + sources.Count * 28, 76, Mathf.Max(76, sheet.height * .55f));
             GUILayout.BeginArea(new Rect(sheet.x+8,sheet.y+6,sheet.width-16,listHeight));
-            EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);GUILayout.Label("Source",EditorStyles.boldLabel);GUILayout.Label("Length",GUILayout.Width(65));GUILayout.Label(sources.Any(s=>s.Owner!=null&&s.SourceIndex>=0&&s.Owner.SelectionMode==ClipSelectionMode.WeightedRandom)?"Weight":"Weight (inactive)",GUILayout.Width(105));EditorGUILayout.EndHorizontal();
+            bool hasBlend = sources.Any(source => source.BlendLayerIndex >= 0);
+            bool hasWeights = sources.Any(source => source.SourceIndex >= 0 && source.Owner.SelectionMode == ClipSelectionMode.WeightedRandom);
+            string column = hasBlend ? (hasWeights ? "Weight / layer" : "Blend layer") : (hasWeights ? "Weight" : "Weight (inactive)");
+            EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);GUILayout.Label("Source",EditorStyles.boldLabel);GUILayout.Label("Length",GUILayout.Width(65));GUILayout.Label(column,GUILayout.Width(105));EditorGUILayout.EndHorizontal();
             sourceScroll=GUILayout.BeginScrollView(sourceScroll);
             for(int i=0;i<sources.Count;i++)
             {
@@ -77,7 +80,9 @@ namespace AudioMW.Editor
                 EditorGUI.DrawRect(row,i==containerSource?new Color(.22f,.29f,.21f):i%2==0?new Color(.16f,.17f,.18f):new Color(.14f,.15f,.16f));
                 GUI.Label(new Rect(row.x+6,row.y,Mathf.Max(0,row.width-190),28),new GUIContent(source.Name,source.Location),EditorStyles.label);
                 GUI.Label(new Rect(row.xMax-180,row.y,65,28),source.Clip!=null?source.Clip.length.ToString("0.###")+" s":"—",EditorStyles.miniLabel);
-                if(source.SourceIndex<0)GUI.Label(new Rect(row.xMax-105,row.y+3,96,22),"—",EditorStyles.miniLabel);
+                if (source.BlendLayerIndex >= 0)
+                    GUI.Label(new Rect(row.xMax-105,row.y+3,96,22),"Layer "+(source.BlendLayerIndex+1),EditorStyles.miniLabel);
+                else if(source.SourceIndex<0 || (hasBlend && !hasWeights))GUI.Label(new Rect(row.xMax-105,row.y+3,96,22),"—",EditorStyles.miniLabel);
                 else using(new EditorGUI.DisabledScope(source.Owner==null||source.Owner.SelectionMode!=ClipSelectionMode.WeightedRandom))
                 {
                     float weight=SourceWeight(source.Owner,source.SourceIndex);
@@ -92,13 +97,18 @@ namespace AudioMW.Editor
             GUILayout.BeginArea(preview);
             if(containerSource>=0&&containerSource<sources.Count)
             {
-                var source=sources[containerSource];EditorGUILayout.BeginHorizontal();GUILayout.Label(source.Name,EditorStyles.boldLabel);GUILayout.FlexibleSpace();DrawWaveformZoom();
+                var source=sources[containerSource];
+                bool stacked = preview.width < 515;
+                if (!stacked) EditorGUILayout.BeginHorizontal();
+                GUILayout.Label(new GUIContent(source.Name,source.Name+"\n"+source.Location),EditorStyles.boldLabel,GUILayout.MinWidth(0),GUILayout.ExpandWidth(true));
+                if (stacked) EditorGUILayout.BeginHorizontal();
+                DrawWaveformZoom();
                 using(new EditorGUI.DisabledScope(source.Clip==null||source.PreviewIssue!=""))if(GUILayout.Button("Play source (dry)",GUILayout.Width(125))){StopAudition();notice="";EditorAudioPreview.Play(source.Clip);}
                 if(GUILayout.Button("Stop",GUILayout.Width(45)))EditorAudioPreview.Stop();EditorGUILayout.EndHorizontal();
                 if(source.PreviewIssue!="")EditorGUILayout.HelpBox(source.PreviewIssue,MessageType.Info);
                 if(source.Clip!=null)
                 {
-                    Rect wave=GUILayoutUtility.GetRect(100,Mathf.Max(40,preview.height-58),GUILayout.ExpandWidth(true));EditorGUI.DrawRect(wave,new Color(.10f,.12f,.13f));
+                    Rect wave=GUILayoutUtility.GetRect(100,Mathf.Max(28,preview.height-(stacked?78:58)),GUILayout.ExpandWidth(true));EditorGUI.DrawRect(wave,new Color(.10f,.12f,.13f));
                     DrawSourceWaveform(source.Clip,wave);
                     DrawSourceRuler(source.Clip, GUILayoutUtility.GetRect(100,18,GUILayout.ExpandWidth(true)));
                 }
@@ -138,9 +148,28 @@ namespace AudioMW.Editor
         }
         private void SelectContainerSource(AudioSourceEntry source,int index)
         {
-            if(source.Owner!=null){containerFocus=source.Owner;if(source.SourceIndex>=0)index=source.SourceIndex;}
-            containerSource=index;ShowDeck(source.Owner!=null?(Object)source.Owner:source.Clip);deckSourceIndex=source.SourceIndex;
-            if(breadcrumb!=null)breadcrumb.text=CurrentAsset.name+" › "+(source.Owner!=null&&source.Owner!=CurrentAsset?source.Owner.name+" › ":"")+source.Name;
+            if (source.Owner != null)
+            {
+                containerFocus = source.Owner;
+                if (source.BlendLayerIndex >= 0)
+                    index = AudioSourceCatalog.Collect(source.Owner).FindIndex(entry => entry.BlendLayerIndex == source.BlendLayerIndex);
+                else if (source.SourceIndex >= 0)
+                    index = source.SourceIndex;
+            }
+            containerSource = index;
+            ShowDeck(source.Owner != null ? (Object)source.Owner : source.Clip);
+            deckSourceIndex = source.SourceIndex;
+            deckBlendLayer = source.BlendLayerIndex;
+            SetSourceCaption(source);
+        }
+
+        private void SetSourceCaption(AudioSourceEntry source)
+        {
+            if (breadcrumb == null) return;
+            breadcrumb.text = (source.BlendLayerIndex >= 0 ? "Blend layer · " : "Source · ") + source.Name;
+            breadcrumb.tooltip = source.Location + "  ›  " + source.Name;
+            if (CurrentAsset != null && source.Owner != CurrentAsset && !breadcrumb.tooltip.StartsWith(CurrentAsset.name + " / ", StringComparison.Ordinal))
+                breadcrumb.tooltip = CurrentAsset.name + "  ›  " + breadcrumb.tooltip;
         }
         public static float SourceWeight(SoundEvent item,int index)
         {
