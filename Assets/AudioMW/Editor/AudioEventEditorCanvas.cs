@@ -210,9 +210,12 @@ namespace AudioMW.Editor
         {
             var doc=CurrentDocument;if(doc==null)return;
             EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
-            bars=GUILayout.Toggle(bars,"Bars:Beats",EditorStyles.toolbarButton,GUILayout.Width(90));if(!bars)GUILayout.Label("Seconds",GUILayout.Width(60));
-            GUILayout.Label(score.Tempo+" BPM · "+score.BeatsPerBar+"/4",GUILayout.Width(120));snap=EditorGUILayout.Popup(snap,new[]{"Snap off","Beat","Bar"},GUILayout.Width(85));
-            EditorGUI.BeginChangeCheck();float zoom=GUILayout.HorizontalSlider(Mathf.Clamp(doc.Zoom,1,500),1,500,GUILayout.Width(100));if(EditorGUI.EndChangeCheck()){doc.Zoom=zoom;doc.FitTimeline=false;}
+            bool compactToolbar = canvas.contentRect.width < 750;
+            bars = GUILayout.Toggle(bars, new GUIContent(bars ? "Bars:Beats" : "Seconds", "Switch the timeline ruler between bars and seconds"), EditorStyles.toolbarButton, GUILayout.Width(76));
+            GUILayout.Label(score.Tempo+" BPM · "+score.BeatsPerBar+"/4",GUILayout.Width(compactToolbar ? 88 : 120));snap=EditorGUILayout.Popup(snap,new[]{"Snap off","Beat","Bar"},GUILayout.Width(85));
+            EditorGUI.BeginChangeCheck();float zoom=GUILayout.HorizontalSlider(Mathf.Clamp(doc.Zoom,1,500),1,500,GUILayout.Width(compactToolbar ? 60 : 100));if(EditorGUI.EndChangeCheck()){doc.Zoom=zoom;doc.FitTimeline=false;}
+            bool twoRows = canvas.contentRect.width < 635;
+            if (twoRows) { EditorGUILayout.EndHorizontal(); EditorGUILayout.BeginHorizontal(EditorStyles.toolbar); }
             bool loop = GUILayout.Toggle(score.Loop, new GUIContent("Loop", "Repeat the authored loop interval on the next play"), EditorStyles.toolbarButton, GUILayout.Width(42));
             if (loop != score.Loop)
             {
@@ -261,7 +264,7 @@ namespace AudioMW.Editor
             }
             doc.FollowPlayhead=GUILayout.Toggle(doc.FollowPlayhead,"Follow",EditorStyles.toolbarButton,GUILayout.Width(50));
             GUILayout.FlexibleSpace();EditorGUILayout.EndHorizontal();
-            Rect viewport=GUILayoutUtility.GetRect(200,Mathf.Max(120,canvas.layout.height-(legacy?48:24)),GUILayout.ExpandWidth(true));
+            Rect viewport=GUILayoutUtility.GetRect(200,Mathf.Max(120,canvas.layout.height-(legacy?48:24)-(twoRows?EditorGUIUtility.singleLineHeight:0)),GUILayout.ExpandWidth(true));
             float header=Mathf.Min(220,viewport.width*.30f),ruler=64,rowHeight=doc.LaneHeight;
             Rect body=new Rect(viewport.x+header,viewport.y+ruler,Mathf.Max(1,viewport.width-header-16),Mathf.Max(1,viewport.height-ruler-16));
             if(doc.FitLanes)rowHeight=FittedLaneHeight(body.height,score.Lanes.Count+(legacy?0:1));
@@ -313,11 +316,7 @@ namespace AudioMW.Editor
                     GUI.Label(new Rect(Mathf.Min(x + 4, body.width - width), 0, width, 18), label, EditorStyles.miniLabel);
                 }
             }
-            float entryX=(float)score.Entry*doc.Zoom-doc.Scroll.x,exitX=(float)score.Exit*doc.Zoom-doc.Scroll.x;
-            GUI.Label(new Rect(entryX,48,100,20),"▼ Entry",EditorStyles.miniLabel);
-            float exitLabelWidth = EditorStyles.miniLabel.CalcSize(new GUIContent("Exit ▼")).x;
-            GUI.Label(new Rect(exitX-exitLabelWidth,48,exitLabelWidth,20),"Exit ▼",EditorStyles.miniLabel);
-            foreach(var cue in score.Markers)GUI.Label(new Rect((float)cue.Seconds*doc.Zoom-doc.Scroll.x,48,120,20),new GUIContent("◆ "+cue.Name,cue.Seconds+" s"),EditorStyles.miniLabel);
+            DrawCueLabels(score, doc.Zoom, doc.Scroll.x, body.width);
             if(input.type==EventType.MouseDown&&input.button==0&&input.mousePosition.y>=0&&input.mousePosition.y<26&&input.mousePosition.x>=0&&input.mousePosition.x<body.width)
             {
                 doc.Cursor=Math.Max(0,Math.Min(end,(input.mousePosition.x+doc.Scroll.x)/doc.Zoom));
@@ -340,14 +339,14 @@ namespace AudioMW.Editor
                 EditorGUI.DrawRect(new Rect(0,y,header-1,rowHeight-1),selected?new Color(.22f,.29f,.21f):new Color(.17f,.18f,.19f));
                 if(selected)EditorGUI.DrawRect(new Rect(0,y,3,rowHeight-1),new Color(.66f,.81f,.46f));
                 string key = legacy ? "legacy:" + i : lane.Id;
-                if (GUI.Button(new Rect(8,y+2,header-114,rowHeight-5), GUIContent.none, GUIStyle.none))
+                if (GUI.Button(new Rect(6,y+1,header-12,18), GUIContent.none, GUIStyle.none))
                     SelectLane(key);
-                GUI.Label(new Rect(10,y+3,header-108,22),new GUIContent(lane.Name,lane.Name),EditorStyles.boldLabel);
+                DrawTimelineName(new Rect(8,y+1,header-16,18),lane.Name,lane.Name,EditorStyles.boldLabel);
                 using (new EditorGUI.DisabledScope(mode == "Live"))
                 {
                     bool muted = doc.Muted.Contains(key), soloed = doc.Solo.Contains(key);
-                    bool mute = GUI.Toggle(new Rect(header-100,y+6,22,20), muted, new GUIContent("M","Mute this audition track"), EditorStyles.miniButton);
-                    bool solo = GUI.Toggle(new Rect(header-75,y+6,22,20), soloed, new GUIContent("S","Solo this audition track"), EditorStyles.miniButton);
+                    bool mute = GUI.Toggle(new Rect(header-100,y+20,22,18), muted, new GUIContent("M","Mute this audition track"), EditorStyles.miniButton);
+                    bool solo = GUI.Toggle(new Rect(header-75,y+20,22,18), soloed, new GUIContent("S","Solo this audition track"), EditorStyles.miniButton);
                     if (mute != muted || solo != soloed)
                     {
                         if (mute) doc.Muted.Add(key); else doc.Muted.Remove(key);
@@ -356,8 +355,9 @@ namespace AudioMW.Editor
                         ApplyLegacyMonitor();
                     }
                 }
-                GUI.Label(new Rect(header-49,y+6,48,20),AudioGain.ToDecibels(lane.Gain).ToString("0.#")+" dB",EditorStyles.miniLabel);
-                GUI.Label(new Rect(10,y+26,header-20,18),new GUIContent(lane.Output!=null?lane.Output.name:"Event output",lane.Parameter!=null?lane.Parameter.name:"No parameter binding"),EditorStyles.miniLabel);
+                GUI.Label(new Rect(header-49,y+20,48,18),AudioGain.ToDecibels(lane.Gain).ToString("0.#")+" dB",EditorStyles.miniLabel);
+                string route = lane.Output != null ? lane.Output.name : "Event output";
+                DrawTimelineName(new Rect(8,y+20,Mathf.Max(0,header-112),18), route, route + "\n" + (lane.Parameter != null ? lane.Parameter.name : "No parameter binding"),EditorStyles.miniLabel);
             }
             GUI.EndGroup();
             GUI.BeginGroup(body);
@@ -384,7 +384,8 @@ namespace AudioMW.Editor
                     EditorGUI.DrawRect(new Rect(rect.x,rect.yMax-1,rect.width,1),edge);
                     EditorGUI.DrawRect(new Rect(rect.x,rect.y,1,rect.height),edge);
                     EditorGUI.DrawRect(new Rect(rect.xMax-1,rect.y,1,rect.height),edge);
-                    GUI.Label(new Rect(rect.x+6,rect.y,Mathf.Max(0,rect.width-12),15),new GUIContent(clip.Source!=null?clip.Source.name:"Missing",clip.Id),EditorStyles.miniLabel);
+                    string sourceName = clip.Source != null ? clip.Source.name : "Missing source";
+                    DrawTimelineName(new Rect(rect.x+6,rect.y,Mathf.Max(0,rect.width-12),15),sourceName,sourceName,EditorStyles.miniLabel);
                     if(!legacy)
                     {
                         EditorGUIUtility.AddCursorRect(new Rect(rect.x,rect.y,6,rect.height),MouseCursor.ResizeHorizontal);
@@ -432,7 +433,7 @@ namespace AudioMW.Editor
             if(!legacy&&Event.current.type==EventType.KeyDown&&!EditorGUIUtility.editingTextField)
             {
                 if((Event.current.control||Event.current.command)&&Event.current.keyCode==KeyCode.D){ArrangementAuthoring.Duplicate(score,selectedClips);Event.current.Use();}
-                else if(Event.current.keyCode==KeyCode.Delete||Event.current.keyCode==KeyCode.Backspace){ArrangementAuthoring.Delete(score,selectedClips);selectedClips.Clear();Event.current.Use();}
+                else if(Event.current.keyCode==KeyCode.Delete||Event.current.keyCode==KeyCode.Backspace){ArrangementAuthoring.Delete(score,selectedClips);selectedClips.Clear();CurrentDocument.Selection="lane:"+selectedLane;UpdateDeckCaption(CurrentAsset);Event.current.Use();}
                 else if(Event.current.keyCode==KeyCode.Escape){CancelDrag();Event.current.Use();}
             }
         }
@@ -486,7 +487,88 @@ namespace AudioMW.Editor
             }
         }
         private static string Musical(double seconds,MusicArrangement score){double beat=seconds/score.BeatSeconds;return (1+(int)(beat/score.BeatsPerBar))+":"+(1+(int)(beat%score.BeatsPerBar));}
-        private static void Cue(string name,double time,float header,float zoom,bool end=false){GUI.Label(new Rect(header+(float)time*zoom-(end?100:0),25,100,32),new GUIContent("▼ "+name,name+" · "+time.ToString("0.###")+" s"),EditorStyles.miniLabel);}
+        private static void DrawTimelineName(Rect rect, string name, string tooltip, GUIStyle style)
+        {
+            if (rect.width <= 0) return;
+            var content = new GUIContent(name, tooltip);
+            if (style.CalcSize(content).x > rect.width)
+            {
+                var ellipsis = new GUIContent("…");
+                float available = rect.width - style.CalcSize(ellipsis).x;
+                int length = style.GetCursorStringIndex(new Rect(0,0,100000,rect.height),content,new Vector2(Mathf.Max(0,available),rect.height*.5f));
+                length = Mathf.Clamp(length-1,0,name.Length);
+                if (length > 0 && char.IsHighSurrogate(name[length-1])) length--;
+                content.text = available > 0 ? name.Substring(0,length) + ellipsis.text : "";
+            }
+            GUI.Label(rect,content,style);
+        }
+
+        private readonly List<(double time, string name)> cuePoints = new List<(double, string)>();
+        private readonly List<(Rect bounds, GUIContent caption)> cueLabels = new List<(Rect, GUIContent)>();
+        private MusicArrangement cueScore;
+        private Vector3 cueViewport;
+        private int cueVersion = -1;
+
+        private void DrawCueLabels(MusicArrangement score, float zoom, float scroll, float width)
+        {
+            foreach (var label in LayoutCueLabels(score, zoom, scroll, width))
+                DrawTimelineName(label.bounds,label.caption.text,label.caption.tooltip,EditorStyles.miniLabel);
+        }
+
+        internal IReadOnlyList<(Rect bounds, GUIContent caption)> LayoutCueLabels(MusicArrangement score, float zoom, float scroll, float width)
+        {
+            var viewport = new Vector3(zoom,scroll,width);
+            int version = EditorUtility.GetDirtyCount(score);
+            if (cueScore != score || cueViewport != viewport || cueVersion != version)
+            {
+                cueScore = score;
+                cueVersion = version;
+                cueViewport = viewport;
+                cuePoints.Clear();
+                cueLabels.Clear();
+                cuePoints.Add((score.Entry,"Entry"));
+                foreach (var marker in score.Markers) cuePoints.Add((marker.Seconds,marker.Name));
+                cuePoints.Add((score.Exit,"Exit"));
+                cuePoints.Sort((a,b) => a.time.CompareTo(b.time));
+                float lastStart = Mathf.Max(0,width-54);
+                int i = 0;
+                while (i < cuePoints.Count)
+                {
+                    float x = (float)cuePoints[i].time*zoom-scroll;
+                    if (x < 0) { i++; continue; }
+                    if (x > width) break;
+                    float left = Mathf.Min(x,lastStart);
+                    int first = i++;
+                    while (i < cuePoints.Count)
+                    {
+                        float next = (float)cuePoints[i].time*zoom-scroll;
+                        if (next > width || Mathf.Min(next,lastStart)-left >= 54) break;
+                        i++;
+                    }
+                    float right = i < cuePoints.Count && (float)cuePoints[i].time*zoom-scroll <= width
+                        ? Mathf.Min((float)cuePoints[i].time*zoom-scroll,lastStart)-3 : width;
+                    var tooltip = new System.Text.StringBuilder();
+                    for (int n=first;n<i;n++)
+                    {
+                        if (n>first) tooltip.AppendLine();
+                        tooltip.Append(cuePoints[n].time.ToString("0.###")).Append(" s · ").Append(cuePoints[n].name);
+                    }
+                    int count=i-first;
+                    string title;
+                    if (cuePoints[first].time == score.Entry || cuePoints[i-1].time == score.Exit)
+                    {
+                        bool entry = cuePoints[first].time == score.Entry;
+                        bool exit = cuePoints[i-1].time == score.Exit;
+                        title = entry && exit ? "Entry/Exit" : entry ? "Entry" : "Exit";
+                        int additional = count - (entry ? 1 : 0) - (exit ? 1 : 0);
+                        if (additional > 0) title += " +" + additional;
+                    }
+                    else title = count == 1 ? "◆ " + cuePoints[first].name : "◆ " + count + " cues";
+                    cueLabels.Add((new Rect(left,47,Mathf.Max(0,right-left),17),new GUIContent(title,tooltip.ToString())));
+                }
+            }
+            return cueLabels;
+        }
         private double Snap(double value,MusicArrangement score)=>snap==0?value:Math.Round(value/(score.BeatSeconds*(snap==2?score.BeatsPerBar:1)))*score.BeatSeconds*(snap==2?score.BeatsPerBar:1);
         private void TimelineDrop(MusicArrangement score,string laneId,Rect area,float header,float zoom)
         {

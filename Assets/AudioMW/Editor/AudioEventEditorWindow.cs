@@ -321,21 +321,37 @@ namespace AudioMW.Editor
                 browserAssetDetail.text = AssetSummary(target);
                 browserAssetDetail.tooltip = path;
             }
-            if(breadcrumb!=null)breadcrumb.text=target==CurrentAsset?(target!=null?target.name:"Select an object"):(CurrentAsset!=null?CurrentAsset.name:"No event")+"  ›  "+(target!=null?target.name:"Select an object");
-            if(breadcrumb!=null&&target==CurrentAsset)
+            UpdateDeckCaption(target);
+        }
+
+        private void UpdateDeckCaption(Object target)
+        {
+            if (breadcrumb == null) return;
+            string caption = target != null ? target.name : "Select an object";
+            string pathText = target != CurrentAsset && CurrentAsset != null ? CurrentAsset.name + "  ›  " + caption : caption;
+            if (target == CurrentAsset && target is MusicTrack music && selectedLane.StartsWith("legacy:") && int.TryParse(selectedLane.Substring(7),out int index))
             {
-                if(target is MusicTrack music&&selectedLane.StartsWith("legacy:")&&int.TryParse(selectedLane.Substring(7),out int index))
+                int layer = LegacyLayerIndex(music,index);
+                if (layer >= 0)
                 {
-                    int layer=LegacyLayerIndex(music,index);
-                    if(layer>=0)breadcrumb.text+="  ›  "+music.Layers[layer].Name+"  ›  "+music.Layers[layer].Clip.name;
+                    var item = music.Layers[layer];
+                    caption = "Track · " + item.Name;
+                    pathText += "  ›  " + item.Name + (item.Clip != null ? "  ›  " + item.Clip.name : "");
                 }
-                else if(target is MusicArrangement score)
-                {
-                    var lane=score.Lanes.FirstOrDefault(x=>x.Id==selectedLane);
-                    if(lane!=null){breadcrumb.text+="  ›  "+lane.Name;var clip=lane.Clips.FirstOrDefault(x=>selectedClips.Contains(x.Id));if(clip?.Source!=null)breadcrumb.text+="  ›  "+clip.Source.name;}
-                }
-                breadcrumb.tooltip=breadcrumb.text;
             }
+            else if (target == CurrentAsset && target is MusicArrangement score)
+            {
+                var lane = score.Lanes.FirstOrDefault(x => x.Id == selectedLane);
+                if (lane != null)
+                {
+                    var clip = lane.Clips.FirstOrDefault(x => selectedClips.Contains(x.Id));
+                    caption = clip?.Source != null ? "Clip · " + clip.Source.name : "Track · " + lane.Name;
+                    pathText += "  ›  " + lane.Name + (clip?.Source != null ? "  ›  " + clip.Source.name : "");
+                }
+                pathText += "\nTiming is in seconds. Authored changes apply when playback restarts.";
+            }
+            breadcrumb.text = caption;
+            breadcrumb.tooltip = pathText;
         }
         private void CreateAsset(string kind)
         {

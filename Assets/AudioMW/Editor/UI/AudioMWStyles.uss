@@ -503,3 +503,8 @@
 .audiomw-event-editor-v2 #studio-view-tabs .unity-toolbar-button { border-width: 0; border-radius: 0; }
 .audiomw-event-editor-v2 #studio-view-tabs .studio-v2-active { border-bottom-width: 2px; border-bottom-color: rgb(169,207,118); }
 .audiomw-event-editor-v2 #studio-v2-dock-tabs { height: 28px; border-top-width: 1px; border-top-color: rgb(68,73,78); }
+
+.audiomw-event-editor-v2 #studio-v2-deck > .unity-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.audiomw-profile-inspector #music-layer { margin-top: 3px; margin-bottom: 3px; }
+.audiomw-profile-inspector #music-layer > .unity-foldout__content { margin-left: 6px; padding: 4px 6px; border-left-width: 1px; border-left-color: rgb(63,66,71); }
+.audiomw-profile-inspector #music-layer .unity-base-field { margin: 3px 0; }

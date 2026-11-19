@@ -141,6 +141,31 @@ namespace AudioMW.Tests
             }
             finally{Object.DestroyImmediate(track);}
         }
+        [Test] public void AdjacentTimelineCuesShareLabelsAndKeepEveryNameAndBoundary()
+        {
+            var score = ScriptableObject.CreateInstance<MusicArrangement>();
+            try
+            {
+                score.Exit = 4;
+                score.Markers.Add(new ArrangementMarker { Name = "Late cue", Seconds = 3.99 });
+                score.Markers.Add(new ArrangementMarker { Name = "Middle cue", Seconds = 2 });
+                score.Markers.Add(new ArrangementMarker { Name = "At entry", Seconds = 0 });
+                score.Markers.Add(new ArrangementMarker { Name = "Also at entry", Seconds = 0 });
+                var labels = window.LayoutCueLabels(score,100,0,400);
+                CollectionAssert.AreEqual(new[]{"Entry +2","◆ Middle cue","Exit +1"},labels.Select(x => x.caption.text));
+                StringAssert.Contains("At entry",labels[0].caption.tooltip);
+                StringAssert.Contains("Also at entry",labels[0].caption.tooltip);
+                StringAssert.Contains("Late cue",labels[2].caption.tooltip);
+                Assert.Less(labels[0].bounds.xMax,labels[1].bounds.xMin);
+                Assert.Less(labels[1].bounds.xMax,labels[2].bounds.xMin);
+                Assert.LessOrEqual(labels[2].bounds.xMax,400);
+                var panned = window.LayoutCueLabels(score,100,150,180);
+                Assert.AreEqual(1,panned.Count);
+                Assert.AreEqual("◆ Middle cue",panned[0].caption.text);
+            }
+            finally { Object.DestroyImmediate(score); }
+        }
+
         [Test] public void TimelineDisplayFollowsBothEdgesAndKeepsTimeUnitsExplicit()
         {
             Assert.AreEqual(60,AudioEventEditorWindow.FittedLaneHeight(240,4));

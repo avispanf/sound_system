@@ -39,7 +39,20 @@ namespace AudioMW.Editor
                 field.bindingPath = property.FindPropertyRelative(Fields[i]).propertyPath;
                 var row = new VisualElement { name = "music-layer-" + Fields[i] }; row.Add(field); root.Add(row);
             }
-            root.contentContainer.TrackSerializedObjectValue(property.serializedObject, _ => root.text = Title(property));
+            void RefreshTitle()
+            {
+                root.text = Title(property);
+                root.tooltip = root.text;
+                var name = property.FindPropertyRelative("layerName");
+                root.Q<TextField>().tooltip = name.hasMultipleDifferentValues ? "Mixed layer names" : name.stringValue;
+                foreach (var field in root.Query<ObjectField>().ToList())
+                {
+                    var reference = property.serializedObject.FindProperty(field.bindingPath);
+                    field.tooltip = reference.hasMultipleDifferentValues ? "Mixed references" : AssetDatabase.GetAssetPath(reference.objectReferenceValue);
+                }
+            }
+            RefreshTitle();
+            root.contentContainer.TrackSerializedObjectValue(property.serializedObject, _ => RefreshTitle());
             return root;
         }
 

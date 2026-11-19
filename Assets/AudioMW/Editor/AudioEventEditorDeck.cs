@@ -453,13 +453,13 @@ namespace AudioMW.Editor
                 EditorGUILayout.EndHorizontal();EditorGUIUtility.labelWidth=previousLabel;
                 EditorGUILayout.BeginHorizontal();
                 if(clipIndex>=0){var selected=lane.Clips[clipIndex];GUILayout.Label("End "+(selected.Start+selected.Duration).ToString("0.###")+" s · "+selected.Source?.channels+" ch",EditorStyles.miniLabel);GUILayout.FlexibleSpace();}
-                if(GUILayout.Button("Arrangement",GUILayout.Width(100))){selectedLane="";selectedClips.Clear();CurrentDocument.Selection="";}
-                if(clipIndex>=0){if(GUILayout.Button("Duplicate",GUILayout.Width(100))){deckSerialized.ApplyModifiedProperties();ArrangementAuthoring.Duplicate(score,selectedClips);deckSerialized.Update();}if(GUILayout.Button("Delete clip",GUILayout.Width(100))){deckSerialized.ApplyModifiedProperties();ArrangementAuthoring.Delete(score,selectedClips);selectedClips.Clear();deckSerialized.Update();}}
+                if(GUILayout.Button("Arrangement",GUILayout.Width(100))){selectedLane="";selectedClips.Clear();CurrentDocument.Selection="";UpdateDeckCaption(score);}
+                if(clipIndex>=0){if(GUILayout.Button("Duplicate",GUILayout.Width(100))){deckSerialized.ApplyModifiedProperties();ArrangementAuthoring.Duplicate(score,selectedClips);deckSerialized.Update();}if(GUILayout.Button("Delete clip",GUILayout.Width(100))){deckSerialized.ApplyModifiedProperties();ArrangementAuthoring.Delete(score,selectedClips);selectedClips.Clear();CurrentDocument.Selection="lane:"+selectedLane;deckSerialized.Update();UpdateDeckCaption(score);}}
                 else
                 {
                     using(new EditorGUI.DisabledScope(laneIndex==0))if(GUILayout.Button("Move track up")){deckSerialized.ApplyModifiedProperties();Undo.RecordObject(score,"Reorder lane");score.Lanes.RemoveAt(laneIndex);score.Lanes.Insert(laneIndex-1,lane);EditorUtility.SetDirty(score);deckSerialized.Update();}
                     using(new EditorGUI.DisabledScope(laneIndex==score.Lanes.Count-1))if(GUILayout.Button("Move track down")){deckSerialized.ApplyModifiedProperties();Undo.RecordObject(score,"Reorder lane");score.Lanes.RemoveAt(laneIndex);score.Lanes.Insert(laneIndex+1,lane);EditorUtility.SetDirty(score);deckSerialized.Update();}
-                    if(GUILayout.Button("Delete track")){deckSerialized.ApplyModifiedProperties();Undo.RecordObject(score,"Delete lane");score.Lanes.Remove(lane);selectedLane="";EditorUtility.SetDirty(score);deckSerialized.Update();}
+                    if(GUILayout.Button("Delete track")){deckSerialized.ApplyModifiedProperties();Undo.RecordObject(score,"Delete lane");score.Lanes.Remove(lane);selectedLane="";CurrentDocument.Selection="";EditorUtility.SetDirty(score);deckSerialized.Update();UpdateDeckCaption(score);}
                 }
                 EditorGUILayout.EndHorizontal();
             }
@@ -467,7 +467,6 @@ namespace AudioMW.Editor
             else if(musicDeckSection=="Modulation")EditorGUILayout.HelpBox("Select a track to edit its parameter response.",MessageType.None);
             else DrawFields(new[]{"Tempo","BeatsPerBar","Entry","Exit","Loop","LoopStart","LoopEnd","Gain","Markers"});
             string issue=score.Validate();if(issue!="")EditorGUILayout.HelpBox(issue,MessageType.Error);
-            if(breadcrumb!=null)breadcrumb.tooltip=breadcrumb.text+"\nTiming is in seconds. Tempo changes the grid, not speed. Authored arrangement edits apply on restart; pause/resume retains the playing snapshot.";
         }
     }
 }
