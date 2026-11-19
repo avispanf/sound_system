@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using System.Collections;
 using System.Linq;
 using AudioMW;
@@ -8,10 +10,26 @@ using UnityEngine.ResourceManagement.ResourceProviders;
 
 public sealed class AudioMWCatalogPlayer : MonoBehaviour
 {
+    public const string RemoteKey = "audiomw-validation/remote-kitchen-bass";
     private IEnumerator Start()
     {
         AudioListener.volume = 0;
-        const string key = "audiomw-validation/kitchen-bass";
+        string url = Environment.GetEnvironmentVariable("AUDIOMW_REMOTE_CATALOG");
+        string key = "audiomw-validation/kitchen-bass";
+        if (!string.IsNullOrEmpty(url))
+        {
+            var original = Addressables.LoadResourceLocationsAsync(RemoteKey,typeof(AudioClip));
+            yield return original;
+            bool absent = original.Status == AsyncOperationStatus.Succeeded && original.Result.Count == 0;
+            Addressables.Release(original);
+            if (!absent) { Debug.LogError("Remote clip must be absent from the installed catalog."); Application.Quit(6); yield break; }
+            var catalog = Addressables.LoadContentCatalogAsync(url,false);
+            yield return catalog;
+            bool loaded = catalog.Status == AsyncOperationStatus.Succeeded;
+            Addressables.Release(catalog);
+            if (!loaded) { Debug.LogError("HTTP catalog unavailable."); Application.Quit(7); yield break; }
+            key = RemoteKey;
+        }
         var locations = Addressables.LoadResourceLocationsAsync(key, typeof(AudioClip));
         yield return locations;
         if (locations.Status != AsyncOperationStatus.Succeeded || locations.Result.Count != 1 || locations.Result[0].ProviderId != typeof(BundledAssetProvider).FullName)
@@ -25,6 +43,23 @@ public sealed class AudioMWCatalogPlayer : MonoBehaviour
         var loader = new AddressableAudioAssetLoader();
         bool done = false;
         AudioClip clip = null;
+        if (key == RemoteKey)
+        {
+            loader.LoadAsync(key,(address,audio) => { clip = audio; done = true; });
+            double failureDeadline = Time.realtimeSinceStartupAsDouble + 30;
+            while (!done && Time.realtimeSinceStartupAsDouble < failureDeadline) yield return null;
+            if (!done || clip != null || loader.RetainedAddressCount != 1)
+            {
+                Debug.LogError("Interrupted transfer must complete with an unavailable clip.");
+                Application.Quit(8);
+                yield break;
+            }
+            loader.Release(key);
+            if (loader.RetainedAddressCount != 0) { Debug.LogError("Failed request still retained."); Application.Quit(9); yield break; }
+            File.WriteAllText(Environment.GetEnvironmentVariable("AUDIOMW_RETRY_MARKER"),"released");
+            Debug.Log("REMOTE_CATALOG interrupted=True released=True");
+            done = false;
+        }
         loader.LoadAsync(key, (address, audio) => { clip = audio; done = true; });
         double deadline = Time.realtimeSinceStartupAsDouble + 20;
         while (!done && Time.realtimeSinceStartupAsDouble < deadline) yield return null;

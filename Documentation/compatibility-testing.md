@@ -91,3 +91,41 @@ Check the Player exit status and the `PACKED_PLAYER_RUN True` line. The Player
 resolves the bundled provider, reads non-silent PCM from the sample, starts
 a tracked AudioMW voice with output muted, checks that its sample position
 advances and releases the retained address.
+
+## Interrupted HTTP bundle transfer
+
+Use an empty output directory, an assembled UPM tarball and a macOS Unity
+editor with Mac Mono support. Run once per editor and Addressables version.
+
+```sh
+python3 Tools/run_remote_catalog.py --directory /absolute/remote-test --editor /absolute/Unity --archive /absolute/audiomw.tgz --unity-version 6000.3.21f1 --addressables-version 2.9.1
+```
+
+For Unity 2022.3.62f3 use Addressables 1.21.21. The command starts an HTTP
+server on an ephemeral loopback port. It builds the client first, then creates
+a separate catalog with a new address. The client checks that the address is
+absent before fetching the HTTP catalog. For the first bundle request the server
+advertises the complete length and closes the connection partway through.
+AudioMW must return a missing clip, release the failed request, then load the
+same address on a fresh request. The Player checks decoded PCM, advancing sample
+position and zero retained entries after release, with output muted.
+
+`http.json` records the actual transfers and `verification.json` records a
+successful run. The Player log includes the expected connection error for the
+interrupted request. This probe measures application-initiated retry on a cold
+bundle over local HTTP. The production cache, an external CDN, TLS and mobile
+OS network transitions need separate verification.
+
+## Android sample build with High stripping
+
+Generate a separate fixture with `--archive`, then use an editor with Android
+Build Support, SDK, NDK and OpenJDK installed:
+
+```sh
+/absolute/Unity -batchmode -buildTarget Android -projectPath /absolute/android-fixture -executeMethod BuildPlayerSmoke.BuildAndroidSample -logFile /absolute/android-build.log
+```
+
+The build imports the packaged demo and produces an ARM64 IL2CPP APK at
+`AndroidSample/AudioMW.apk`. The fixture root contains
+`android-sample-build.json` with the build result. Installation, startup,
+background/resume, performance and listening require a separate device run.

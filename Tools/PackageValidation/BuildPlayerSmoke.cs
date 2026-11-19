@@ -62,6 +62,30 @@ public static class BuildPlayerSmoke
         catch (Exception error) { Debug.LogException(error); EditorApplication.Exit(1); }
     }
 
+    public static void BuildAndroidSample()
+    {
+        try
+        {
+            if (!Application.isBatchMode || !File.Exists(".audiomw-test-project") || EditorUserBuildSettings.activeBuildTarget != BuildTarget.Android)
+                throw new InvalidOperationException("Use a generated batch fixture with -buildTarget Android.");
+            File.Delete("android-sample-build.json");
+            ValidateDistribution.Validate();
+            var scene = EditorSceneManager.GetActiveScene();
+            PlayerSettings.SetScriptingBackend(BuildTargetGroup.Android,ScriptingImplementation.IL2CPP);
+            PlayerSettings.SetManagedStrippingLevel(BuildTargetGroup.Android,ManagedStrippingLevel.High);
+            PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
+            PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.Android,"com.avispanf.audiomw.samplecheck");
+            EditorUserBuildSettings.buildAppBundle = false;
+            const string output = "AndroidSample/AudioMW.apk";
+            var build = BuildPipeline.BuildPlayer(new BuildPlayerOptions { scenes = new[]{scene.path}, target = BuildTarget.Android, locationPathName = output, options = BuildOptions.None });
+            bool success = build.summary.result == BuildResult.Succeeded && build.summary.totalErrors == 0;
+            var report = new Result { success = success, unity = Application.unityVersion, target = "Android arm64", backend = "IL2CPP", stripping = "High", player = Path.GetFullPath(output), errors = build.summary.totalErrors };
+            File.WriteAllText("android-sample-build.json",JsonUtility.ToJson(report,true));
+            EditorApplication.Exit(success ? 0 : 1);
+        }
+        catch (Exception error) { Debug.LogException(error); EditorApplication.Exit(1); }
+    }
+
     [Serializable] private sealed class Result
     {
         public bool success;

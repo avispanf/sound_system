@@ -19,6 +19,14 @@ jobs:
         run: python3 -m unittest discover -s Tools/Tests -v
       - name: Assemble UPM archive
         run: python3 Tools/build_package.py --output .ci/audiomw.tgz
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test packaged agent bridge over stdio
+        run: |
+          tar -xzf .ci/audiomw.tgz -C .ci package/AgentBridge~
+          npm --prefix .ci/package/AgentBridge~ ci
+          npm --prefix .ci/package/AgentBridge~ test
       - name: Prepare portable package fixture
         run: python3 Tools/prepare_test_project.py --destination .ci/PackageProject --unity-version 2022.3.62f1 --archive .ci/audiomw.tgz
       - uses: actions/upload-artifact@v4

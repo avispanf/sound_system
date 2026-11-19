@@ -59,10 +59,9 @@ processing plug-ins, live spectral monitoring or loudness compliance certificati
 
 ## Open release gates
 
-- IL2CPP with High stripping: Mac modules are installed for both local editors,
-  but native builds require full Xcode. The installed Command Line Tools did not
-  satisfy the builder. IL2CPP has no successful local Player result yet.
-- Windows/Linux and target mobile/device runs, remote Addressables catalog delivery,
+- macOS IL2CPP with High stripping requires a compatible Xcode installation.
+  Android ARM64 IL2CPP builds with High stripping locally. Its device run is open.
+- Windows/Linux and target mobile/device runs, production CDN/TLS delivery,
   audio-device recovery and broader accessibility checks.
 - Real redistributable demo audio, listening of transitions/crossfades/ducking,
   final product identity, commercial licensing review and store materials.
@@ -133,3 +132,30 @@ expire and that exactly one fridge and one ambience bed start in the new scene.
 Reset tests wait for the actual scene replacement and disposal of the previous
 objects. Unity also logged temporary allocator lifetime messages during scene
 cycling. Their allocation sites were not identified in this run.
+
+## Release checks on 2026-11-19, remote delivery and Android
+
+The remote validation built a macOS Mono client before publishing an additional
+catalog and WAV bundle to a loopback HTTP server. The remote address was absent
+from the installed catalog. On each editor version the first bundle response
+ended after 8192 bytes. The missing-clip callback completed, the failed request
+was released and an explicit new request fetched the complete bundle. The Player
+decoded non-silent PCM, advanced playback and released all address entries with
+output muted. This was verified with Unity 2022.3.62f3 / Addressables 1.21.21
+and Unity 6000.3.21f1 / Addressables 2.9.1. Public hosting, TLS, cache eviction,
+OS network switching and device tests remain open.
+
+The packaged demo scene also built with Unity 6000.3.21f1 as a non-development
+Android ARM64 IL2CPP APK with High managed stripping and zero build errors.
+The APK contains the arm64 Unity and IL2CPP libraries and IL2CPP metadata.
+The APK v2 signature verified. The minimum SDK is 25 and the target is 36.
+No installation or performance measurement on a phone was attempted. A fresh
+macOS IL2CPP build stopped at the C++ toolchain because full Xcode is missing.
+
+With Unity's job temporary allocation trace enabled, 102/102 BAD SHIFT tests
+passed. All nine expired allocation stack dumps started at PhysicsScene::Simulate,
+in the fixed-step physics player loop. A separate project with no AudioMW
+dependency reproduced the same 648-byte allocation with rigidbodies, contact
+callbacks, scene reload and pause/resume on both Unity 6000.3.21f1 and
+6000.3.28f1. This isolates the warning to Unity Physics. Its underlying
+lifetime warning remains reproducible in Unity.
