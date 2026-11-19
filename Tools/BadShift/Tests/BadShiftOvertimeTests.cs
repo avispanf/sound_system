@@ -123,7 +123,7 @@ public sealed class BadShiftOvertimeTests
         yield return new WaitForSeconds(.45f);yield return Hit(.25f);Assert.AreEqual(0,battle.EnemyHealth);Assert.IsTrue(battle.Falling);Assert.IsFalse(battle.PhaseTwoIntro);
         float until=Time.time+2;while(!battle.Finished&&Time.time<until)yield return null;Assert.AreEqual(BadShiftBattlePhase.Victory,battle.Phase);
         Assert.AreEqual(1,AudioSystem.Debugger.Records.Count(r=>r.EventName==battle.VictorySound.name));
-        game.ResetScene();yield return new WaitForSeconds(.8f);battle=Object.FindFirstObjectByType<BadShiftBattle>();
+        yield return PlaygroundTestCleanup.ResetAndWait(game);battle=Object.FindFirstObjectByType<BadShiftBattle>();
         Assert.IsFalse(battle.SecondPhase);Assert.IsFalse(battle.Active);Assert.AreEqual(0,battle.EnemyComboLength);Assert.AreEqual(100,battle.EnemyHealth);
     }
 }

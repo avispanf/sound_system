@@ -77,9 +77,20 @@ public sealed class RelayFieldIntegrationTests
         Assert.AreEqual(1,game.Bank.ScopeCount);
         game.RequestMusic(true); double boundary = AudioSystem.Music.PendingStartDspTime; game.RequestMusic(true);
         Assert.AreEqual(boundary,AudioSystem.Music.PendingStartDspTime);
+        var previousHandles = AudioRuntime.Instance.Pool.Voices
+            .Where(voice => voice.IsActive && voice.HandleId != 0)
+            .Select(voice => new SoundHandle(voice.HandleId)).ToArray();
+        Assert.IsNotEmpty(previousHandles);
         SoundBank bank = game.Bank;
         yield return SceneManager.LoadSceneAsync("RelayField"); yield return null;
+        var current = Object.FindFirstObjectByType<AudioMWPlayground>();
+        Assert.AreSame(bank,current.Bank);
         Assert.AreEqual(1,bank.ScopeCount);
-        Assert.LessOrEqual(AudioSystem.ActiveVoiceCount,2);
+        Assert.IsFalse(previousHandles.Any(handle => handle.IsPlaying),"A voice from the previous scene survived the reload.");
+        var demo = current.GetComponent<BadShiftDemo>();
+        var fridge = demo.CompressorEmitter != null ? demo.CompressorEmitter.Event : demo.FridgeSound;
+        var voices = AudioRuntime.Instance.Pool.Voices.Where(voice => voice.IsActive).ToArray();
+        Assert.AreEqual(1,voices.Count(voice => voice.CurrentEvent == current.CurrentBed),"Expected one ambience bed in the new scene.");
+        Assert.AreEqual(1,voices.Count(voice => voice.CurrentEvent == fridge),"Expected one fridge loop in the new scene.");
     }
 }

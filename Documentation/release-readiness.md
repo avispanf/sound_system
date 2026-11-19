@@ -126,3 +126,10 @@ through BundledAssetProvider. The native probe decoded non-silent PCM, confirmed
 sample advancement on a tracked AudioMW voice at zero listener volume, and
 released the address. Remote hosting and download failure recovery on target
 hardware remain open.
+
+BAD SHIFT passed all 102 gameplay PlayMode tests in one Unity 6000.3.21f1 run
+with Editor output muted. The reload test now checks that old voice handles
+expire and that exactly one fridge and one ambience bed start in the new scene.
+Reset tests wait for the actual scene replacement and disposal of the previous
+objects. Unity also logged temporary allocator lifetime messages during scene
+cycling. Their allocation sites were not identified in this run.

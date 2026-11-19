@@ -83,7 +83,7 @@ public sealed class BadShiftOutcomeTests
         Assert.AreEqual(0,battle.OutcomeTime);Assert.IsEmpty(battle.BossOutcomeQuote);Assert.IsFalse(battle.Celebrating(false));Assert.IsFalse(battle.Celebrating(true));
         probe.Capture=()=>Assert.Less(Vector3.Distance(armRest,Arm.localPosition),.001f);yield return null;
         Assert.AreEqual(1,Object.FindObjectsByType<Camera>(FindObjectsSortMode.None).Count(c=>c.name=="Broccoli portrait camera"));
-        game.ResetScene();yield return new WaitForSeconds(.8f);Assert.IsTrue(portrait==null);
+        yield return PlaygroundTestCleanup.ResetAndWait(game);Assert.IsTrue(portrait==null);
         Assert.IsFalse(Object.FindObjectsByType<Camera>(FindObjectsSortMode.None).Any(c=>c.name=="Broccoli portrait camera"));
         Assert.IsFalse(Object.FindFirstObjectByType<BadShiftBattle>().Active);
     }
