@@ -52,10 +52,18 @@ def prepare(destination, unity_version, archive=None, addressables_version=None)
     optional = destination / "Assets" / "Editor" / "AudioMWAddressablesValidation"
     if optional.exists():
         shutil.rmtree(optional)
+    catalog_player = destination / "Assets" / "AudioMWCatalogPlayerValidation"
+    if catalog_player.exists():
+        shutil.rmtree(catalog_player)
     if addressables_version is not None:
         dependencies["com.unity.addressables"] = addressables_version
         optional.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(repository / "Tools" / "PackageValidation" / "ValidateAddressables.cs", optional)
+        helpers = repository / "Tools" / "PackageValidation"
+        shutil.copy2(helpers / "ValidateAddressables.cs", optional)
+        if archive is not None:
+            shutil.copy2(helpers / "BuildCatalogPlayer.cs", optional)
+            catalog_player.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(helpers / "AudioMWCatalogPlayer.cs", catalog_player)
     (destination / "Packages").mkdir(exist_ok=True)
     (destination / "Packages" / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     (destination / "ProjectSettings").mkdir(exist_ok=True)

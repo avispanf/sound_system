@@ -78,3 +78,16 @@ existing `ValidateAddressables.Run` remains available for the compile-only check
 On Unity 6000.3.21f1, Addressables 1.21.21 with Scriptable Build Pipeline 2.6.1
 failed at CreateBuiltInShadersBundle before building the catalog. The packed
 check with Addressables 2.9.1 passed on the same editor.
+
+To check the same local bundle in a native macOS Mono Player, continue in that
+fixture after the packed Editor check succeeds:
+
+```sh
+/absolute/Unity -batchmode -projectPath /absolute/catalog-fixture -executeMethod BuildCatalogPlayer.Build -logFile /absolute/catalog-build.log
+"/absolute/catalog-fixture/CatalogPlayer/AudioMW Packed Catalog.app/Contents/MacOS/AudioMW Packed Catalog" -batchmode -logFile /absolute/catalog-player.log
+```
+
+Check the Player exit status and the `PACKED_PLAYER_RUN True` line. The Player
+resolves the bundled provider, reads non-silent PCM from the sample, starts
+a tracked AudioMW voice with output muted, checks that its sample position
+advances and releases the retained address.

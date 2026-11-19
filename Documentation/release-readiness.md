@@ -121,6 +121,8 @@ passed the following on both Unity 2022.3.62f3 and 6000.3.21f1.
 Use Addressables 1.21.21 for the tested 2022.3 configuration and 2.9.1 for the
 tested Unity 6 configuration. Reproduction steps and the observed Unity 6
 incompatibility are in [compatibility testing](compatibility-testing.md).
-The packed catalog result covers the local Editor Play Mode path. Remote hosting,
-download failure recovery on target hardware and native Addressables Player
-coverage are still open.
+In a separate macOS Mono Player on each version, the same local catalog resolved
+through BundledAssetProvider. The native probe decoded non-silent PCM, confirmed
+sample advancement on a tracked AudioMW voice at zero listener volume, and
+released the address. Remote hosting and download failure recovery on target
+hardware remain open.

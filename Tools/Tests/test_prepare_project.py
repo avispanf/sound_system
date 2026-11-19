@@ -27,6 +27,21 @@ class FixtureTests(unittest.TestCase):
             self.assertTrue((destination / "Assets/AudioMWPlayerValidation/AudioMWPlayerSmoke.cs").is_file())
             self.assertTrue((destination / "Assets/Editor/AudioMWDistributionValidation/BuildPlayerSmoke.cs").is_file())
 
+    def test_catalog_player_helpers_follow_optional_dependency_on_reuse(self):
+        with tempfile.TemporaryDirectory() as temporary, redirect_stdout(io.StringIO()):
+            root = Path(temporary)
+            archive = root / "package.tgz"
+            archive.touch()
+            destination = root / "Project"
+            editor = destination / "Assets/Editor/AudioMWAddressablesValidation/BuildCatalogPlayer.cs"
+            player = destination / "Assets/AudioMWCatalogPlayerValidation/AudioMWCatalogPlayer.cs"
+            prepare(destination, "6000.3.21f1", archive, "2.9.1")
+            self.assertTrue(editor.is_file())
+            self.assertTrue(player.is_file())
+            prepare(destination, "6000.3.21f1", archive)
+            self.assertFalse(editor.exists())
+            self.assertFalse(player.exists())
+
     def test_cross_drive_archives_keep_an_absolute_fallback(self):
         with patch("prepare_test_project.os.path.relpath", side_effect=ValueError("different drives")):
             self.assertEqual("file:/archive/package.tgz", archive_dependency(Path("/project"), Path("/archive/package.tgz")))
